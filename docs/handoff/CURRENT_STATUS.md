@@ -2,25 +2,25 @@
 
 ## Current phase
 
-Primitive layer implementation (specialists).
+Control-plane hardening (handoff contracts and packet contracts).
 
 ## What exists now
 
 - foundational operating/routing docs are in place and aligned
-- orchestrator definition is contract-structured
-- primitive layer plan exists for initial specialist implementation
-- specialist subtree has routing scaffolding
+- canonical decisions are frozen in `docs/CANONICAL_DECISIONS.md` and discoverable from `INDEX.md`
+- live phase/state ownership is explicitly anchored to `docs/handoff/`
+- top-level `skills/` and `prompts/` are intentionally materialized as package areas
 
 ## Major open gaps
 
-- implement and stabilize initial specialist set (`planner`, `reviewer`, `builder`, `tester`)
-- define first reusable teams after specialist layer quality bar is met
-- define first reusable sequences after team patterns stabilize
+- create/normalize the handoff contract layer
+- define task packet and result/handback packet contracts
+- reconcile template contract/index with actual `templates/` subtree in a later scoped task
 
 ## Current blockers
 
-No active blockers; main risk is role overlap or contract drift in specialist definitions.
+No active blockers; main risk is contract drift if handoff packet standards are not formalized before broader primitive buildout.
 
 ## Current repo health summary
 
-Repo has stable documentation foundations and is now focused on building the first execution primitives in dependency order.
+Repo has completed canonical decision freezing and is ready for handoff-control-plane hardening before larger primitive-layer expansion.

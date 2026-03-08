@@ -7,6 +7,7 @@ This document is the canonical foundation for the `my-pi` project.
 It explains why this project exists, what role it plays in a larger tooling ecosystem, what principles govern its design, what belongs inside its scope, and how it should be decomposed into operational documents, specifications, primitives, templates, and tooling.
 
 This document is a stable, high-signal project reference. It is not a live status log, a task tracker, or a handoff document.
+Live phase/state truth is owned exclusively by `docs/handoff/`.
 
 ---
 

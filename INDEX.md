@@ -120,6 +120,15 @@ Use when deeper understanding is required about:
 
 Do not read by default unless your role or task requires it.
 
+### `docs/CANONICAL_DECISIONS.md`
+Durable canonical decisions that should not be re-inferred each loop.
+
+Use when a task touches:
+
+- naming standards across contracts/definitions
+- live-state ownership boundaries
+- durable structure constraints
+
 ### `docs/ORCHESTRATION_MODEL.md`
 Defines the system vocabulary and hierarchy.
 

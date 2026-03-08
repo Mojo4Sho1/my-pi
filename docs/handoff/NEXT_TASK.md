@@ -2,30 +2,29 @@
 
 ## Current next task
 
-Implement initial specialist layer.
+Create and normalize the handoff contract layer.
 
 ## Goal
 
-Create the first contract-conforming specialist primitive layer for `my-pi`.
+Define stable contracts for handoff control-plane artifacts, including task/result packets.
 
 ## Success condition
 
-The specialist layer includes a complete specialist router and four contract-conforming specialist definitions:
+Handoff contract docs exist and are aligned with current orchestrator workflow:
 
-- `agents/specialists/_SPECIALISTS_INDEX.md`
-- `agents/specialists/planner.md`
-- `agents/specialists/reviewer.md`
-- `agents/specialists/builder.md`
-- `agents/specialists/tester.md`
+- a handoff contract that defines ownership, update rules, and document roles under `docs/handoff/`
+- a task packet contract for orchestrator-to-downstream delegation
+- a result/handback packet contract for downstream-to-orchestrator returns
+- routing references from handoff docs are consistent and non-conflicting
 
 ## Immediate inputs/docs to read
 
-- `agents/PRIMITIVE_LAYER_PLAN.md`
-- `agents/AGENT_DEFINITION_CONTRACT.md`
-- `agents/_AGENTS_INDEX.md`
-- `agents/specialists/_SPECIALISTS_INDEX.md`
+- `docs/WORKFLOW.md`
+- `docs/CANONICAL_DECISIONS.md`
+- `docs/handoff/_HANDOFF_INDEX.md`
 - `docs/handoff/CURRENT_STATUS.md`
+- `docs/handoff/TASK_QUEUE.md`
 
 ## Expected output
 
-A stable first specialist layer with non-overlapping roles, contract conformance, and aligned handoff state.
+A normalized handoff control-plane contract surface that future specialist/team/sequence loops can follow without ambiguity.
