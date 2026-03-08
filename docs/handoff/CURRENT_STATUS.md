@@ -2,23 +2,25 @@
 
 ## Current phase
 
-Foundational architecture and operating-document stabilization.
+Primitive layer implementation (specialists).
 
 ## What exists now
 
-- core operating docs (`AGENTS.md`, `INDEX.md`, orchestration/workflow docs)
-- initial orchestrator definition and agent contract
-- handoff, seeds, and template scaffolds with minimal routing content
+- foundational operating/routing docs are in place and aligned
+- orchestrator definition is contract-structured
+- primitive layer plan exists for initial specialist implementation
+- specialist subtree has routing scaffolding
 
 ## Major open gaps
 
-- deeper specialist/team/sequence definition set is still pending
-- template and seed ecosystems are scaffold-level, not mature
+- implement and stabilize initial specialist set (`planner`, `reviewer`, `builder`, `tester`)
+- define first reusable teams after specialist layer quality bar is met
+- define first reusable sequences after team patterns stabilize
 
 ## Current blockers
 
-No active blockers; main constraint is maintaining consistency as docs evolve.
+No active blockers; main risk is role overlap or contract drift in specialist definitions.
 
 ## Current repo health summary
 
-Documentation structure is now routed and non-empty at key control points, with follow-up expected as primitives expand.
+Repo has stable documentation foundations and is now focused on building the first execution primitives in dependency order.

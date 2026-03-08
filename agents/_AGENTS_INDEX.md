@@ -78,6 +78,13 @@ Use this area when the task involves:
 - specialist input/output expectations
 - creating or revising specialist definitions
 
+Current initial specialist layer:
+
+- `agents/specialists/planner.md`
+- `agents/specialists/reviewer.md`
+- `agents/specialists/builder.md`
+- `agents/specialists/tester.md`
+
 Route through:
 
 - `agents/specialists/_SPECIALISTS_INDEX.md`
