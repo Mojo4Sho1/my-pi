@@ -27,22 +27,23 @@ Specialists, teams, and sequences do **not** read this document by default unles
 
 ## Core rule
 
-The orchestrator is the only actor that reads broad repository state by default.
+Only orchestrator-class actors have broad default routing.
 
-All downstream actors work from narrowed task packets.
+Downstream actors are narrow by default and work from narrowed task packets.
 
 ---
 
 ## Startup reading order
 
-At the start of a work session, the orchestrator reads documents in this order:
+At the start of a work session, the orchestrator follows this order:
 
-1. root `AGENTS.md`
-2. `docs/WORKFLOW.md`
-3. `docs/handoff/NEXT_TASK.md`
-4. `docs/handoff/CURRENT_STATUS.md`
-5. `docs/handoff/_HANDOFF_INDEX.md` only if additional routing is needed
-6. other documents only as required by the current task
+1. `AGENTS.md` (auto-read first by platform behavior)
+2. `INDEX.md` (universal routing entrypoint)
+3. `docs/WORKFLOW.md`
+4. `docs/handoff/NEXT_TASK.md`
+5. `docs/handoff/CURRENT_STATUS.md`
+6. `docs/handoff/_HANDOFF_INDEX.md` only if additional routing is needed
+7. other documents only as required by the current task
 
 The orchestrator should avoid broad exploratory reading unless the task requires it.
 
@@ -346,4 +347,4 @@ The orchestrator runs this repository through constrained delegation.
 
 It reads the active workflow and handoff state, selects the appropriate execution structure, passes only the needed context downward, receives structured outputs back, and updates repository state accordingly.
 
-The orchestrator remains the only actor that reads broad repository context by default.
+Only orchestrator-class actors have broad default routing. Downstream actors are narrow by default.

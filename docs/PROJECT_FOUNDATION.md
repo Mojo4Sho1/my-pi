@@ -150,19 +150,25 @@ The orchestrator owns broad context, decomposition, delegation, synthesis, and s
 
 Downstream actors should operate from narrowed task packets.
 
-### 6. Documentation-first continuity
+### 6. Explicit access boundaries
+
+Access to repository context should be a property of the primitive definition, not an informal convention.
+
+Primitives should declare their routing class and default context scope so that broad repository reading is explicitly granted rather than accidentally assumed.
+
+### 7. Documentation-first continuity
 
 The project should preserve durable understanding through well-structured documentation.
 
 The system should be able to survive time gaps, new sessions, new agent instances, and future decomposition work without losing project intent.
 
-### 7. Build tools that help build better tools
+### 8. Build tools that help build better tools
 
 A central goal of this project is recursive leverage.
 
 `my-pi` should help build the tools that make it easier to build the next layer of tools.
 
-### 8. Portable source of truth
+### 9. Portable source of truth
 
 This repo should remain safe to clone onto a new machine and serve as the canonical editable source of the system.
 
@@ -209,19 +215,27 @@ The orchestrator is the top-level control layer.
 
 It reads broad repository state, chooses execution strategy, delegates work, receives structured outputs, and updates repository state.
 
+By default, the orchestrator is the only primitive with broad routing authority.
+
 ### Specialists
 
 Specialists are the primitive work units.
 
 They should be narrow, explicit, and bounded.
 
+By default, specialists should operate under narrow context scope and should not read workflow or handoff state unless explicitly granted that ability.
+
 ### Teams
 
 Teams are reusable bundles of specialists for recurring collaboration patterns.
 
+A team does not automatically inherit broad context just because it contains multiple actors.
+
 ### Sequences
 
 Sequences are reusable execution patterns that define stage order, checkpoints, merge points, and handback expectations.
+
+A sequence structures execution. It does not supersede access boundaries.
 
 ### Seeds
 
@@ -237,9 +251,37 @@ They support repeatability and decomposition.
 
 Handoff artifacts preserve current work state and continuity between sessions.
 
+By default, these artifacts belong to the orchestrator’s broad-view operating surface.
+
 ### Specs
 
 Specs preserve durable project truth in structured form.
+
+---
+
+## Access model
+
+The repository should use explicit access labels in primitive definitions.
+
+At minimum, primitives should declare:
+
+- a routing class
+- a default context scope
+
+The intended default pattern is:
+
+- orchestrator-class primitives follow the orchestrator route and may read broad repository state
+- downstream-class primitives follow the downstream route and should stop at the minimum task-relevant context unless explicitly granted more
+
+This access model exists to prevent context pollution, preserve specialization, and keep primitive behavior inspectable.
+
+A useful default standard is:
+
+- only orchestrator-class primitives read workflow and handoff documents by default
+- downstream primitives work from task packets
+- any exception must be explicit in the primitive definition or delegated packet
+
+This keeps context discipline part of the system design rather than a loose social rule.
 
 ---
 
@@ -374,6 +416,7 @@ At this stage, the goal is to define:
 - seed structure
 - the initial scaffold tooling
 - the initial path for building primitive execution units
+- the access model for orchestrator-class and downstream-class primitives
 
 This stage is about getting the bones of the system right before building a larger ecosystem on top of them.
 
@@ -393,6 +436,7 @@ Near-term work should prioritize:
 - the path from specialists to teams
 - the path from teams to sequences
 - tooling that helps build additional primitives safely and repeatably
+- explicit routing and access standards for primitives
 
 The near-term goal is not breadth.  
 It is a strong, composable foundation.
@@ -415,6 +459,7 @@ Agents should be able to use this document to derive:
 - seed candidates
 - template priorities
 - bootstrap plans for future coding-oriented repos
+- primitive access rules and routing defaults
 
 This means the project should be documented in a way that is stable enough to be decomposed and reused.
 
@@ -482,4 +527,4 @@ It is intended to remain a disciplined, modular, portable, orchestrator-first sy
 
 It should remain distinct from later assistant-oriented or client-oriented systems, even if those systems eventually build on top of it.
 
-The central idea of this project is that useful complexity can emerge from simple, specialized, well-composed parts.
+The central idea of this project is that useful complexity can emerge from simple, specialized, well-composed parts, and that access to complexity should be explicitly controlled through primitive definitions rather than assumed by default.

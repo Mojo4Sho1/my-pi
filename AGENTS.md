@@ -6,6 +6,38 @@ This repository is the source of truth for my portable Pi package.
 
 Use this repo to build reusable Pi capabilities that I can carry across machines and environments. Keep the focus on durable leverage: extensions, skills, prompts, themes, scaffolds, helper scripts, and documentation that make future work faster and safer.
 
+## Startup reading order
+
+Use this file as the root behavioral guide.
+
+`AGENTS.md` is auto-read first by platform behavior.
+
+After reading this file:
+
+1. Read `INDEX.md`
+2. Route by actor class from `INDEX.md`
+3. If orchestrator-class: continue to `docs/WORKFLOW.md`, then `docs/handoff/NEXT_TASK.md`, then `docs/handoff/CURRENT_STATUS.md`
+4. If downstream: stop at `INDEX.md` unless a task packet explicitly expands the read set
+
+`INDEX.md` is the universal routing entrypoint.
+
+## Orchestrator boundary
+
+This repository uses an orchestrator-first model.
+
+Only orchestrator-class actors have broad default routing and are responsible for selecting specialists, teams, sequences, and seeds as needed.
+
+Downstream actors are narrow by default, should receive narrowed task context, and should not independently expand scope unless necessary.
+
+## Key routing documents
+
+Use these documents for deeper operating guidance:
+
+- `INDEX.md` for repository navigation
+- `docs/ORCHESTRATION_MODEL.md` for system vocabulary and hierarchy
+- `docs/WORKFLOW.md` for orchestrator behavior
+- `docs/handoff/_HANDOFF_INDEX.md` for active work-state routing
+
 ## Core principles
 
 1. Build reusable primitives before building one-off conveniences.
@@ -98,7 +130,7 @@ Expected top-level directories include:
 - `prompts/`
 - `themes/`
 
-You may add supporting directories such as `scripts/`, `docs/`, `templates/`, or `tests/` when they clearly help maintainability.
+You may add supporting directories such as `scripts/`, `docs/`, `templates/`, `tests/`, `agents/`, or `seeds/` when they clearly help maintainability.
 
 ## Standards for new extensions
 
@@ -166,6 +198,8 @@ Keep docs concise and operational.
 
 When behavior, structure, or workflow changes in a durable way, update the relevant documentation in the same work session. If the agent makes a repeated mistake or a new convention emerges, update this `AGENTS.md` so the correction persists.
 
+Prefer one root `INDEX.md` for top-level routing and use local `_X_INDEX.md` files within subtrees where additional routing is needed.
+
 ## Guidance for coding agents
 
 When acting as a coding agent in this repo:
@@ -190,5 +224,7 @@ Near-term work should prioritize:
 - safety guardrails
 - lightweight validation utilities
 - clear bootstrap and usage documentation
+- orchestrator-first operating documents
+- handoff and routing infrastructure
 
 Avoid expanding into many end-user features before the creation workflow is smooth.

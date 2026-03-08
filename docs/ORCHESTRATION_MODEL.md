@@ -293,6 +293,58 @@ Seeds describe **what initialization context should exist**.
 
 ---
 
+## Access and routing model
+
+Route eligibility is a property of the actor definition, not just a reader choice.
+
+This means the system should not rely only on prose instructions like "read this" or "do not read this." Instead, access expectations should be carried in the definition of the orchestrator, specialist, team, or sequence actor.
+
+The access and routing model exists to ensure that:
+
+- broad context is reserved for the right actors
+- downstream actors do not pollute their own context windows
+- routing decisions remain explicit and inspectable
+- documentation access policy is part of the primitive system design
+
+### Core rule
+
+The orchestrator is broad-context by default.  
+All other actors are narrow-context by default unless explicitly granted broader access.
+
+### Recommended access properties
+
+Agent definitions should eventually carry properties such as:
+
+- role type
+- routing class
+- context scope
+- default read set
+- restricted-by-default documents
+- whether the actor can update handoff state
+- whether the actor can update workflow or operating documents
+
+These properties do not have to be fully schematized in this document, but the model assumes that such routing and access information belongs to the actor definition itself.
+
+### Default routing classes
+
+A useful default split is:
+
+- `orchestrator` -> broad route
+- `downstream` -> narrow route
+
+A future system may refine this further, but the broad-versus-narrow distinction should remain central.
+
+### Default update authority
+
+By default:
+
+- the orchestrator may read and update broad operating state
+- downstream actors may not read or update broad operating state unless explicitly permitted
+
+This keeps the continuity layer coherent and prevents partial-state pollution from bounded workers.
+
+---
+
 ## Context boundary rules
 
 ### Rule 1: only the orchestrator reads broadly by default
@@ -318,6 +370,18 @@ If broader context is required, that should be surfaced back upward.
 Downstream actors should return structured deliverables rather than broad narrative dumps.
 
 That keeps synthesis clean and allows the orchestrator to integrate results efficiently.
+
+### Rule 5: route eligibility belongs to the actor definition
+
+Whether an actor follows the broad route or narrow route should be determined by its definition.
+
+This keeps access policy modular and makes later changes easy to apply by updating the primitive definitions rather than rewriting the whole documentation system.
+
+### Rule 6: broad-state update authority is restricted by default
+
+Workflow documents, handoff documents, and other broad-state artifacts should be updated only by actors explicitly granted that authority.
+
+In the default model, that authority belongs to the orchestrator.
 
 ---
 
@@ -357,12 +421,13 @@ Examples:
 
 ### 4. Agent-definition artifacts
 
-These define specialists, teams, and sequences.
+These define specialists, teams, sequences, and later the orchestrator definition itself.
 
 Examples:
 - `agents/specialists/...`
 - `agents/teams/...`
 - `agents/sequences/...`
+- `agents/orchestrator/...`
 
 ### 5. Seed artifacts
 
@@ -425,6 +490,8 @@ At present, the system should assume:
 - teams as reusable bundles of specialists
 - sequences as reusable workflow patterns
 - seeds as reusable bootstrap context packs
+- actor definitions will eventually carry routing and access properties
+- broad-state authority belongs to the orchestrator by default
 
 ### Future extension space
 
@@ -437,6 +504,8 @@ The model may later support:
 - automated seed generation
 - automated sequence generation
 - richer artifact synthesis and reporting
+- more granular routing classes
+- explicit access-control or context-packet tooling
 
 These future extensions do not alter the current core rule:
 
@@ -455,6 +524,7 @@ This orchestration model exists to satisfy the following goals:
 5. Keep specialists simple and bounded.
 6. Support staged multi-agent workflows without collapsing into a monolithic harness.
 7. Allow seeds, templates, teams, and sequences to evolve independently.
+8. Make routing and access policy part of the primitive system rather than an afterthought.
 
 ---
 
@@ -483,5 +553,7 @@ Sequences are reusable execution patterns.
 Seeds are reusable bootstrap context packs.
 
 The orchestrator reads broad context, chooses the proper execution structure, passes narrowed context downward, receives structured results back, and updates repository state accordingly.
+
+Route eligibility and broad-state authority are properties of actor definitions, not just document prose. Broad context and broad-state updates belong to the orchestrator by default unless another actor is explicitly granted that access.
 
 This document defines the system vocabulary and control hierarchy that all later workflow, template, and tooling documents should follow.
