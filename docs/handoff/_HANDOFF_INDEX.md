@@ -1,26 +1,22 @@
 # _HANDOFF_INDEX.md
 
 ## Purpose
+Routing index for the repository handoff control plane.
 
-Routing map for live handoff state documents.
+## Start here
+1. `docs/handoff/NEXT_TASK.md` (single active repository bundle)
+2. `docs/handoff/CURRENT_STATUS.md` (current operational snapshot)
+3. `docs/handoff/TASK_QUEUE.md` (ordered future bundles and dependency flow)
+4. `docs/handoff/OPEN_DECISIONS.md` (unresolved decisions)
+5. `docs/handoff/DECISION_LOG.md` (durable decisions already made)
 
-## Canonical files
+## Handoff contracts
+- `docs/handoff/HANDOFF_CONTRACT.md`
+- `docs/handoff/NEXT_TASK_CONTRACT.md`
+- `docs/handoff/TASK_PACKET_CONTRACT.md`
+- `docs/handoff/RESULT_PACKET_CONTRACT.md`
 
-- `docs/handoff/NEXT_TASK.md`
-- `docs/handoff/CURRENT_STATUS.md`
-- `docs/handoff/TASK_QUEUE.md`
-- `docs/handoff/DECISION_LOG.md`
-
-## Orchestrator reading order
-
-1. `docs/handoff/NEXT_TASK.md`
-2. `docs/handoff/CURRENT_STATUS.md`
-3. `docs/handoff/TASK_QUEUE.md` when needed
-4. `docs/handoff/DECISION_LOG.md` when decision history matters
-
-## Update routing
-
-- update `NEXT_TASK.md` when the immediate next task changes
-- update `CURRENT_STATUS.md` when active state changes
-- update `TASK_QUEUE.md` when priorities/backlog change
-- append `DECISION_LOG.md` when durable decisions are made
+## Routing notes
+- `NEXT_TASK.md` is the execution selector at the repository handoff layer.
+- Downstream task/result packets are separate artifacts defined by packet contracts and generated during orchestrated execution.
+- Update this index when handoff files are added, removed, renamed, or materially repurposed.

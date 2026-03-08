@@ -7,6 +7,7 @@ Routing file for specialist definitions in `agents/specialists/`.
 ## Subtree role
 
 This subtree contains primitive, narrow-scope worker definitions for the initial specialist layer.
+All specialists in this subtree are expected to conform to `agents/AGENT_DEFINITION_CONTRACT.md`, including required `working_style` in the current phase.
 
 ## Access model
 

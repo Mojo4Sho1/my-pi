@@ -1,26 +1,30 @@
 # CURRENT_STATUS.md
 
+Last updated: 2026-03-08
+
 ## Current phase
+Post-contract synchronization complete; active focus has moved to specialist-layer execution readiness.
 
-Control-plane hardening (handoff contracts and packet contracts).
+## Active bundle
+- `BUNDLE-20260308-specialist-layer-execution-readiness` (`active`)
+- Execution path: `direct_bundle_execution`
+- Bundle owner: `top_level_executor`
 
-## What exists now
+## What is complete
+- Canonical decisions are established and routed from `INDEX.md`.
+- Handoff contract layer exists (`HANDOFF_CONTRACT`, `NEXT_TASK_CONTRACT`, `TASK_PACKET_CONTRACT`, `RESULT_PACKET_CONTRACT`).
+- Specialist definitions are synchronized to the agent-definition contract, including required `working_style`.
+- Live handoff surface is normalized and includes `OPEN_DECISIONS.md`.
 
-- foundational operating/routing docs are in place and aligned
-- canonical decisions are frozen in `docs/CANONICAL_DECISIONS.md` and discoverable from `INDEX.md`
-- live phase/state ownership is explicitly anchored to `docs/handoff/`
-- top-level `skills/` and `prompts/` are intentionally materialized as package areas
+## Remaining focus in current phase
+- Validate specialist execution readiness under bounded packet-style delegation expectations.
+- Confirm specialist-layer outputs can be integrated without handoff/routing drift.
 
-## Major open gaps
+## Open blockers
+- None currently.
 
-- create/normalize the handoff contract layer
-- define task packet and result/handback packet contracts
-- reconcile template contract/index with actual `templates/` subtree in a later scoped task
+## Current risks
+- Terminology drift between repository-level bundles and downstream packets if future edits mix the two layers.
 
-## Current blockers
-
-No active blockers; main risk is contract drift if handoff packet standards are not formalized before broader primitive buildout.
-
-## Current repo health summary
-
-Repo has completed canonical decision freezing and is ready for handoff-control-plane hardening before larger primitive-layer expansion.
+## Next target after active bundle
+- Prepare initial team-layer definition bundle once specialist execution readiness is confirmed.

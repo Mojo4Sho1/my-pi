@@ -1,36 +1,34 @@
 # TASK_QUEUE.md
 
-## Queued tasks
+Last updated: 2026-03-08
 
-- create and normalize handoff contract + task/result packet contracts
-- implement and validate initial specialist layer
-- define initial reusable teams (after specialist layer completion)
-- define initial reusable sequences (after team patterns stabilize)
-- reconcile template contract/index with actual `templates/` subtree
-- add seed definitions aligned to bootstrap use cases
+## Completed bundles
+- `BUNDLE-20260308-handoff-contract-layer`: Created and normalized repository handoff + packet contracts.
+- `BUNDLE-20260308-sync-contract-surface`: Synchronized specialist definitions, handoff surface, and routing docs to contract vocabulary.
 
-## Recently completed
+## Active bundle
+- `BUNDLE-20260308-specialist-layer-execution-readiness`
+  - Objective: Validate specialist layer execution readiness under current contract boundaries.
+  - Depends on: completed handoff/contract synchronization bundles.
 
-- freeze canonical decisions in durable repo docs and routing
+## Partial bundles
+- None.
 
-## Priority buckets
+## Blocked bundles
+- None.
 
-### High
+## Deferred bundles
+- `BUNDLE-template-contract-subtree-reconciliation`
+  - Reason: explicitly deferred until specialist/teams path is stable.
 
-- complete handoff-contract layer with explicit task/result packet contracts
-- complete specialist layer with full contract conformance and clear role boundaries
+## Queued bundles (next candidates)
+- `BUNDLE-initial-team-layer-definitions`
+  - Dependency: specialist execution readiness bundle complete.
+- `BUNDLE-initial-sequence-layer-definitions`
+  - Dependency: team-layer patterns stabilized.
+- `BUNDLE-seed-bootstrap-alignment`
+  - Dependency: stable specialist/team/sequence execution patterns.
 
-### Medium
-
-- design initial teams built from specialist layer
-- improve template and seed coverage
-
-### Low
-
-- broaden optional documentation depth
-
-## Dependencies
-
-- specialist implementation depends on stable handoff/task/result packet contracts
-- teams depend on sufficient specialist definitions
-- sequences depend on stable team/specialist patterns
+## Queue notes
+- `NEXT_TASK.md` is the execution selector for the single active bundle.
+- `TASK_QUEUE.md` tracks ordering and dependencies but does not override active-bundle selection.

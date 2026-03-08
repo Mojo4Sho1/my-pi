@@ -37,6 +37,7 @@ This contract exists to ensure that agent-related definitions are:
 - explicit
 - composable
 - context-disciplined
+- behaviorally steerable
 - easy to route
 - easy to validate
 - easy to expand over time
@@ -165,8 +166,61 @@ These fields are optional, but useful when they improve clarity.
 - `disallowed_actions`
 - `allowed_actions`
 - `known_limitations`
+- `working_style`
 
 Optional fields should not replace required fields.
+
+---
+
+## Behavioral steering
+
+### `working_style`
+
+`working_style` defines how an actor should approach work within its existing boundaries.
+
+It is not a theatrical persona. It is an execution-style control that helps keep behavior consistent across runs.
+
+`working_style` must never:
+
+- expand scope
+- broaden read access
+- override authority boundaries
+- weaken escalation rules
+- conflict with task-packet constraints
+- conflict with handoff, workflow, or routing rules
+
+If a `working_style` statement conflicts with scope, routing, or authority, the scope/routing/authority rule wins.
+
+### Recommended `working_style` subfields
+
+When `working_style` is present, it should normally include:
+
+- `reasoning_posture`  
+  How the actor tends to think while doing its work.
+
+- `communication_posture`  
+  How the actor should present findings, decisions, or outputs.
+
+- `risk_posture`  
+  How cautious or aggressive the actor should be when uncertainty exists.
+
+- `default_bias`  
+  The actor's preferred direction when several valid choices exist.
+
+- `anti_patterns`  
+  Behaviors the actor should actively avoid.
+
+Additional subfields may be added when they improve clarity, but these five should be treated as the default schema.
+
+### Current-phase requirement rule
+
+In the current phase of this repository:
+
+- `working_style` is required for specialists
+- `working_style` is strongly recommended for orchestrators
+- `working_style` is optional for teams and sequences until those classes are formally upgraded
+
+This rule may be revised later by durable decision, but definitions should follow it unless explicitly superseded.
 
 ---
 
@@ -261,6 +315,18 @@ An orchestrator should normally have:
 - `can_synthesize: true`
 - `can_update_handoff: true`
 
+### Orchestrator working-style guidance
+
+An orchestrator definition should normally include `working_style`, even though only specialists are currently required to do so.
+
+Orchestrator `working_style` should reinforce:
+
+- disciplined routing
+- bounded delegation
+- explicit packetization
+- clean separation between repository bundle state and downstream task packets
+- state-maintenance discipline
+
 ---
 
 ## Specialist-specific fields
@@ -279,6 +345,9 @@ A specialist definition must also include:
 - `failure_boundary`  
   When it should stop and escalate rather than continue.
 
+- `working_style`  
+  The specialist's execution-style guidance, following the rules and subfields defined above.
+
 ### Specialist defaults
 
 A specialist should normally have:
@@ -288,6 +357,18 @@ A specialist should normally have:
 - `can_delegate: false`
 - `can_synthesize: false`
 - `can_update_handoff: false`
+
+### Specialist working-style guidance
+
+A specialist `working_style` should make the specialist more predictable, not broader.
+
+It should help answer:
+
+- how the specialist reasons
+- how it communicates
+- how it handles uncertainty
+- what default tradeoff it prefers
+- what kinds of drift or overreach it should avoid
 
 ---
 
@@ -316,6 +397,10 @@ A team should normally have:
 - `can_delegate: false` by default unless explicitly designed otherwise
 - `can_synthesize: true` only if the team definition explicitly includes synthesis responsibility
 - `can_update_handoff: false`
+
+### Team working-style guidance
+
+If a team includes `working_style`, it should describe the collaboration posture of the team as a unit, not duplicate every member's specialist behavior.
 
 ---
 
@@ -351,6 +436,10 @@ A sequence should normally have:
 - `can_synthesize: true` only if the sequence definition includes synthesis
 - `can_update_handoff: false`
 
+### Sequence working-style guidance
+
+If a sequence includes `working_style`, it should describe execution pacing, merge discipline, escalation behavior, and stop-rule posture.
+
 ---
 
 ## Read-set rules
@@ -379,6 +468,8 @@ Narrow actors should read:
 
 Narrow actors should not read workflow or handoff state by default.
 
+Unless explicitly granted, downstream actors should not treat `docs/handoff/NEXT_TASK.md` as their task packet. Repository handoff state and downstream task packets are separate artifacts.
+
 ---
 
 ## Handoff authority rule
@@ -389,6 +480,7 @@ By default, only the orchestrator should update:
 - `docs/handoff/NEXT_TASK.md`
 - `docs/handoff/TASK_QUEUE.md`
 - `docs/handoff/DECISION_LOG.md`
+- `docs/handoff/OPEN_DECISIONS.md`
 
 A downstream actor may only update those artifacts if its definition explicitly grants that authority.
 
@@ -403,6 +495,7 @@ Definitions should be:
 - short
 - explicit
 - role-specific
+- behaviorally steerable without becoming theatrical
 - non-overlapping where possible
 - written so that another future agent can use them without guessing intent
 
@@ -411,8 +504,10 @@ Avoid vague phrases like:
 - “helps with many things”
 - “may do whatever is needed”
 - “acts broadly”
+- “has a strong personality”
+- “behaves like a senior expert”
 
-Instead, define boundaries clearly.
+Instead, define boundaries clearly and describe execution posture in operational terms.
 
 ---
 
@@ -455,6 +550,7 @@ A definition is not complete unless it answers:
 - what this actor is
 - what it does
 - what it does not do
+- how it should behave while staying inside its boundary
 - what it may read by default
 - what it must not read by default
 - what it receives
@@ -464,6 +560,8 @@ A definition is not complete unless it answers:
 
 If any of those are unclear, the definition is incomplete.
 
+For specialists in the current phase, omission of `working_style` also makes the definition incomplete.
+
 ---
 
 ## Non-goals
@@ -471,6 +569,8 @@ If any of those are unclear, the definition is incomplete.
 This contract does not define:
 
 - the full concrete roster of actors
+- the exact contents of repository handoff artifacts
+- the exact contents of `NEXT_TASK.md`
 - the exact contents of task packets
 - the exact contents of result packets
 - the exact template system
@@ -484,6 +584,12 @@ Those belong in separate documents.
 
 This contract defines the shared structure for agent-related definitions in `my-pi`.
 
-Its most important rule is that access and routing are properties of the definition itself. The orchestrator is broad by default. Most downstream actors are narrow by default. Exceptions must be explicit.
+Its most important rules are:
+
+- access and routing are properties of the definition itself
+- the orchestrator is broad by default
+- most downstream actors are narrow by default
+- repository handoff state is not the same thing as a downstream task packet
+- `working_style` steers behavior but never overrides scope, routing, or authority
 
 This contract should be used as the basis for all future orchestrator, specialist, team, and sequence definition files.

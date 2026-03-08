@@ -152,7 +152,7 @@ Orchestrator route only by default.
 
 ## Active work-state documents
 
-These documents track live project state.
+These documents track live project state at the repository bundle layer.
 
 They are primarily for the orchestrator.
 
@@ -160,7 +160,7 @@ They are primarily for the orchestrator.
 Routing map for handoff documents.
 
 ### `docs/handoff/NEXT_TASK.md`
-Defines the next immediate task or task set.
+Defines the single active repository-level task bundle (not a downstream worker packet).
 
 ### `docs/handoff/CURRENT_STATUS.md`
 Defines the current active state of the project.
@@ -172,6 +172,8 @@ Defines broader queued work and near-term backlog.
 Records meaningful decisions that should persist across sessions.
 
 Downstream actors should not read these by default unless explicitly instructed.
+
+Downstream packet artifacts are separate from this layer and are governed by `docs/handoff/TASK_PACKET_CONTRACT.md` and `docs/handoff/RESULT_PACKET_CONTRACT.md`.
 
 ---
 

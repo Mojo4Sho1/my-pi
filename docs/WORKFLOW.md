@@ -161,6 +161,15 @@ If a downstream actor reports that additional context is required, the orchestra
 
 ---
 
+## Repository bundle layer vs downstream packet layer
+
+The orchestrator operates across two distinct layers:
+
+- repository bundle layer: active execution state in `docs/handoff/NEXT_TASK.md` and companion handoff docs
+- downstream packet layer: orchestrator-generated task packets for delegated specialists/teams
+
+These layers are related but not equivalent. `NEXT_TASK.md` selects repository-level work; task packets narrow delegated work.
+
 ## Task packet rule
 
 The orchestrator delegates work through task packets.
