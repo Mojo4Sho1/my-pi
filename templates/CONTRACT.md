@@ -6,13 +6,15 @@ Define the current template model for this repository.
 
 ## Template classes
 
-### Artifact templates
+### Resource templates
 
-Generate a single artifact (for example, one document or one definition file).
+Generate reusable template content for resource-specific outputs.
 
-### Bundle templates
-
-Generate a coordinated set of artifacts for a repeatable workflow.
+Current resource template directories are:
+- `templates/extension/`
+- `templates/prompt/`
+- `templates/skill/`
+- `templates/theme/`
 
 ## Seed distinction
 
@@ -22,14 +24,12 @@ A template may generate seed artifacts, but templates and seeds remain distinct 
 
 ## Directory model
 
-- `templates/artifacts/` for single-artifact templates
-- `templates/bundles/` for bundle templates
+- `templates/extension/` for extension templates
+- `templates/prompt/` for prompt templates
+- `templates/skill/` for skill templates
+- `templates/theme/` for theme templates
 - `templates/CONTRACT.md` as the authoritative contract
 - `templates/_TEMPLATES_INDEX.md` as routing entrypoint
-
-## Bundle expectations
-
-A bundle template should define its output set, expected order of generation, and minimal validation expectations.
 
 ## Placeholder/token strategy
 

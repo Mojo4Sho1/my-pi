@@ -9,8 +9,10 @@ Routing file for the `templates/` subtree.
 Read `templates/CONTRACT.md` first for template rules.
 Then route to:
 
-- `templates/artifacts/` for single-artifact generation templates
-- `templates/bundles/` for multi-artifact bundle templates
+- `templates/extension/` for extension templates
+- `templates/prompt/` for prompt templates
+- `templates/skill/` for skill templates
+- `templates/theme/` for theme templates
 
 Read only the templates needed for the active task.
 

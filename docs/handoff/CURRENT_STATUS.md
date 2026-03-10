@@ -3,10 +3,10 @@
 Last updated: 2026-03-08
 
 ## Current phase
-Post-contract synchronization complete; active focus has moved to specialist-layer execution readiness.
+Control-plane documentation reconciliation (milestone 1) with specialist-layer execution-readiness work paused for sequencing.
 
 ## Active bundle
-- `BUNDLE-20260308-specialist-layer-execution-readiness` (`active`)
+- `BUNDLE-20260308-documentation-reconciliation-sync` (`active`)
 - Execution path: `direct_bundle_execution`
 - Bundle owner: `top_level_executor`
 
@@ -17,14 +17,16 @@ Post-contract synchronization complete; active focus has moved to specialist-lay
 - Live handoff surface is normalized and includes `OPEN_DECISIONS.md`.
 
 ## Remaining focus in current phase
-- Validate specialist execution readiness under bounded packet-style delegation expectations.
-- Confirm specialist-layer outputs can be integrated without handoff/routing drift.
+- Reconcile live documentation to current repository truth with no filesystem/taxonomy changes.
+- Remove legacy template-taxonomy references across live docs.
+- Normalize `DECISION_LOG.md` into contract-required durable-decision entry structure.
 
 ## Open blockers
 - None currently.
 
 ## Current risks
-- Terminology drift between repository-level bundles and downstream packets if future edits mix the two layers.
+- Residual legacy template wording may remain outside initially obvious template docs.
+- Decision-log normalization could accidentally alter decision meaning if not done as structure-only conversion.
 
 ## Next target after active bundle
-- Prepare initial team-layer definition bundle once specialist execution readiness is confirmed.
+- Resume `BUNDLE-20260308-specialist-layer-execution-readiness` once documentation reconciliation completes.

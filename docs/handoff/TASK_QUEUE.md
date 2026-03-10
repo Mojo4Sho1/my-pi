@@ -7,8 +7,8 @@ Last updated: 2026-03-08
 - `BUNDLE-20260308-sync-contract-surface`: Synchronized specialist definitions, handoff surface, and routing docs to contract vocabulary.
 
 ## Active bundle
-- `BUNDLE-20260308-specialist-layer-execution-readiness`
-  - Objective: Validate specialist layer execution readiness under current contract boundaries.
+- `BUNDLE-20260308-documentation-reconciliation-sync`
+  - Objective: Reconcile live documentation to current repository truth, including legacy template-taxonomy references and decision-log structural normalization.
   - Depends on: completed handoff/contract synchronization bundles.
 
 ## Partial bundles
@@ -18,8 +18,8 @@ Last updated: 2026-03-08
 - None.
 
 ## Deferred bundles
-- `BUNDLE-template-contract-subtree-reconciliation`
-  - Reason: explicitly deferred until specialist/teams path is stable.
+- `BUNDLE-20260308-specialist-layer-execution-readiness`
+  - Reason: sequencing pause while documentation reconciliation is treated as milestone 1.
 
 ## Queued bundles (next candidates)
 - `BUNDLE-initial-team-layer-definitions`

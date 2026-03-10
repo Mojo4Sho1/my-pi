@@ -286,7 +286,7 @@ A sequence may invoke teams, specialists, or both.
 
 ### Seeds and templates
 
-Seeds may be implemented through templates and bundle templates, but seeds remain conceptually distinct from templates.
+Seeds may be implemented through templates, but seeds remain conceptually distinct from templates.
 
 Templates describe **how artifacts are generated**.  
 Seeds describe **what initialization context should exist**.
@@ -439,11 +439,13 @@ Examples:
 
 ### 6. Template artifacts
 
-These define how files or bundles are generated.
+These define how files are generated.
 
 Examples:
-- artifact templates
-- bundle templates
+- extension templates
+- prompt templates
+- skill templates
+- theme templates
 - seed templates
 
 ---

@@ -3,16 +3,16 @@
 Last updated: 2026-03-08
 Owner: Joe + Codex
 Status: active
-Bundle ID: BUNDLE-20260308-specialist-layer-execution-readiness
+Bundle ID: BUNDLE-20260308-documentation-reconciliation-sync
 
 ## Task summary
-Execute the first post-contract specialist-layer bundle by validating specialist execution readiness and bounded downstream packetization flow.
+Rotate the live handoff layer to a documentation-reconciliation bundle, then reconcile live docs to current repository truth without changing filesystem structure or introducing a new template taxonomy.
 
 ## Why this bundle is next
-The contract layer and synchronization pass are complete. The next highest-priority dependency is proving the specialist layer can execute work cleanly before teams and sequences are expanded.
+A contract-truth reconciliation bundle is required to prevent control-plane/documentation drift before resuming specialist-layer progression.
 
 ## Objective
-Establish an execution-ready specialist layer that can accept bounded task packets and return contract-aligned outputs without scope or routing drift.
+Establish contract-aligned documentation truth by making documentation reconciliation the single active bundle, removing legacy template taxonomy references across live docs, and normalizing `DECISION_LOG.md` structure while preserving all existing decision content, dates, and order.
 
 ## Execution path
 `direct_bundle_execution`
@@ -21,37 +21,34 @@ Establish an execution-ready specialist layer that can accept bounded task packe
 `top_level_executor`
 
 ## Scope (in)
-- Validate specialist definitions against `agents/AGENT_DEFINITION_CONTRACT.md` in execution-oriented terms.
-- Produce any small contract-conforming specialist-support artifacts required for first practical use.
-- Verify routing and handoff docs remain aligned while specialist execution readiness is established.
+- Rotate the live handoff layer so documentation reconciliation is the single active bundle.
+- Reconcile legacy template-taxonomy references in live documentation to the current `templates/` subtree (`extension/`, `prompt/`, `skill/`, `theme/`).
+- Normalize `docs/handoff/DECISION_LOG.md` to required durable-decision structure while preserving every existing decision, date, and ordering.
+- Validate that `NEXT_TASK.md`, `CURRENT_STATUS.md`, and `TASK_QUEUE.md` remain mutually consistent.
 
 ## Scope (out)
-- Creating teams.
-- Creating sequences.
-- Template-system redesign.
-- Broad package/root restructuring.
-- Changes to canonical decisions unless a direct contradiction requires a tiny repair.
+- Filesystem restructuring.
+- Introducing a new template taxonomy.
+- Specialist/team/sequence implementation work.
+- Canonical-policy changes not required for truthfulness.
+- Editing `AGENTS.md` unless a hard contradiction requires it.
 
 ## Dependencies / prerequisites
-- `docs/CANONICAL_DECISIONS.md` entries on `working_style` and handoff ownership.
-- Handoff contracts under `docs/handoff/`.
-- Existing specialist set under `agents/specialists/`.
+- `docs/handoff/HANDOFF_CONTRACT.md`
+- `docs/handoff/NEXT_TASK_CONTRACT.md`
+- Existing handoff-state documents under `docs/handoff/`
+- Existing templates subtree under `templates/`
 
 ## Required read set
 - `AGENTS.md`
 - `INDEX.md`
 - `docs/WORKFLOW.md`
 - `docs/CANONICAL_DECISIONS.md`
-- `agents/AGENT_DEFINITION_CONTRACT.md`
-- `agents/specialists/_SPECIALISTS_INDEX.md`
-- `agents/specialists/planner.md`
-- `agents/specialists/reviewer.md`
-- `agents/specialists/builder.md`
-- `agents/specialists/tester.md`
+- `templates/CONTRACT.md`
+- `templates/_TEMPLATES_INDEX.md`
+- `docs/ORCHESTRATION_MODEL.md`
 - `docs/handoff/HANDOFF_CONTRACT.md`
 - `docs/handoff/NEXT_TASK_CONTRACT.md`
-- `docs/handoff/TASK_PACKET_CONTRACT.md`
-- `docs/handoff/RESULT_PACKET_CONTRACT.md`
 - `docs/handoff/_HANDOFF_INDEX.md`
 - `docs/handoff/CURRENT_STATUS.md`
 - `docs/handoff/TASK_QUEUE.md`
@@ -59,58 +56,57 @@ Establish an execution-ready specialist layer that can accept bounded task packe
 - `docs/handoff/DECISION_LOG.md`
 
 ## Allowed write set
-- `agents/specialists/_SPECIALISTS_INDEX.md`
-- `agents/specialists/planner.md`
-- `agents/specialists/reviewer.md`
-- `agents/specialists/builder.md`
-- `agents/specialists/tester.md`
 - `docs/handoff/NEXT_TASK.md`
 - `docs/handoff/CURRENT_STATUS.md`
 - `docs/handoff/TASK_QUEUE.md`
 - `docs/handoff/OPEN_DECISIONS.md`
-- `docs/handoff/_HANDOFF_INDEX.md`
-- `docs/WORKFLOW.md`
-- `INDEX.md`
-- `docs/handoff/DECISION_LOG.md` (only if a new durable decision is required)
+- `docs/handoff/DECISION_LOG.md`
+- `templates/CONTRACT.md`
+- `templates/_TEMPLATES_INDEX.md`
+- `docs/ORCHESTRATION_MODEL.md`
 
 ## Constraints
-- Keep changes minimal and targeted to specialist execution readiness.
-- Treat repository bundle state and downstream task packets as distinct layers.
-- Do not broaden specialist scope while improving execution readiness.
+- Keep changes minimal and targeted to documentation truth reconciliation.
+- Treat this as documentation/control-plane work only.
+- Do not change filesystem structure or introduce a new template taxonomy.
 - Do not treat `NEXT_TASK.md` as a downstream packet.
 - Preserve orchestrator-first routing and narrow-default downstream access.
+- Do not alter `AGENTS.md` unless required to preserve truthfulness.
 
 ## Implementation notes
-- Prefer additive clarifications and narrow conformance edits.
-- Use existing contract vocabulary verbatim where possible.
+- Perform handoff rotation updates before any other documentation edits.
+- Search repo-wide for legacy template-taxonomy references and reconcile all live documentation references.
+- Preserve existing decision statements/dates/ordering during decision-log normalization.
 - If blocked by unresolved policy, record it in `OPEN_DECISIONS.md` instead of guessing.
 
 ## Subtasks
-- Confirm specialist definitions remain contract-conformant during execution-readiness updates.
-- Ensure handoff and routing docs continue to distinguish bundle state from packetized downstream work.
-- Record final state transitions in handoff docs at loop close.
+- Rotate active bundle state across `NEXT_TASK.md`, `CURRENT_STATUS.md`, and `TASK_QUEUE.md`.
+- Reconcile legacy template-taxonomy references in live docs.
+- Normalize `DECISION_LOG.md` entry shape without changing decision substance.
+- Run local consistency checks for touched paths and cross-handoff alignment.
 
 ## Validation level
 `local_consistency_check`
 
 ## Acceptance criteria
-- Specialist layer is execution-ready within current contract boundaries.
-- Touched docs remain internally consistent and use contract vocabulary.
+- Documentation reconciliation bundle is the single active bundle in the handoff layer.
+- Legacy template-taxonomy references are removed from live documentation.
+- `DECISION_LOG.md` entries conform to durable-decision structure while preserving decision content/date/order.
 - Handoff state documents agree on active bundle and queue progression.
 
 ## Verification checklist
 - Confirm all touched file references exist.
-- Confirm specialist docs and index are mutually consistent.
+- Confirm no filesystem/taxonomy restructuring was introduced.
 - Confirm `NEXT_TASK.md`, `CURRENT_STATUS.md`, and `TASK_QUEUE.md` agree on active/queued status.
-- Confirm no out-of-scope redesign work was introduced.
+- Confirm repo-wide search shows no remaining live legacy template-taxonomy references.
 
 ## Risks / rollback notes
-- Risk: incidental scope expansion into teams/sequences.
-  - Mitigation: enforce strict scope-out list and escalate instead of broadening.
-- Risk: bundle/packet terminology drift.
-  - Mitigation: check touched routing/handoff docs for consistent terms.
+- Risk: normalization accidentally changes decision meaning.
+  - Mitigation: preserve each decision statement/date/order verbatim and normalize structure only.
+- Risk: hidden legacy reference remains outside `templates/`.
+  - Mitigation: perform repo-wide search with explicit legacy patterns.
 
 ## Escalation conditions
-- Required execution-readiness change would exceed allowed write scope.
+- Required reconciliation change would require a new policy/architectural decision not already defined.
 - Contract docs contain unresolved contradictions that block safe interpretation.
-- A durable policy decision is required to proceed and cannot be inferred safely.
+- Required fix exceeds allowed write scope.
