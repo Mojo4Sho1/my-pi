@@ -1,6 +1,6 @@
 # TASK_QUEUE.md
 
-Last updated: 2026-03-08
+Last updated: 2026-03-10
 
 ## Completed bundles
 - `BUNDLE-20260308-handoff-contract-layer`: Created and normalized repository handoff + packet contracts.
@@ -8,7 +8,7 @@ Last updated: 2026-03-08
 
 ## Active bundle
 - `BUNDLE-20260308-documentation-reconciliation-sync`
-  - Objective: Reconcile live documentation to current repository truth, including legacy template-taxonomy references and decision-log structural normalization.
+  - Objective: Reconcile live documentation to current repository truth, including remaining legacy template-taxonomy references and deterministic stale future-tense drift in live docs.
   - Depends on: completed handoff/contract synchronization bundles.
 
 ## Partial bundles

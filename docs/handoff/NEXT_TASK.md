@@ -1,6 +1,6 @@
 # Next Task
 
-Last updated: 2026-03-08
+Last updated: 2026-03-10
 Owner: Joe + Codex
 Status: active
 Bundle ID: BUNDLE-20260308-documentation-reconciliation-sync
@@ -12,7 +12,7 @@ Rotate the live handoff layer to a documentation-reconciliation bundle, then rec
 A contract-truth reconciliation bundle is required to prevent control-plane/documentation drift before resuming specialist-layer progression.
 
 ## Objective
-Establish contract-aligned documentation truth by making documentation reconciliation the single active bundle, removing legacy template taxonomy references across live docs, and normalizing `DECISION_LOG.md` structure while preserving all existing decision content, dates, and order.
+Establish contract-aligned documentation truth by completing deterministic reconciliation of remaining stale template-model references and future-tense drift in live documentation.
 
 ## Execution path
 `direct_bundle_execution`
@@ -23,7 +23,7 @@ Establish contract-aligned documentation truth by making documentation reconcili
 ## Scope (in)
 - Rotate the live handoff layer so documentation reconciliation is the single active bundle.
 - Reconcile legacy template-taxonomy references in live documentation to the current `templates/` subtree (`extension/`, `prompt/`, `skill/`, `theme/`).
-- Normalize `docs/handoff/DECISION_LOG.md` to required durable-decision structure while preserving every existing decision, date, and ordering.
+- Reconcile remaining stale references/future-tense drift in `INDEX.md`, `docs/ORCHESTRATION_MODEL.md`, and `agents/PRIMITIVE_LAYER_PLAN.md` to current repository truth.
 - Validate that `NEXT_TASK.md`, `CURRENT_STATUS.md`, and `TASK_QUEUE.md` remain mutually consistent.
 
 ## Scope (out)
@@ -47,6 +47,7 @@ Establish contract-aligned documentation truth by making documentation reconcili
 - `templates/CONTRACT.md`
 - `templates/_TEMPLATES_INDEX.md`
 - `docs/ORCHESTRATION_MODEL.md`
+- `agents/PRIMITIVE_LAYER_PLAN.md`
 - `docs/handoff/HANDOFF_CONTRACT.md`
 - `docs/handoff/NEXT_TASK_CONTRACT.md`
 - `docs/handoff/_HANDOFF_INDEX.md`
@@ -64,6 +65,8 @@ Establish contract-aligned documentation truth by making documentation reconcili
 - `templates/CONTRACT.md`
 - `templates/_TEMPLATES_INDEX.md`
 - `docs/ORCHESTRATION_MODEL.md`
+- `INDEX.md`
+- `agents/PRIMITIVE_LAYER_PLAN.md`
 
 ## Constraints
 - Keep changes minimal and targeted to documentation truth reconciliation.
@@ -76,13 +79,13 @@ Establish contract-aligned documentation truth by making documentation reconcili
 ## Implementation notes
 - Perform handoff rotation updates before any other documentation edits.
 - Search repo-wide for legacy template-taxonomy references and reconcile all live documentation references.
-- Preserve existing decision statements/dates/ordering during decision-log normalization.
 - If blocked by unresolved policy, record it in `OPEN_DECISIONS.md` instead of guessing.
 
 ## Subtasks
 - Rotate active bundle state across `NEXT_TASK.md`, `CURRENT_STATUS.md`, and `TASK_QUEUE.md`.
-- Reconcile legacy template-taxonomy references in live docs.
-- Normalize `DECISION_LOG.md` entry shape without changing decision substance.
+- Reconcile `INDEX.md` template-model language to current `templates/` subtree.
+- Reconcile `docs/ORCHESTRATION_MODEL.md` with current orchestrator-definition and access-model truth.
+- Reconcile `agents/PRIMITIVE_LAYER_PLAN.md` stale future-tense statements to current truth without changing phase-plan intent.
 - Run local consistency checks for touched paths and cross-handoff alignment.
 
 ## Validation level
@@ -91,7 +94,7 @@ Establish contract-aligned documentation truth by making documentation reconcili
 ## Acceptance criteria
 - Documentation reconciliation bundle is the single active bundle in the handoff layer.
 - Legacy template-taxonomy references are removed from live documentation.
-- `DECISION_LOG.md` entries conform to durable-decision structure while preserving decision content/date/order.
+- `INDEX.md`, `docs/ORCHESTRATION_MODEL.md`, and `agents/PRIMITIVE_LAYER_PLAN.md` align to current repository truth with minimal scope-limited edits.
 - Handoff state documents agree on active bundle and queue progression.
 
 ## Verification checklist

@@ -14,7 +14,7 @@ This phase is intentionally narrow.
 
 The repository now has foundational operating documents, routing documents, and an orchestration model.
 
-The next step is to create the first execution primitives that the orchestrator can eventually use.
+This phase created the first execution primitives that the orchestrator can use.
 
 These primitives should be built in dependency order:
 
@@ -222,21 +222,24 @@ Do not build those in this phase.
 
 ---
 
-## Related future contracts
+## Related contracts and follow-on contract needs
 
 This phase does not block future contract work, but it should not be delayed by it.
 
-Important future contracts likely include:
+Contracts now established in the handoff layer include:
 
 - handoff documentation contract
-- task queue contract
-- archival/completion policy for queued work
 - result packet contract
 - task packet contract
+
+Additional follow-on contracts likely include:
+
+- task queue contract
+- archival/completion policy for queued work
 - team definition contract
 - sequence definition contract
 
-Those should be created in later phases once the specialist layer is stable enough to justify them.
+Those follow-on contracts should be created in later phases once the specialist layer is stable enough to justify them.
 
 ---
 

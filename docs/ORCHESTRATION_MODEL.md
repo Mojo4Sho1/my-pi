@@ -313,7 +313,7 @@ All other actors are narrow-context by default unless explicitly granted broader
 
 ### Recommended access properties
 
-Agent definitions should eventually carry properties such as:
+Actor definitions carry properties such as:
 
 - role type
 - routing class
@@ -421,13 +421,13 @@ Examples:
 
 ### 4. Agent-definition artifacts
 
-These define specialists, teams, sequences, and later the orchestrator definition itself.
+These define specialists, teams, sequences, and the orchestrator definition.
 
 Examples:
 - `agents/specialists/...`
 - `agents/teams/...`
 - `agents/sequences/...`
-- `agents/orchestrator/...`
+- `agents/orchestrator.md`
 
 ### 5. Seed artifacts
 
@@ -446,7 +446,6 @@ Examples:
 - prompt templates
 - skill templates
 - theme templates
-- seed templates
 
 ---
 
@@ -492,7 +491,7 @@ At present, the system should assume:
 - teams as reusable bundles of specialists
 - sequences as reusable workflow patterns
 - seeds as reusable bootstrap context packs
-- actor definitions will eventually carry routing and access properties
+- actor definitions carry routing and access properties
 - broad-state authority belongs to the orchestrator by default
 
 ### Future extension space

@@ -202,7 +202,7 @@ Reusable bootstrap context packs for repo setup and domain-specific coding workf
 Use this area when working on repo initialization, onboarding patterns, or reusable startup structures.
 
 ### `templates/`
-Artifact-generation and bundle-generation definitions.
+Template definitions for the live resource-template subtree (`extension/`, `prompt/`, `skill/`, `theme/`).
 
 Use this area when working on scaffold behavior, template contracts, documentation generation, or seed/template composition.
 

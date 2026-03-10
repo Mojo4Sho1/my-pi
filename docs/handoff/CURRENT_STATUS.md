@@ -1,6 +1,6 @@
 # CURRENT_STATUS.md
 
-Last updated: 2026-03-08
+Last updated: 2026-03-10
 
 ## Current phase
 Control-plane documentation reconciliation (milestone 1) with specialist-layer execution-readiness work paused for sequencing.
@@ -19,14 +19,14 @@ Control-plane documentation reconciliation (milestone 1) with specialist-layer e
 ## Remaining focus in current phase
 - Reconcile live documentation to current repository truth with no filesystem/taxonomy changes.
 - Remove legacy template-taxonomy references across live docs.
-- Normalize `DECISION_LOG.md` into contract-required durable-decision entry structure.
+- Resolve remaining deterministic stale references/future-tense drift in `INDEX.md`, `docs/ORCHESTRATION_MODEL.md`, and `agents/PRIMITIVE_LAYER_PLAN.md`.
 
 ## Open blockers
 - None currently.
 
 ## Current risks
 - Residual legacy template wording may remain outside initially obvious template docs.
-- Decision-log normalization could accidentally alter decision meaning if not done as structure-only conversion.
+- Future-tense drift in phase/planning docs could imply outdated repository state if not reconciled.
 
 ## Next target after active bundle
 - Resume `BUNDLE-20260308-specialist-layer-execution-readiness` once documentation reconciliation completes.
