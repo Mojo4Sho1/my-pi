@@ -1,121 +1,143 @@
 # PROJECT_FOUNDATION.md
 
-## Purpose
+## Purpose of this document
 
-This document is the canonical foundation for the `my-pi` project.
+This document is the stable canonical reference for the foundational design of this project.
 
-It explains why this project exists, what role it plays in a larger tooling ecosystem, what principles govern its design, what belongs inside its scope, and how it should be decomposed into operational documents, specifications, primitives, templates, and tooling.
+It defines the project's identity, scope, architectural doctrine, object model, control philosophy, platform posture, identity model, activation model, and long-term direction. It is intentionally durable and should change only when the project's foundational understanding changes.
 
-This document is a stable, high-signal project reference. It is not a live status log, a task tracker, or a handoff document.
-Live phase/state truth is owned exclusively by `docs/handoff/`.
+This document is **not** the place for transient progress notes, current status, temporary task tracking, or implementation handoff details. Live project state belongs in `docs/handoff/`.
 
 ---
 
 ## What this project is
 
-`my-pi` is the source-of-truth repository for a portable, modular, coding-focused Pi package and orchestration environment.
+This project is the long-term source-of-truth repository for a coding-focused orchestration system.
 
-It exists to help build, extend, and maintain coding tooling for:
+Its purpose is to support a structured, reusable, agent-friendly working environment for software creation, improvement, and maintenance. The system is designed to help an orchestrator and its downstream execution units work predictably over time through explicit contracts, durable documentation, bounded access, reusable components, and inspectable execution flows.
 
-- class projects
-- personal projects
-- PhD and research projects
-- the `my-pi` project itself
+The repository is not just a codebase. It is the canonical home for the project's:
 
-`my-pi` is intended to become a coherent system through which coding-related tasks can be assigned, decomposed, delegated, executed, validated, and summarized through a disciplined orchestrator-first model.
+- foundational architecture
+- execution doctrine
+- governance rules
+- reusable primitives
+- routing definitions
+- templates
+- seeds
+- handoff continuity
+- platform-integration posture
+- identity and activation rules
+- public package decomposition over time
 
 ---
 
 ## Why this project exists
 
-This project exists to create a durable personal foundation for digital tooling.
+This project exists to create a durable and composable system for coding work that can scale in sophistication without collapsing into ambiguity.
 
-The long-term intent is not just to collect useful extensions or prompts, but to create a lean, composable system of primitives that can be combined to produce increasingly capable behavior over time.
+The core problem it addresses is that agentic systems often become unreliable when they depend on implicit state, freeform collaboration, unclear boundaries, weak interfaces, or scattered project truth. This repository is intended to solve that by making the system explicit.
 
-The project is built on the belief that:
+The project therefore prioritizes:
 
-- simple rules can produce useful complexity
-- specialized primitives are more durable than monolithic systems
-- a modular system can adapt more easily to new tasks and new domains
-- building the right primitives now unlocks higher-order systems later
+- narrow responsibilities
+- explicit contracts
+- declarative routing
+- durable documentation
+- bounded context
+- reusable execution primitives
+- machine-checkable structure
+- human-readable architecture
+- portable governance independent of any one tool runtime
 
-The immediate goal is to build a strong coding system.
-
-The broader long-term vision is that this coding system becomes a reusable substrate from which later systems can be composed, while remaining a distinct project with its own scope and discipline.
+The goal is not merely to automate tasks. The goal is to create a system that can be reasoned about, maintained, extended, validated, and trusted over the long term.
 
 ---
 
 ## Long-term vision
 
-The long-term vision for `my-pi` is to become the cornerstone module for the author's future digital tooling.
+The long-term vision is a coding-oriented orchestration substrate built from reusable primitives that can be composed into increasingly capable execution structures over time.
 
-In its mature form, `my-pi` should be able to:
+At maturity, the project should support:
 
-- accept coding-related tasks or task sets
-- reason about those tasks through an orchestrator-first workflow
-- delegate work to specialized primitives
-- compose those primitives into teams and sequences when needed
-- generate and improve its own supporting tooling
-- maintain continuity across work sessions through documentation and handoff artifacts
-- bootstrap or improve other coding-oriented repositories using reusable seeds, templates, and decomposition patterns
+- individual specialists that perform narrow bounded work
+- teams that compose specialists through explicit state-machine routing
+- sequences that compose teams and/or specialists into higher-order workflows
+- reusable contracts, templates, and specs that reduce ambiguity
+- machine-enforced routing and validation
+- human-readable visualizations of execution structure
+- dynamic orchestrator selection of the best specialist, team, sequence, or combination for a task
+- governed creation of new primitives when capability gaps are identified
+- decomposition of stable subsystems into public standalone packages when appropriate
 
-This vision is intentionally coding-focused.
-
-`my-pi` is meant to become a robust personal coding system, not a catch-all personal assistant platform.
+The intended growth path is deliberate. The project should first become correct, explicit, and stable at the primitive level before it becomes broad or elaborate.
 
 ---
 
 ## Scope
 
-### In scope
+This project is specifically for coding-oriented orchestration and adjacent engineering support.
 
-The following are in scope for `my-pi`:
+In scope:
 
-- Pi extensions
-- Pi skills
-- Pi prompts
-- Pi themes
-- coding-oriented orchestration primitives
-- specialist definitions
-- team definitions
-- sequence definitions
-- seed definitions related to coding repo setup and coding workflows
-- scaffold and bootstrap tooling
-- documentation and routing systems
-- handoff infrastructure
-- validation helpers
-- decomposition workflows for turning project descriptions into specs, tasks, and repo artifacts
-- tooling used to improve the `my-pi` project itself
+- code generation and modification
+- review
+- testing
+- planning for coding tasks
+- repository maintenance
+- routing and execution structure for coding work
+- project documentation needed to support coding workflows
+- architecture for reusable agent execution within coding contexts
+- tooling and runtime support for contracts, packets, routing, activation, and validation
+- visual and machine-readable representations of execution structures
+- platform adapters and integration layers that allow the project to run on supported external tool ecosystems
 
-### Out of scope
+Out of scope unless explicitly re-scoped later:
 
-The following are out of scope for `my-pi`:
+- generic life management
+- broad personal assistant behavior
+- unrelated productivity workflows
+- open-ended conversation systems not grounded in coding work
+- vague general-purpose autonomy without explicit governance
 
-- non-coding assistant behavior unless it is directly required by the coding system
-- client-specific personas
-- domain-specific business systems unrelated to coding work
-- machine-local secrets, credentials, and ephemeral session state
-- one-off project hacks that do not generalize
-- tooling that belongs to a future assistant layer rather than the coding layer
-- broad personal-assistant features that should live in a future Merlin-related system
+This repository should remain disciplined in scope. It is a coding system first.
 
 ---
 
 ## Project boundary
 
-`my-pi` must remain distinct from any later assistant-oriented system.
+This repository defines the coding-oriented substrate and its supporting doctrine. It is not required to contain every future implementation detail forever.
 
-It may eventually serve as a reusable coding-oriented substrate for higher layers, but those higher layers should not be allowed to blur the scope of this repo.
+As portions of the system stabilize, some components may be extracted into their own public packages or repositories. When that happens, this repository remains the canonical source of intent, architecture, governance, and integration logic unless and until governance is explicitly moved elsewhere.
 
-A future assistant system may build on top of `my-pi`.  
-A future client persona system may build on top of later layers.  
-But `my-pi` itself should stay disciplined and coding-focused.
+This means the repository may eventually reference external packages or platform-specific artifacts while still preserving:
 
-A useful boundary rule is:
+- foundational truth
+- execution doctrine
+- governance rules
+- integration relationships
+- identity and activation rules
+- public/private decomposition strategy
+- stable architectural intent
 
-> If a capability is not needed by the coding system itself, it should not be added to `my-pi`.
+The project should remain architecturally portable even when it is implemented on top of a specific platform.
 
-That rule exists to protect modularity, portability, and long-term clarity.
+---
+
+## Platform posture
+
+The project may be implemented using a host platform that supports concepts such as extensions, skills, prompt templates, packages, settings, SDKs, RPC interfaces, or similar integration surfaces.
+
+However, the project's core architecture must not be reduced to the host platform's native vocabulary.
+
+This repository therefore distinguishes between:
+
+- **project-native architecture**, which defines the durable concepts of this system
+- **platform-native implementation artifacts**, which are one possible way of realizing those concepts on a specific host platform
+
+This distinction exists to preserve long-term maintainability and to reduce coupling to any one runtime ecosystem.
+
+The project does not require every project-native object to have a host-platform realization. Host-platform artifacts should exist only when they materially improve execution, integration, distribution, or maintainability.
 
 ---
 
@@ -123,409 +145,1026 @@ That rule exists to protect modularity, portability, and long-term clarity.
 
 ### 1. Reusable primitives before conveniences
 
-Build primitive units first.
+The system should be built from reusable foundational components before introducing higher-level convenience abstractions.
 
-If a repeated pattern emerges, abstract it into a reusable primitive only when doing so clearly improves speed, reliability, safety, or reuse.
-
-### 2. Modularity everywhere
-
-Anything that can reasonably be modular should be modular.
-
-The system should favor small specialized parts over large all-purpose constructs.
-
-### 3. Keep the system lean
-
-Only build what is needed.
-
-Avoid speculative complexity, premature abstraction, and features that exist only because they seem powerful.
-
-### 4. Complexity through composition
-
-The system should be able to produce richer behavior by composing simple specialized parts.
-
-Higher-order capability should arise through structured composition, not through a giant all-knowing harness.
-
-### 5. Orchestrator-first control
-
-The orchestrator owns broad context, decomposition, delegation, synthesis, and state updates.
-
-Downstream actors should operate from narrowed task packets.
-
-### 6. Explicit access boundaries
-
-Access to repository context should be a property of the primitive definition, not an informal convention.
-
-Primitives should declare their routing class and default context scope so that broad repository reading is explicitly granted rather than accidentally assumed.
-
-### 7. Documentation-first continuity
-
-The project should preserve durable understanding through well-structured documentation.
-
-The system should be able to survive time gaps, new sessions, new agent instances, and future decomposition work without losing project intent.
-
-### 8. Build tools that help build better tools
-
-A central goal of this project is recursive leverage.
-
-`my-pi` should help build the tools that make it easier to build the next layer of tools.
-
-### 9. Portable source of truth
-
-This repo should remain safe to clone onto a new machine and serve as the canonical editable source of the system.
+Specialists come before teams.  
+Teams come before sequences.  
+Stable routing comes before adaptive orchestration.  
+Explicit governance comes before automation convenience.
 
 ---
 
-## System worldview
+### 2. Complexity through composition
 
-`my-pi` is based on the idea that useful intelligent systems can be built from simple, specialized, composable units.
+Higher-order behavior should emerge from composing simpler well-governed units rather than from building overly broad units that do too much.
 
-The preferred model is closer to a colony of cooperating specialized workers than to a single monolithic assistant.
+The project should prefer:
 
-That means the system should prefer:
+- small well-defined primitives
+- explicit interfaces
+- declared transitions
+- layered composition
 
-- narrow roles
-- explicit boundaries
-- explicit handoffs
-- reusable collaboration patterns
-- reusable execution patterns
-- stable operating documents
-- decomposition over improvisation
+over:
 
-This worldview should govern all later tooling decisions.
+- monolithic agents
+- hidden dependencies
+- implicit coordination
+- broad undefined responsibility
 
 ---
 
-## First-class objects
+### 3. Orchestrator-first control
 
-The system is organized around the following first-class objects:
+The orchestrator remains the default broad-context control authority for the system.
 
-- orchestrator
+Downstream units should be narrower in responsibility and narrower in visibility unless explicitly granted broader access by design.
+
+The system should default toward:
+
+- central coordination of broad context
+- local execution of bounded work
+- explicit routing
+- explicit escalation
+
+rather than allowing downstream units to infer or accumulate broad hidden context.
+
+---
+
+### 4. Explicit access boundaries
+
+Access should be intentionally granted, not assumed.
+
+Units should receive the minimum context and artifacts needed to perform their role correctly. This applies to specialists, teams, and future higher-order structures.
+
+The system should prefer:
+
+- bounded task packets
+- declared inputs
+- bounded outputs
+- explicit handoff artifacts
+
+over unrestricted repository awareness or open-ended conversational memory.
+
+---
+
+### 5. Documentation-first continuity
+
+Durable documentation is part of the system, not an afterthought.
+
+Important design knowledge should live in stable, inspectable, versioned artifacts rather than in implicit memory or transient conversations.
+
+The project should maintain clear distinctions between:
+
+- stable foundational truth
+- machine-readable execution definitions
+- normative governance artifacts
+- live handoff state
+- generated run artifacts
+- host-platform adapter artifacts
+
+---
+
+### 6. Contract-governed execution
+
+The system should prefer contract-governed execution over unconstrained collaboration.
+
+Work units should not rely on informal interpretation of prose when predictable structure can be declared explicitly. Inputs, outputs, invariants, allowed transitions, terminal conditions, and activation rules should be represented through contracts and machine-readable artifacts wherever practical.
+
+Predictability comes from declared interfaces and declared routing, not from assuming that downstream actors will "figure it out."
+
+---
+
+### 7. Structured packets over freeform inter-agent dialogue
+
+Execution units should communicate primarily through contract-defined packets and other declared artifacts rather than through unconstrained natural-language exchange.
+
+Narrative explanation may still exist for observability and debugging, but it is not the authoritative control surface of the system.
+
+Routing and validation should depend on declared fields and declared rules, not on prose interpretation alone.
+
+---
+
+### 8. Human-readable and machine-readable parity
+
+Important execution structures should be legible both to machines and to humans.
+
+When a team or workflow exists, the system should strive to maintain both:
+
+- a machine-readable definition suitable for enforcement and validation
+- a human-readable depiction suitable for inspection and understanding
+
+This principle exists to support both operational correctness and architectural clarity.
+
+---
+
+### 9. Platform insulation through adapter boundaries
+
+The project should integrate with external platforms through documented adapter surfaces rather than by collapsing its architecture into platform-specific assumptions.
+
+Platform-native artifacts are useful, but they should be treated as implementation vehicles rather than as the project's only source of truth.
+
+This principle exists to make the project resilient to platform evolution, replacement, or partial migration.
+
+---
+
+### 10. Fresh bounded invocation over role mutation
+
+When the system invokes a specialist or higher-order execution unit, it should prefer fresh bounded invocation over role swapping within a long-lived general session.
+
+This principle preserves:
+
+- bounded context
+- reproducibility
+- cleaner interfaces
+- reduced hidden state
+- clearer failure analysis
+
+Role mutation may be useful in limited situations, but it should not be the default architectural model.
+
+---
+
+### 11. Canonical identity over filename or adapter identity
+
+Project-native objects should have stable canonical identities that do not depend on filenames, directory location, or host-platform realization artifacts.
+
+This principle exists to prevent drift when objects are moved, renamed, versioned, or realized on multiple host platforms.
+
+---
+
+### 12. Activation is a governed state, not mere existence
+
+An object should not be treated as active merely because a file exists.
+
+Callable participation in the system should be an explicit governed state that follows validation, indexing, and admission into the active callable ecosystem.
+
+---
+
+## Foundational execution doctrine
+
+The project adopts the following execution doctrine.
+
+### Specialists do not collaborate through freeform conversation by default
+
+A specialist should receive bounded declared input, perform narrow work, and emit bounded declared output. It should not be expected to negotiate control flow conversationally with peer specialists.
+
+### Teams are not group chats
+
+A team is not a loose collection of specialists exchanging prose until work finishes. A team is a governed execution structure with explicit routing rules, entry conditions, transition conditions, and terminal outcomes.
+
+### Routing is authoritative
+
+Routing authority belongs to declared team execution rules and the runtime that enforces them. Specialists do not choose downstream recipients by default.
+
+### Packets carry execution state across boundaries
+
+Packets and related execution artifacts are first-class mechanisms for transferring bounded work, routing signals, and results between units.
+
+### Narrative is secondary
+
+Human-readable explanation is useful for traceability, debugging, and auditability, but should remain secondary to declared fields and declared routing artifacts.
+
+### Validation is expected
+
+Wherever practical, contracts, packets, transitions, execution definitions, and activation boundaries should be machine-checkable before downstream consumption.
+
+### Fresh invocation is preferred
+
+When invoking specialists, teams, or future higher-order units, the project should prefer creating fresh bounded executions over mutating the identity of an already-running broad-context actor.
+
+---
+
+## Canonical identity doctrine
+
+Every first-class project-native object should have a stable canonical ID.
+
+Canonical IDs should be:
+
+- human-readable
+- stable across file renames and moves
+- meaningful enough to inspect in git and documentation
+- unique within the repository's object namespace
+
+Canonical IDs should be used to identify objects such as:
+
 - specialists
 - teams
 - sequences
+- packet types
+- contracts
+- templates
 - seeds
+- platform adapters
+- other governed objects as needed
+
+Filenames are implementation details. Friendly display names are presentation details. Canonical IDs are identity.
+
+Where host-platform artifacts exist, they should declare which canonical object they realize rather than becoming the object's identity themselves.
+
+---
+
+## First-class object model
+
+The system recognizes the following as first-class project objects.
+
+### 1. Specs
+
+Specs are durable descriptive artifacts that preserve project truth about an object, subsystem, or execution structure.
+
+A spec explains what something is, what it contains, how it is organized, or how it should be interpreted.
+
+Specs are descriptive, architectural, and durable.
+
+Examples include:
+
+- architecture specs
+- object specs
+- execution specs
+- machine-readable routing specs
+
+---
+
+### 2. Contracts
+
+Contracts are first-class governance artifacts.
+
+A contract defines what is valid, required, allowed, forbidden, expected, or guaranteed for a project object or interaction surface. Contracts exist to reduce ambiguity and constrain behavior.
+
+Contracts are normative rather than merely descriptive.
+
+Contracts may govern:
+
+- specialists
+- teams
+- sequences
+- packets
 - templates
 - handoff artifacts
-- specs
+- host-platform adapter artifacts
+- other project objects as needed
 
-These objects are defined in more detail in `docs/ORCHESTRATION_MODEL.md`, but their project-level role is summarized here.
-
-### Orchestrator
-
-The orchestrator is the top-level control layer.
-
-It reads broad repository state, chooses execution strategy, delegates work, receives structured outputs, and updates repository state.
-
-By default, the orchestrator is the only primitive with broad routing authority.
-
-### Specialists
-
-Specialists are the primitive work units.
-
-They should be narrow, explicit, and bounded.
-
-By default, specialists should operate under narrow context scope and should not read workflow or handoff state unless explicitly granted that ability.
-
-### Teams
-
-Teams are reusable bundles of specialists for recurring collaboration patterns.
-
-A team does not automatically inherit broad context just because it contains multiple actors.
-
-### Sequences
-
-Sequences are reusable execution patterns that define stage order, checkpoints, merge points, and handback expectations.
-
-A sequence structures execution. It does not supersede access boundaries.
-
-### Seeds
-
-Seeds are reusable bootstrap context packs for initializing repos, workflows, or specialized coding domains.
-
-### Templates
-
-Templates define how artifacts and bundles are generated.
-
-They support repeatability and decomposition.
-
-### Handoff artifacts
-
-Handoff artifacts preserve current work state and continuity between sessions.
-
-By default, these artifacts belong to the orchestrator’s broad-view operating surface.
-
-### Specs
-
-Specs preserve durable project truth in structured form.
+A spec may describe an object, but a contract governs validity and behavior.
 
 ---
 
-## Access model
+### 3. Packets
 
-The repository should use explicit access labels in primitive definitions.
+Packets are first-class execution artifacts.
 
-At minimum, primitives should declare:
+A packet is a bounded structured artifact used to transfer work, state, decisions, or results between execution units or between stages of an execution structure.
 
-- a routing class
-- a default context scope
+Packets should be designed to support predictable routing, bounded context, and machine validation.
 
-The intended default pattern is:
+The canonical packet format should be YAML unless and until the project explicitly adopts a different canonical format.
 
-- orchestrator-class primitives follow the orchestrator route and may read broad repository state
-- downstream-class primitives follow the downstream route and should stop at the minimum task-relevant context unless explicitly granted more
+Packets may represent:
 
-This access model exists to prevent context pollution, preserve specialization, and keep primitive behavior inspectable.
+- incoming work
+- intermediate outputs
+- review results
+- build results
+- test results
+- team transition state
+- terminal results
+- escalation requests
 
-A useful default standard is:
-
-- only orchestrator-class primitives read workflow and handoff documents by default
-- downstream primitives work from task packets
-- any exception must be explicit in the primitive definition or delegated packet
-
-This keeps context discipline part of the system design rather than a loose social rule.
-
----
-
-## Primitive hierarchy
-
-The system should grow in a disciplined order.
-
-The intended dependency order is:
-
-1. specialists
-2. teams
-3. sequences
-
-That means:
-
-- it does not make sense to build teams before there are useful specialists
-- it does not make sense to build sequences before there are useful teams or recurring stage patterns
-- all higher-order constructs should remain grounded in simpler primitives
-
-This repo should keep that order in mind when prioritizing work.
+Packets are execution artifacts, not general prose notes.
 
 ---
 
-## Seeds and templates
+### 4. Specialists
 
-Seeds and templates play different roles and should remain conceptually distinct.
+Specialists are primitive execution units with narrow responsibility.
 
-### Seeds
+A specialist should be a contract-bound typed transformer: it accepts declared inputs, performs bounded work, and emits declared outputs subject to invariants and failure rules.
 
-Seeds are bootstrap context packs used to initialize a repo or a repo class.
+A specialist should remain narrow enough that its behavior is inspectable, testable, and reusable.
 
-A seed may include:
+Specialists are the foundational execution primitive from which higher-order structures are composed.
 
-- expected repo structure
-- expected documentation layout
-- expected setup steps
-- likely missing artifacts
-- recommended primitives
-- progress checkpoints
-- domain-specific initialization guidance
+At present, specialists are project-native governed objects. A host-platform realization may exist later if it materially improves execution, but a host-platform artifact is not required for a specialist to exist.
 
-Seeds are contextual setup artifacts.  
-They are not actors.
+---
 
-### Templates
+### 5. Teams
 
-Templates are generation recipes.
+Teams are reusable compositions of specialists governed by explicit routing and execution rules.
 
-They define how individual artifacts or bundles of artifacts are created.
+A team is a contract-governed state machine over specialists. It defines:
 
-Examples include templates for:
+- entry conditions
+- member roles
+- allowed transitions
+- terminal states
+- routing authority
+- expected outputs
+- failure and escalation conditions
 
-- `AGENTS.md`
-- handoff documents
-- specs
-- seed manifests
-- specialist definitions
+A team is a local execution structure, not merely a list of members.
+
+Teams are project-native architectural objects even when their execution is hosted through platform-specific tooling.
+
+---
+
+### 6. Sequences
+
+Sequences are higher-order reusable workflow structures that compose specialists and/or teams into broader repeatable execution patterns.
+
+A sequence exists above the team layer. It governs ordered or branched progression across larger phases of work.
+
+Sequence design is intentionally deferred until the team layer and team router are stable. Sequences are part of the long-term model, but they are not the immediate implementation priority.
+
+---
+
+### 7. Templates
+
+Templates are construction artifacts used to create new valid objects in a consistent form.
+
+Templates are not contracts. A template helps create an artifact. A contract defines what makes that artifact valid.
+
+Templates should exist when they materially improve consistency, reduce ambiguity, or lower the burden of creating new project objects.
+
+Templates may be project-native, host-platform-native, or both, depending on the artifact being generated.
+
+---
+
+### 8. Seeds
+
+Seeds are starting-point artifacts used to bootstrap a new project, subsystem, or configuration bundle with sensible initial structure.
+
+Seeds are distinct from templates. A template typically describes how to form a specific artifact. A seed provides an initial bundle or scaffold from which work begins.
+
+---
+
+### 9. Handoff artifacts
+
+Handoff artifacts preserve live project continuity.
+
+They hold dynamic state such as:
+
+- current status
+- active task
+- queue state
+- pending decisions
+- recent outcomes
+- transitional execution context
+
+They are intentionally separate from stable foundational and architectural documents.
+
+---
+
+### 10. Platform adapters
+
+Platform adapters are first-class implementation-layer artifacts that map project-native concepts onto host-platform mechanisms.
+
+Examples may include:
+
+- extension-based runtimes
+- skill generation or export layers
+- prompt-template front doors
+- package manifests
+- SDK or RPC wrappers
+- settings bridges
+
+Platform adapters are important implementation artifacts, but they do not replace project-native contracts, specs, routing definitions, or canonical identities.
+
+---
+
+## Contracts and their roles
+
+Because contracts are first-class governance objects, the system should treat different contract levels distinctly.
+
+### Specialist contracts
+
+A specialist contract should define the specialist as a narrow bounded transformer.
+
+Typical concerns include:
+
+- canonical ID
+- purpose
+- allowed inputs
+- required input schema
+- expected outputs
+- output schema
+- invariants
+- forbidden assumptions
+- failure conditions
+- escalation conditions
+- side-effect policy
+- acceptance criteria
+- activation prerequisites
+- mapping to any host-platform realization, if applicable
+
+Specialists should remain simple enough that their contracts are clear and enforceable.
+
+---
+
+### Team contracts
+
+A team contract should define the team as a governed execution structure rather than merely listing members.
+
+Typical concerns include:
+
+- canonical ID
+- team purpose
+- member specialists
+- entry packet type
+- exit packet type
+- routing principles
+- allowed states
+- terminal conditions
+- escalation conditions
+- invariants
+- validation expectations
+- coordination model
+- activation prerequisites
+- relationship to the team's machine-readable routing spec
+- relationship to any host-platform execution adapter
+
+The team contract is normative and human-readable.
+
+---
+
+### Sequence contracts
+
+A sequence contract should define the conditions and structure of higher-order workflow execution.
+
+Typical concerns include:
+
+- canonical ID
+- sequence purpose
+- eligible entry conditions
+- participating specialists and/or teams
+- ordered stages
+- branching rules
+- completion criteria
+- abort criteria
+- recovery expectations
+- activation prerequisites
+- relationship to machine-readable sequence execution definitions
+- relationship to any host-platform execution adapter
+
+Sequence contracts should remain conceptual until the team layer is stable enough to support them well.
+
+---
+
+### Packet contracts
+
+Packet contracts define the structure and semantics of execution packets.
+
+Typical concerns include:
+
+- canonical packet type ID
+- required fields
+- optional fields
+- authoritative routing fields
+- producer rules
+- consumer rules
+- validation rules
+- terminal or non-terminal meaning
+- compatibility expectations
+
+Packet contracts are critical because predictable routing depends on predictable packet structure.
+
+---
+
+### Platform adapter contracts
+
+Where a host platform is used, the project may define contracts for adapter-layer artifacts.
+
+Typical concerns include:
+
+- canonical adapter ID
+- which project-native object the adapter realizes or serves
+- required documented platform surface
+- allowed dependencies on host-platform features
+- persistence expectations
+- invocation semantics
+- activation prerequisites
+- upgrade and migration expectations
+- failure isolation behavior
+
+Adapter contracts exist to prevent platform integration from becoming an ungoverned side channel.
+
+---
+
+## Teams as state machines
+
+A team should be modeled as a state machine, not as a freeform collaboration space.
+
+This means a team should define, directly or indirectly:
+
+- valid states
+- start state
+- allowed emitting members
+- valid transition conditions
+- terminal states
+- failure states
+- escalation states
+- output conditions
+
+A team's internal execution should be understandable as a set of governed transitions over declared artifacts.
+
+This design is intended to:
+
+- preserve specialist purity
+- avoid hidden routing logic
+- reduce ambiguity
+- support validation
+- improve debugging
+- support future automation of team creation
+- make team behavior legible to humans and machines
+
+---
+
+## Team coordination model
+
+By default, teams should not require a dedicated coordinator agent.
+
+However, every true team must have an explicit coordination mechanism.
+
+The default project position is:
+
+- no dedicated coordinator agent by default
+- yes to explicit coordination authority
+- yes to explicit routing ownership
+- yes to runtime enforcement of transitions
+- no to specialists selecting downstream recipients by default
+
+The preferred default is a non-agentic coordination mechanism: a reusable runtime that enforces the team's declared routing rules.
+
+This keeps specialists narrow while keeping team behavior predictable and inspectable.
+
+A dedicated coordinator agent remains a possible future exception for unusually complex teams, but it is not part of the default design and may never be necessary.
+
+---
+
+## Team routing runtime
+
+The project intends teams to be executed by a generic reusable routing runtime rather than by per-team hardcoded logic.
+
+The runtime should be team-agnostic. Team-specific behavior should live in team-specific declared artifacts, not in custom router code for each team.
+
+The routing runtime should, at minimum, support the following responsibilities:
+
+- load a team's machine-readable routing definition
+- validate incoming packets against packet contracts
+- validate current state against team rules
+- determine legal next transitions
+- reject invalid transitions
+- emit the next valid task or handoff artifact
+- persist execution state and trace information
+- recognize terminal, failure, and escalation outcomes
+
+The specific implementation language is intentionally not fixed at the foundation level. The first implementation may be in Python, but the architecture should remain language-agnostic.
+
+If hosted on a platform that supports extensions or similar runtime hooks, the team router may be realized there as a platform adapter, but the routing logic must remain governed by project-native contracts and specs.
+
+---
+
+## Machine-readable routing definitions
+
+Each team should have a machine-readable execution definition that declares how the team routes work.
+
+This artifact should describe, directly or indirectly:
+
+- valid states
+- start state
+- terminal states
+- member associations
+- transition rules
+- accepted packet types
+- authoritative routing fields
+- validation expectations
+
+This routing definition is a first-class part of team execution and should be treated as a durable governed artifact.
+
+It may be implemented as a dedicated state-machine spec or as a clearly defined machine-readable team execution spec. The project should prefer clarity and enforceability over taxonomy purity.
+
+---
+
+## Human-readable routing depictions
+
+Each team should also have a human-readable routing depiction.
+
+This artifact exists so that humans can quickly understand how a team behaves without reading low-level machine definitions or runtime code.
+
+The project intends teams to have both:
+
+- a machine-readable routing definition used by tooling and runtime enforcement
+- a human-readable depiction used for inspection, discussion, and maintenance
+
+The exact rendering format may evolve over time, but the requirement for legible human-readable routing should remain.
+
+This is especially important because future systems that create new teams should be expected to generate both the machine-readable routing definition and the human-readable visual depiction before a team is considered complete.
+
+---
+
+## Specialists as typed transformers
+
+A specialist should be treated as a typed transformer with bounded authority.
+
+A specialist should:
+
+- accept declared inputs
+- perform narrow bounded work
+- emit declared outputs
+- respect its contract
+- avoid making undeclared assumptions
+- avoid taking over routing authority
+
+A specialist should not:
+
+- infer broad project state unless explicitly provided
+- decide arbitrary downstream routing
+- silently change packet structure
+- rely on prose as the sole control surface
+- become a disguised mini-orchestrator
+
+This doctrine exists to preserve composability and predictability.
+
+---
+
+## Routing doctrine
+
+The following routing rules should guide the project.
+
+### 1. Routing depends on declared fields
+
+The system should route based on explicit structured fields and declared transition rules, not on prose interpretation alone.
+
+### 2. Specialists do not choose recipients by default
+
+A specialist emits a valid contract-governed output. The routing authority determines what happens next.
+
+### 3. Invalid transitions should fail clearly
+
+When a transition is invalid, the system should reject it explicitly rather than silently guessing.
+
+### 4. Validation precedes downstream consumption
+
+Wherever practical, packets and transition artifacts should be validated before a downstream unit is asked to consume them.
+
+### 5. Terminal conditions should be explicit
+
+Success, failure, blocked, and escalation conditions should be declared rather than implied.
+
+### 6. Fresh invocations should preserve boundedness
+
+Invocation mechanisms should preserve clean execution boundaries rather than encouraging long-lived context accumulation or role mutation.
+
+---
+
+## Fresh specialist invocation doctrine
+
+A fresh specialist invocation should receive only the minimum bounded inputs required to perform its work correctly.
+
+The default minimum bounded input set is:
+
+- the specialist contract or a governed distilled execution definition derived from it
+- the task packet
+- the allowed read set
+- any explicitly approved helper resources
+
+Nothing else should be included by default.
+
+The exact transport mechanism for these inputs is an implementation concern and may vary by runtime or host platform. The architectural requirement is boundedness, not a specific transport format.
+
+---
+
+## Activation doctrine
+
+Activation is a governed state transition for project objects that participate in runtime selection or execution.
+
+An object should be considered **active** only when all applicable requirements are satisfied, including:
+
+- the object exists in valid governed form
+- required validation has passed
+- the object is indexed or otherwise discoverable by the system
+- the object is marked eligible for runtime selection or use
+- if a host-platform realization exists, that realization is properly associated with the canonical object
+
+Activation is therefore distinct from:
+
+- draft existence
+- candidate existence
+- file presence
+- unreviewed generation
+
+Activation is admission into the active callable ecosystem.
+
+---
+
+## Validation doctrine
+
+Validation is not optional decoration. It is part of the architecture.
+
+The project should strive for machine-checkable validation of:
+
+- contract structure
+- packet structure
+- routing definitions
+- transition legality
+- index consistency
+- cross-reference integrity
+- declared-vs-actual object shape
+- adapter-layer conformance to project governance
+- activation preconditions where applicable
+
+The purpose of validation is not merely correctness in isolation. It is also to prevent architectural drift and reduce ambiguity over time.
+
+---
+
+## Host-platform mapping doctrine
+
+The project may use a host platform with its own artifact types. When that happens, the following mapping doctrine should apply.
+
+### Project-native objects remain authoritative
+
+The project-native contract, spec, routing definition, canonical identity, and activation rules remain authoritative even when a host-platform realization exists.
+
+### Host-platform artifacts are optional realizations
+
+A host-platform artifact should exist only when it materially improves execution, integration, distribution, or maintainability.
+
+The project should not force every project-native object into a host-platform-native form prematurely.
+
+### Team routing may map to extensions or equivalent runtime hooks
+
+A host platform's extension-like construct may be an appropriate implementation vehicle for the team routing runtime, provided that:
+
+- the router remains generic and team-agnostic
+- routing behavior is driven by project-native specs and contracts
+- the extension does not become a substitute for project governance
+- platform-specific behavior is isolated behind adapter boundaries
+
+### Prompt templates may exist as convenience front doors
+
+Prompt-template-like constructs may be used for ergonomic entrypoints, scaffolding, or operator convenience, but they should not become the authoritative home of:
+
+- specialist identity
+- packet semantics
+- routing rules
 - team definitions
 - sequence definitions
+- foundational governance
 
-A seed may use templates.  
-A template does not become a seed simply because it generates a seed-related file.
+### Packages may bundle stable implementation surfaces
 
----
-
-## Relationship to future systems
-
-`my-pi` may eventually support or enable later systems, but it should not absorb their scope.
-
-A future assistant-oriented system may be built on top of `my-pi`.  
-Future persona or client systems may be built on top of later layers.  
-Those later systems may reuse patterns, primitives, templates, or extensions developed here.
-
-However, this repo should remain disciplined about its own role:
-
-- `my-pi` is the coding-oriented foundation
-- later layers are separate concerns
-- future business or client systems should not be allowed to pollute this repo's scope
-
-This boundary is important for maintainability, public/private separation, and long-term architectural clarity.
+When platform-native artifacts become cohesive enough, they may be bundled and versioned as packages or equivalent deployment units. Packaging should preserve architectural clarity rather than hide it.
 
 ---
 
-## Public and private evolution
+## Primitive hierarchy and growth order
 
-This repo is currently public and intended to hold reusable coding-oriented primitives and operating patterns.
+The project should continue to grow in the following order:
 
-As later systems emerge, some layers may need to become private.
+1. specialists
+2. packet contracts and packet structure
+3. team contracts
+4. team machine-readable routing definitions
+5. generic team routing runtime
+6. team visualization and supporting validation
+7. richer team reuse patterns
+8. sequence contracts and sequence execution definitions
+9. sequence routing and runtime
+10. dynamic primitive selection and governed primitive creation
+11. higher-order automation and package decomposition where appropriate
 
-A likely long-term separation is:
-
-- `my-pi` remains the public or semi-public coding primitive layer
-- later assistant-oriented systems may live in separate repos
-- future client personas or client-specific systems likely live in private repos
-
-This repo should be designed so that such later separation is easy rather than painful.
-
-That means the project should favor clear interfaces, narrow responsibilities, and modular reuse.
-
----
-
-## Success criteria
-
-In its mature state, `my-pi` should:
-
-- act as a coherent coding-oriented orchestration system
-- let the author assign coding-related tasks and task sets
-- delegate work through an orchestrator-first model
-- manage specialists, teams, and sequences cleanly
-- preserve continuity through high-quality documentation and handoff artifacts
-- bootstrap new coding repos through seeds and templates
-- decompose high-signal project descriptions into specs, handoff artifacts, and task structures
-- improve itself through the same systems it uses on other coding repos
-- remain lean, modular, and inspectable while increasing capability over time
+This hierarchy is intentional. The project should learn to walk before it runs.
 
 ---
 
-## Current phase
+## Templates, contracts, and seeds
 
-The current phase of the project is:
+These object types serve different purposes and should remain distinct.
 
-**foundational architecture and operating-document setup**
+### Contracts
 
-At this stage, the goal is to define:
+Normative governance artifacts that define validity, behavior, interface expectations, and activation requirements.
 
-- the project foundation
-- the orchestration model
-- the workflow
-- handoff structure
-- documentation routing
-- template contract
-- seed structure
-- the initial scaffold tooling
-- the initial path for building primitive execution units
-- the access model for orchestrator-class and downstream-class primitives
+### Templates
 
-This stage is about getting the bones of the system right before building a larger ecosystem on top of them.
+Construction artifacts that help create new valid objects in a consistent form.
+
+### Seeds
+
+Bootstrap bundles that create an initial starting structure for a project, subsystem, or configuration set.
+
+The project should preserve these distinctions because they reduce ambiguity for both humans and agents.
+
+---
+
+## Documentation structure doctrine
+
+The repository should organize documentation so that both humans and agents can find the relevant governing material with minimal ambiguity.
+
+The preferred pattern is:
+
+- stable global foundation documents for durable architectural truth
+- local indexes for major subtrees
+- local contracts near the artifacts they govern
+- centralized templates when centralization improves discoverability
+- explicit handoff artifacts for live state
+- explicit platform adapter docs when implementation artifacts depend on an external host runtime
+
+This means the project should generally favor:
+
+- colocated governance
+- discoverable indexes
+- centralized generation artifacts when useful
+- minimal routing hops to find the right governing documentation
+- separation between project-native truth and platform-native implementation files
+
+---
+
+## Stable truth vs live truth
+
+The project should continue to distinguish clearly between stable truth and live truth.
+
+### Stable truth
+
+Belongs in foundational documents, durable contracts, stable specs, and other long-lived architectural artifacts.
+
+### Live truth
+
+Belongs in handoff materials, active task packets, queue state, run state, and current execution context.
+
+This separation prevents foundational documents from becoming cluttered with transient operational detail.
+
+---
+
+## Runtime artifact separation
+
+Runtime-produced artifacts should remain separate from handoff continuity artifacts.
+
+`docs/handoff/` exists for human-readable live project continuity, not for raw execution traces or high-volume runtime output.
+
+Runtime artifacts such as:
+
+- run state snapshots
+- transition logs
+- packet histories
+- execution traces
+- terminal run summaries
+
+should live in a dedicated runtime-oriented subtree, such as `runs/`, rather than in `docs/handoff/`.
+
+The exact runtime subtree structure may evolve, but runtime output should remain clearly separated from stable docs and handoff continuity.
+
+---
+
+## Public decomposition and future packaging
+
+As the project matures, some stable subsystems may be extracted into public standalone packages or repositories.
+
+Likely future extraction candidates may include:
+
+- routing runtimes
+- validation tooling
+- spec utilities
+- visualization tooling
+- reusable packet and contract infrastructure
+- platform adapter packages
+- governed specialist bundles
+
+Any such decomposition should preserve the coherence of the overall architecture. Extraction is a packaging decision, not a license to scatter project truth.
+
+---
+
+## Dynamic primitive selection and creation
+
+A long-term goal of the project is for the orchestrator to choose, at runtime, the most appropriate specialist, team, sequence, or combination thereof for a given task.
+
+This capability should be built only after the lower layers are stable.
+
+A further long-term goal is governed primitive creation: the system should eventually be able to identify capability gaps and participate in the creation of new specialists, teams, or other primitives when justified.
+
+However, primitive creation must be governed.
+
+The project should distinguish between:
+
+- generating a candidate primitive artifact
+- validating that primitive against project contracts
+- reviewing and approving it
+- activating it
+- adding it to the active callable pool
+
+The project should not treat primitive creation as unrestricted autonomous self-modification.
+
+---
+
+## Governed specialist creation
+
+The project may eventually support the creation of specialists and, if useful, their host-platform realization artifacts.
+
+When that happens, the creation path should remain governed.
+
+A specialist should not be considered active merely because an orchestrator can draft it.
+
+The preferred long-term path is:
+
+1. identify a capability gap
+2. invoke a governed specialist-creation process
+3. generate the specialist contract, any realization artifact, and supporting validation materials
+4. review and validate the candidate
+5. activate it only after acceptance
+
+This doctrine exists to preserve maintainability and prevent ungoverned capability sprawl.
 
 ---
 
 ## Near-term priorities
 
-Near-term work should prioritize:
+The near-term priorities of the project should be:
 
-- stable operating documents
-- stable handoff structure
-- a clear template contract
-- a clear seed model
-- initial documentation templates
-- initial scaffold tooling
-- early specialist primitives
-- the path from specialists to teams
-- the path from teams to sequences
-- tooling that helps build additional primitives safely and repeatably
-- explicit routing and access standards for primitives
+1. preserve a stable and coherent documentation ontology
+2. define specialists as contract-bound typed transformers
+3. define packets as first-class execution artifacts in YAML form
+4. elevate contracts to first-class governance objects
+5. define teams as contract-governed state machines
+6. create team contracts and machine-readable routing definitions
+7. build a generic reusable team routing runtime
+8. provide validation support for packets and transitions
+9. require human-readable routing depictions for teams
+10. define a clean host-platform adapter posture without over-coupling to any one platform
+11. preserve canonical identity and governed activation across all first-class objects
+12. defer sequence execution design until the team layer is stable
 
-The near-term goal is not breadth.  
-It is a strong, composable foundation.
-
----
-
-## Decomposition intent
-
-This document is intended to serve as a source document for decomposition.
-
-Agents should be able to use this document to derive:
-
-- specs
-- operating documents
-- handoff artifacts
-- task queue structure
-- specialist candidates
-- team candidates
-- sequence candidates
-- seed candidates
-- template priorities
-- bootstrap plans for future coding-oriented repos
-- primitive access rules and routing defaults
-
-This means the project should be documented in a way that is stable enough to be decomposed and reused.
+These priorities should guide current work even as details evolve iteratively.
 
 ---
 
-## What this document should not become
+## What success looks like
 
-This document should not become:
+The project is succeeding when:
 
-- a daily log
-- a current status file
-- a next-task file
-- an append-only decision journal
-- an implementation scratchpad
-- a substitute for the workflow doc
-- a substitute for the orchestration model
-- a substitute for the handoff system
-
-Its role is foundational, not operational.
-
----
-
-## Open questions
-
-The project still has open questions that should be resolved over time through design work and iteration.
-
-Current examples include:
-
-- the exact schema for specialist definitions
-- the exact schema for team definitions
-- the exact schema for sequence definitions
-- the exact structure of seeds
-- the exact template contract
-- how spec decomposition should work
-- what standard spec categories should exist across coding-oriented repos
-- how much should be generated versus hand-authored
-- how much dynamic delegation should eventually exist
-
-These questions are real, but they should be resolved incrementally rather than through premature complexity.
+- architectural truth is explicit and durable
+- specialists remain narrow and reusable
+- contracts materially reduce ambiguity
+- packets make execution boundaries clear
+- teams behave like inspectable governed state machines
+- routing is explicit and enforceable
+- validation catches drift early
+- canonical identity remains stable across moves, renames, and realizations
+- activation is governed rather than implied
+- humans can understand system behavior from the docs
+- machines can execute system behavior from declared artifacts
+- host-platform integrations remain adapters rather than architectural replacements
+- fresh bounded invocation is the norm rather than role mutation
+- growth into higher-order structures happens only after the lower layers are stable
 
 ---
 
-## End-state philosophy
+## Intentionally deferred design
 
-The desired end state is a system that stays simple at the primitive level while becoming more capable at the system level.
+The project intentionally defers some higher-order design until the lower layers are proven.
 
-The project should grow the way a good modular system grows:
+Deferred areas include:
 
-- only when needed
-- only through reusable parts
-- only with clear boundaries
-- only with strong documentation
-- only with explicit reasons
+- sequence runtime details
+- sequence-specific routing implementation
+- dedicated coordinator agents for unusually complex teams
+- broad adaptive orchestration patterns beyond what the stable team layer requires
+- autonomous primitive activation without governance
+- sophisticated host-platform realization strategies for all project-native objects
+- final choices of serialization beyond the current canonical packet format where the architecture does not require them
+- final choices of rendering, packaging, or implementation language where the architecture does not depend on them
 
-The goal is not to build the biggest system.  
-The goal is to build the right primitives so that powerful systems can later be composed from them.
+Deferral is intentional discipline, not incompleteness.
 
 ---
 
-## Summary
+## Iteration policy
 
-`my-pi` is the foundational coding-oriented substrate for the author's future digital tooling.
+This document is stable but not frozen.
 
-It is intended to remain a disciplined, modular, portable, orchestrator-first system for coding-related work. It should grow by building lean reusable primitives, composing those primitives into higher-order structures, and preserving project understanding through strong documentation, routing, handoff, seeds, and templates.
+It should be revised when foundational understanding changes, when key architectural doctrine becomes clearer, or when previously open design questions become settled enough to deserve canonical expression.
 
-It should remain distinct from later assistant-oriented or client-oriented systems, even if those systems eventually build on top of it.
+It should not be revised merely to record transient activity, temporary implementation notes, or changing operational status.
 
-The central idea of this project is that useful complexity can emerge from simple, specialized, well-composed parts, and that access to complexity should be explicitly controlled through primitive definitions rather than assumed by default.
+The project is expected to iterate. The purpose of this file is to capture the most durable conclusions of that iteration.
+
+---
+
+## Summary statement
+
+This project is a coding-focused orchestration substrate built on explicit contracts, first-class packets, reusable specialists, contract-governed teams, durable documentation, bounded execution, stable canonical identity, governed activation, and insulated platform integration.
+
+Its default execution philosophy is not freeform agent collaboration. Its default philosophy is explicit governance, explicit routing, explicit validation, and composable execution structures.
+
+Specialists are narrow typed transformers.  
+Teams are governed state machines over specialists.  
+Sequences are higher-order workflows that will follow once teams are stable.  
+Contracts define validity.  
+Specs preserve truth.  
+Packets carry execution state.  
+Templates help create valid artifacts.  
+Seeds bootstrap new structure.  
+Platform adapters realize project-native concepts on external runtimes without replacing them.  
+Handoff artifacts preserve live continuity.  
+Runtime artifacts remain separate from handoff continuity.  
+Canonical IDs preserve stable identity.  
+Activation governs admission into the callable system.
+
+The system should remain disciplined, inspectable, composable, and portable as it grows.
