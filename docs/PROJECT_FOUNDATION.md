@@ -4,7 +4,7 @@
 
 This document is the stable canonical reference for the foundational design of this project.
 
-It defines the project's identity, scope, architectural doctrine, object model, control philosophy, platform posture, identity model, activation model, and long-term direction. It is intentionally durable and should change only when the project's foundational understanding changes.
+It defines the project's identity, scope, architectural doctrine, object model, control philosophy, platform posture, identity model, activation model, interface posture, and long-term direction. It is intentionally durable and should change only when the project's foundational understanding changes.
 
 This document is **not** the place for transient progress notes, current status, temporary task tracking, or implementation handoff details. Live project state belongs in `docs/handoff/`.
 
@@ -28,6 +28,7 @@ The repository is not just a codebase. It is the canonical home for the project'
 - handoff continuity
 - platform-integration posture
 - identity and activation rules
+- interface and discovery doctrine
 - public package decomposition over time
 
 ---
@@ -49,6 +50,7 @@ The project therefore prioritizes:
 - machine-checkable structure
 - human-readable architecture
 - portable governance independent of any one tool runtime
+- discoverable and maintainable invocation surfaces
 
 The goal is not merely to automate tasks. The goal is to create a system that can be reasoned about, maintained, extended, validated, and trusted over the long term.
 
@@ -63,9 +65,10 @@ At maturity, the project should support:
 - individual specialists that perform narrow bounded work
 - teams that compose specialists through explicit state-machine routing
 - sequences that compose teams and/or specialists into higher-order workflows
-- reusable contracts, templates, and specs that reduce ambiguity
+- reusable contracts, templates, specs, and help surfaces that reduce ambiguity
 - machine-enforced routing and validation
 - human-readable visualizations of execution structure
+- command-oriented invocation surfaces with progressive discovery
 - dynamic orchestrator selection of the best specialist, team, sequence, or combination for a task
 - governed creation of new primitives when capability gaps are identified
 - decomposition of stable subsystems into public standalone packages when appropriate
@@ -90,6 +93,7 @@ In scope:
 - architecture for reusable agent execution within coding contexts
 - tooling and runtime support for contracts, packets, routing, activation, and validation
 - visual and machine-readable representations of execution structures
+- agent-facing help and discovery surfaces for governed capabilities
 - platform adapters and integration layers that allow the project to run on supported external tool ecosystems
 
 Out of scope unless explicitly re-scoped later:
@@ -117,6 +121,7 @@ This means the repository may eventually reference external packages or platform
 - governance rules
 - integration relationships
 - identity and activation rules
+- interface and discovery posture
 - public/private decomposition strategy
 - stable architectural intent
 
@@ -137,7 +142,7 @@ This repository therefore distinguishes between:
 
 This distinction exists to preserve long-term maintainability and to reduce coupling to any one runtime ecosystem.
 
-The project does not require every project-native object to have a host-platform realization. Host-platform artifacts should exist only when they materially improve execution, integration, distribution, or maintainability.
+The project does not require every project-native object to have a host-platform realization. Host-platform artifacts should exist only when they materially improve execution, integration, distribution, interface quality, or maintainability.
 
 ---
 
@@ -222,6 +227,7 @@ The project should maintain clear distinctions between:
 - live handoff state
 - generated run artifacts
 - host-platform adapter artifacts
+- help and discovery artifacts
 
 ---
 
@@ -300,6 +306,30 @@ Callable participation in the system should be an explicit governed state that f
 
 ---
 
+### 13. CLI-first adapter posture where practical
+
+Where the project exposes governed capabilities through an adapter layer, it should prefer command-oriented, text-based, discoverable interfaces over bespoke opaque protocol surfaces when practical.
+
+This principle exists to improve maintainability, portability, inspectability, and agent usability without collapsing project governance into the adapter itself.
+
+---
+
+### 14. Progressive discovery over prompt overloading
+
+The project should prefer interfaces that allow an agent or human to discover capability progressively through concise command lists, help output, subcommand usage, and man-page-style references instead of relying on large static prompt dumps.
+
+This principle exists to preserve context efficiency and improve long-term usability.
+
+---
+
+### 15. Errors should guide recovery
+
+When an invocation fails, the system should prefer error output that helps the caller recover.
+
+Errors should be informative, actionable, and aligned with governed usage surfaces rather than merely reporting failure.
+
+---
+
 ## Foundational execution doctrine
 
 The project adopts the following execution doctrine.
@@ -332,6 +362,10 @@ Wherever practical, contracts, packets, transitions, execution definitions, and 
 
 When invoking specialists, teams, or future higher-order units, the project should prefer creating fresh bounded executions over mutating the identity of an already-running broad-context actor.
 
+### Discovery should be on-demand
+
+Where the system provides interactive usage surfaces, discovery should happen on demand through help/man/usage mechanisms rather than by assuming the entire interface must be loaded into context up front.
+
 ---
 
 ## Canonical identity doctrine
@@ -355,6 +389,7 @@ Canonical IDs should be used to identify objects such as:
 - templates
 - seeds
 - platform adapters
+- help/man artifacts
 - other governed objects as needed
 
 Filenames are implementation details. Friendly display names are presentation details. Canonical IDs are identity.
@@ -401,6 +436,7 @@ Contracts may govern:
 - templates
 - handoff artifacts
 - host-platform adapter artifacts
+- help/man surfaces
 - other project objects as needed
 
 A spec may describe an object, but a contract governs validity and behavior.
@@ -525,8 +561,25 @@ Examples may include:
 - package manifests
 - SDK or RPC wrappers
 - settings bridges
+- command-oriented adapter surfaces
 
 Platform adapters are important implementation artifacts, but they do not replace project-native contracts, specs, routing definitions, or canonical identities.
+
+---
+
+### 11. Help and discovery artifacts
+
+Help and discovery artifacts provide governed usage surfaces for humans and agents.
+
+Examples may include:
+
+- command help output
+- subcommand usage references
+- man-page-style documentation
+- concise command indexes
+- recovery-oriented error references
+
+These artifacts exist to make governed capabilities discoverable and usable. They are not replacements for contracts or specs.
 
 ---
 
@@ -643,8 +696,26 @@ Typical concerns include:
 - activation prerequisites
 - upgrade and migration expectations
 - failure isolation behavior
+- discovery/help expectations if the adapter is user- or agent-facing
 
 Adapter contracts exist to prevent platform integration from becoming an ungoverned side channel.
+
+---
+
+### Help and discovery contracts
+
+Where the project provides command-oriented or interactive usage surfaces, it may define contracts for help and discovery behavior.
+
+Typical concerns include:
+
+- which governed capability the help surface documents
+- required usage synopsis
+- subcommand or option discovery expectations
+- examples policy
+- recovery/error guidance expectations
+- relationship to canonical objects and adapter surfaces
+
+These contracts exist to keep help/man surfaces aligned with governed capabilities rather than letting them drift into stale prose.
 
 ---
 
@@ -719,6 +790,8 @@ The routing runtime should, at minimum, support the following responsibilities:
 The specific implementation language is intentionally not fixed at the foundation level. The first implementation may be in Python, but the architecture should remain language-agnostic.
 
 If hosted on a platform that supports extensions or similar runtime hooks, the team router may be realized there as a platform adapter, but the routing logic must remain governed by project-native contracts and specs.
+
+If a command-oriented interface exists for the router, it should remain an adapter surface over governed routing rather than becoming the routing source of truth.
 
 ---
 
@@ -813,6 +886,10 @@ Success, failure, blocked, and escalation conditions should be declared rather t
 
 Invocation mechanisms should preserve clean execution boundaries rather than encouraging long-lived context accumulation or role mutation.
 
+### 7. Interactive usage should be progressively discoverable
+
+Where the project exposes command-like or help-like usage surfaces, a caller should be able to discover capability progressively through command listings, help output, subcommand usage, and related references.
+
 ---
 
 ## Fresh specialist invocation doctrine
@@ -855,6 +932,49 @@ Activation is admission into the active callable ecosystem.
 
 ---
 
+## Interface and discovery doctrine
+
+Where the project exposes governed capabilities through an adapter surface, it should prefer interfaces that are:
+
+- text-based where practical
+- command-oriented where appropriate
+- progressively discoverable
+- aligned with canonical objects
+- recoverable through good help and error output
+
+This does not mean every governed object must become a command or CLI artifact. It means that when the project chooses to expose an invocation surface, that surface should be easy to inspect, easy to document, easy to validate, and easy for an agent to navigate.
+
+The project should prefer:
+
+- concise command indexes
+- `--help`-style usage output
+- subcommand discovery
+- man-page-style documentation where useful
+- examples only when they materially improve clarity
+- consistent invocation semantics where practical
+
+The project should avoid requiring large static prompt dumps simply to explain how to use governed capabilities.
+
+---
+
+## Error and diagnostics doctrine
+
+Errors should help the caller recover rather than merely report failure.
+
+Where the project provides interactive or command-like interfaces, errors should aim to communicate:
+
+- what failed
+- why it failed, if known
+- which governed object or input was involved
+- what the caller can try next
+- which help surface or command is relevant, when applicable
+
+Diagnostics should preserve useful failure detail rather than hiding it.
+
+If the runtime distinguishes between normal output and failure diagnostics, the system should preserve that distinction rather than collapsing failures into vague summaries.
+
+---
+
 ## Validation doctrine
 
 Validation is not optional decoration. It is part of the architecture.
@@ -870,6 +990,7 @@ The project should strive for machine-checkable validation of:
 - declared-vs-actual object shape
 - adapter-layer conformance to project governance
 - activation preconditions where applicable
+- help/discovery alignment where applicable
 
 The purpose of validation is not merely correctness in isolation. It is also to prevent architectural drift and reduce ambiguity over time.
 
@@ -897,6 +1018,12 @@ A host platform's extension-like construct may be an appropriate implementation 
 - routing behavior is driven by project-native specs and contracts
 - the extension does not become a substitute for project governance
 - platform-specific behavior is isolated behind adapter boundaries
+
+### Command-like adapter surfaces are preferred where practical
+
+Where a host platform can expose governed capabilities through commands, command help, or equivalent text-based discovery surfaces, the project should prefer that style when it improves usability and maintainability.
+
+This preference does not require the project to adopt any specific external protocol. It is an interface posture, not a protocol commitment.
 
 ### Prompt templates may exist as convenience front doors
 
@@ -929,7 +1056,8 @@ The project should continue to grow in the following order:
 8. sequence contracts and sequence execution definitions
 9. sequence routing and runtime
 10. dynamic primitive selection and governed primitive creation
-11. higher-order automation and package decomposition where appropriate
+11. richer discovery/help/man surfaces for stable governed capabilities
+12. higher-order automation and package decomposition where appropriate
 
 This hierarchy is intentional. The project should learn to walk before it runs.
 
@@ -967,6 +1095,7 @@ The preferred pattern is:
 - centralized templates when centralization improves discoverability
 - explicit handoff artifacts for live state
 - explicit platform adapter docs when implementation artifacts depend on an external host runtime
+- explicit help/man/discovery artifacts where interactive usage surfaces exist
 
 This means the project should generally favor:
 
@@ -975,6 +1104,7 @@ This means the project should generally favor:
 - centralized generation artifacts when useful
 - minimal routing hops to find the right governing documentation
 - separation between project-native truth and platform-native implementation files
+- separation between normative governance and usage/help surfaces
 
 ---
 
@@ -1007,6 +1137,7 @@ Runtime artifacts such as:
 - packet histories
 - execution traces
 - terminal run summaries
+- command invocation traces where applicable
 
 should live in a dedicated runtime-oriented subtree, such as `runs/`, rather than in `docs/handoff/`.
 
@@ -1027,6 +1158,7 @@ Likely future extraction candidates may include:
 - reusable packet and contract infrastructure
 - platform adapter packages
 - governed specialist bundles
+- command/help/man surface packages if they become stable and reusable
 
 Any such decomposition should preserve the coherence of the overall architecture. Extraction is a packaging decision, not a license to scatter project truth.
 
@@ -1089,7 +1221,8 @@ The near-term priorities of the project should be:
 9. require human-readable routing depictions for teams
 10. define a clean host-platform adapter posture without over-coupling to any one platform
 11. preserve canonical identity and governed activation across all first-class objects
-12. defer sequence execution design until the team layer is stable
+12. define command/help/man posture as an interface layer over governed capabilities, not a replacement for them
+13. defer sequence execution design until the team layer is stable
 
 These priorities should guide current work even as details evolve iteratively.
 
@@ -1112,6 +1245,8 @@ The project is succeeding when:
 - machines can execute system behavior from declared artifacts
 - host-platform integrations remain adapters rather than architectural replacements
 - fresh bounded invocation is the norm rather than role mutation
+- command/help/man surfaces make governed capabilities easier to discover without replacing governance
+- errors guide recovery rather than forcing guesswork
 - growth into higher-order structures happens only after the lower layers are stable
 
 ---
@@ -1130,6 +1265,7 @@ Deferred areas include:
 - sophisticated host-platform realization strategies for all project-native objects
 - final choices of serialization beyond the current canonical packet format where the architecture does not require them
 - final choices of rendering, packaging, or implementation language where the architecture does not depend on them
+- rich shell-style composition semantics for command surfaces before the governed capability model is stable
 
 Deferral is intentional discipline, not incompleteness.
 
@@ -1149,7 +1285,7 @@ The project is expected to iterate. The purpose of this file is to capture the m
 
 ## Summary statement
 
-This project is a coding-focused orchestration substrate built on explicit contracts, first-class packets, reusable specialists, contract-governed teams, durable documentation, bounded execution, stable canonical identity, governed activation, and insulated platform integration.
+This project is a coding-focused orchestration substrate built on explicit contracts, first-class packets, reusable specialists, contract-governed teams, durable documentation, bounded execution, stable canonical identity, governed activation, discoverable usage surfaces, and insulated platform integration.
 
 Its default execution philosophy is not freeform agent collaboration. Its default philosophy is explicit governance, explicit routing, explicit validation, and composable execution structures.
 
@@ -1162,9 +1298,12 @@ Packets carry execution state.
 Templates help create valid artifacts.  
 Seeds bootstrap new structure.  
 Platform adapters realize project-native concepts on external runtimes without replacing them.  
+Help/man/discovery artifacts expose governed capabilities without replacing governance.  
 Handoff artifacts preserve live continuity.  
 Runtime artifacts remain separate from handoff continuity.  
 Canonical IDs preserve stable identity.  
-Activation governs admission into the callable system.
+Activation governs admission into the callable system.  
+Command-oriented interfaces are preferred where practical.  
+Errors should help the caller recover.
 
-The system should remain disciplined, inspectable, composable, and portable as it grows.
+The system should remain disciplined, inspectable, composable, portable, and discoverable as it grows.
