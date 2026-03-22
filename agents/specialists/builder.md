@@ -41,8 +41,8 @@
   - allowed files and directly related references
   - `agents/AGENT_DEFINITION_CONTRACT.md`
 - `forbidden_by_default`:
-  - `docs/WORKFLOW.md`
-  - `docs/handoff/*`
+  - `DECISION_LOG.md`
+  - `STATUS.md`
   - edits outside explicit scope
 
 ## Inputs and outputs

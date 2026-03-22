@@ -40,10 +40,10 @@
   - assigned task packet
   - files explicitly listed in the packet
   - `agents/AGENT_DEFINITION_CONTRACT.md`
-  - `agents/PRIMITIVE_LAYER_PLAN.md` when this specialist definition is being maintained
+  - `docs/IMPLEMENTATION_PLAN.md` when planning context requires build-stage awareness
 - `forbidden_by_default`:
-  - `docs/WORKFLOW.md`
-  - `docs/handoff/*`
+  - `DECISION_LOG.md`
+  - `STATUS.md`
   - broad repository scans outside task scope
 
 ## Inputs and outputs

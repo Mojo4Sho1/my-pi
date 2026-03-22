@@ -42,8 +42,8 @@
   - relevant test/config scripts within task scope
   - `agents/AGENT_DEFINITION_CONTRACT.md`
 - `forbidden_by_default`:
-  - `docs/WORKFLOW.md`
-  - `docs/handoff/*`
+  - `DECISION_LOG.md`
+  - `STATUS.md`
   - unrelated repo areas outside validation scope
 
 ## Inputs and outputs

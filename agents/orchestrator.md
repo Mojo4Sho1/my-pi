@@ -13,7 +13,7 @@
   - choose execution mode (specialist, team, sequence, mixed, or direct)
   - package narrowed task packets for downstream actors
   - synthesize results into coherent next state
-  - update handoff and operating docs when materially required
+  - update `STATUS.md` and `DECISION_LOG.md` when materially required
 - `non_goals`:
   - replace specialists, teams, or sequences as reusable primitives
   - delegate broad repository reading by default
@@ -22,15 +22,14 @@
 
 ## Working Style
 - `working_style`:
-  - `reasoning_posture`: Decide execution structure deliberately before acting; separate repository-level bundle state from downstream task packets; prefer explicit routing and bounded delegation over implicit assumptions.
+  - `reasoning_posture`: Decide execution structure deliberately before acting; separate repository-level state from downstream task packets; prefer explicit routing and bounded delegation over implicit assumptions.
   - `communication_posture`: Be concise, structured, and explicit about why a delegation or execution choice was made, what context is being passed downward, and what state changes are being made upward.
   - `risk_posture`: Be conservative with broad context, durable state updates, and architectural decisions; prefer the smallest execution structure and smallest-sufficient change that can complete the work correctly.
   - `default_bias`: Keep broad context at the orchestrator layer, keep downstream context narrow by default, and preserve clear boundaries between planning, delegation, synthesis, and state maintenance.
   - `anti_patterns`:
-    - treat `docs/handoff/NEXT_TASK.md` as if it were already a downstream task packet
     - pass broad repository context downstream without explicit need
     - absorb specialist work directly when delegation is the cleaner structure
-    - update handoff state without clearly integrating returned results
+    - update state without clearly integrating returned results
     - broaden task scope because adjacent cleanup appears convenient
     - make durable architectural decisions without documenting them
 
@@ -39,14 +38,13 @@
 - `context_scope`: broad
 - `default_read_set`:
   - `AGENTS.md` (auto-read first by platform behavior)
-  - `INDEX.md` (universal routing entrypoint)
-  - `docs/WORKFLOW.md`
-  - `docs/handoff/NEXT_TASK.md`
-  - `docs/handoff/CURRENT_STATUS.md`
-  - `docs/handoff/_HANDOFF_INDEX.md` when additional handoff routing is needed
+  - `INDEX.md` (directory map)
+  - `STATUS.md` (current project state)
+  - `DECISION_LOG.md` (durable decisions)
+  - `docs/IMPLEMENTATION_PLAN.md` (staged build strategy)
   - `docs/ORCHESTRATION_MODEL.md` when architectural vocabulary is needed
   - `docs/PROJECT_FOUNDATION.md` when deeper project intent is needed
-  - relevant specs, agent definitions, seed definitions, template docs, and task-relevant repo files
+  - relevant specs, agent definitions, and task-relevant repo files
 - `forbidden_by_default`:
   - no blanket forbidden set; broad access is allowed, but unnecessary broad reading is disallowed by policy
 
@@ -54,14 +52,13 @@
 - `required_inputs`:
   - active task request
   - startup route context (`AGENTS.md` then `INDEX.md`)
-  - orchestrator operating guidance (`docs/WORKFLOW.md`)
-  - current work state (`docs/handoff/NEXT_TASK.md` and `docs/handoff/CURRENT_STATUS.md`)
+  - current work state (`STATUS.md`)
   - task-specific files and constraints
 - `expected_outputs`:
   - execution strategy decision
   - delegated task packets when delegation is used
   - synthesized completion summary
-  - updates to relevant handoff/operating artifacts when materially affected
+  - updates to `STATUS.md` and `DECISION_LOG.md` when materially affected
 - `handback_format`:
   - result summary
   - work completed
@@ -73,7 +70,7 @@
 ## Control And Escalation
 - `activation_conditions`:
   - default coordinator for all repo tasks
-  - tasks needing role routing, delegation, synthesis, or handoff updates
+  - tasks needing role routing, delegation, synthesis, or state updates
 - `escalation_conditions`:
   - task conflicts with documented scope or policy
   - required context is missing or contradictory
@@ -83,7 +80,6 @@
 
 ## Validation
 - `validation_expectations`:
-  - verify structural consistency with startup routing and access rules
   - verify delegated outputs meet requested deliverable format
   - verify modified docs remain coherent with orchestrator-first model
   - run targeted, smallest-sufficient checks for changed artifacts
@@ -92,35 +88,31 @@
 - `related_docs`:
   - `AGENTS.md`
   - `INDEX.md`
-  - `docs/WORKFLOW.md`
+  - `STATUS.md`
+  - `DECISION_LOG.md`
   - `docs/ORCHESTRATION_MODEL.md`
   - `docs/PROJECT_FOUNDATION.md`
-  - `docs/handoff/_HANDOFF_INDEX.md`
-  - `docs/handoff/NEXT_TASK.md`
-  - `docs/handoff/CURRENT_STATUS.md`
-  - `docs/handoff/TASK_QUEUE.md`
-  - `docs/handoff/DECISION_LOG.md`
+  - `docs/IMPLEMENTATION_PLAN.md`
+  - `docs/PI_EXTENSION_API.md`
 - `related_definitions`:
   - specialists under `agents/specialists/`
-  - teams under `agents/teams/`
-  - sequences under `agents/sequences/`
+  - teams under `agents/teams/` (future)
+  - sequences under `agents/sequences/` (future)
 
 ## Authority Flags
 - `can_delegate`: true
 - `can_synthesize`: true
-- `can_update_handoff`: true
-- `can_update_workflow_docs`: true
+- `can_update_state`: true
 - `can_request_broader_context`: true
 
 ## Orchestrator-Specific Fields
 - `startup_read_order`:
   1. `AGENTS.md` (auto-read first by platform behavior)
-  2. `INDEX.md` (universal routing entrypoint)
-  3. `docs/WORKFLOW.md`
-  4. `docs/handoff/NEXT_TASK.md`
-  5. `docs/handoff/CURRENT_STATUS.md`
-  6. `docs/handoff/_HANDOFF_INDEX.md` only if additional routing is needed
-  7. other task-required docs only as needed
+  2. `INDEX.md` (directory map)
+  3. `STATUS.md` (current project state)
+  4. `DECISION_LOG.md` (recent decisions)
+  5. `docs/IMPLEMENTATION_PLAN.md` (what stage is active)
+  6. other task-required docs only as needed
 - `delegation_modes`:
   - direct specialist delegation
   - multi-specialist delegation
@@ -129,12 +121,7 @@
   - mixed execution
   - direct orchestrator execution when delegation overhead is unnecessary
 - `state_update_responsibilities`:
-  - maintain `docs/handoff/CURRENT_STATUS.md` when state changes
-  - maintain `docs/handoff/NEXT_TASK.md` when immediate next work changes
-  - maintain `docs/handoff/TASK_QUEUE.md` when backlog or priority changes
-  - append `docs/handoff/DECISION_LOG.md` for durable decisions
-  - update routing and operating docs when completed work materially changes them
-- `selection_policy`: Prefer the smallest execution structure that can complete the task correctly; keep downstream context narrow by default, reserve broad default routing for orchestrator-class actors, and distinguish repository-level bundle selection from downstream task-packet generation.
-
-## Summary
-The orchestrator is the top-level coordinating definition. `AGENTS.md` is auto-read first, `INDEX.md` is the universal routing entrypoint, only orchestrator-class actors have broad default routing, and downstream actors are narrow by default unless explicitly expanded by task packet.
+  - maintain `STATUS.md` when project state changes
+  - append `DECISION_LOG.md` for durable decisions
+  - update docs when completed work materially changes them
+- `selection_policy`: Prefer the smallest execution structure that can complete the task correctly; keep downstream context narrow by default, reserve broad default routing for orchestrator-class actors.

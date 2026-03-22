@@ -1,0 +1,140 @@
+# PI_EXTENSION_API.md
+
+Quick reference for Pi's extension API as it applies to my-pi development. For full documentation, see the [pi-mono source](https://github.com/badlogic/pi-mono) under `packages/coding-agent/docs/extensions.md`.
+
+---
+
+## Extension Structure
+
+An extension is a TypeScript file that exports a default function receiving `ExtensionAPI`:
+
+```typescript
+import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+
+export default function (pi: ExtensionAPI) {
+  // Register tools, commands, event handlers
+}
+```
+
+Extensions are loaded dynamically via jiti — no compilation step required.
+
+---
+
+## Tool Registration
+
+Register tools the LLM can call via `pi.registerTool()`:
+
+```typescript
+import { Type } from "@sinclair/typebox";
+
+pi.registerTool({
+  name: "delegate-to-builder",
+  description: "Delegate a bounded task to the builder specialist",
+  parameters: Type.Object({
+    objective: Type.String({ description: "What the builder should accomplish" }),
+    allowedFiles: Type.Array(Type.String(), { description: "Files the builder may modify" }),
+  }),
+  async execute(toolCallId, params, signal, onUpdate, ctx) {
+    // ... spawn sub-agent, collect result
+    return {
+      content: [{ type: "text", text: JSON.stringify(resultPacket) }],
+      details: {},
+    };
+  },
+});
+```
+
+Parameters use [TypeBox](https://github.com/sinclairzx81/typebox) for schema definition.
+
+---
+
+## Sub-Agent Spawning
+
+The reference pattern (from pi-mono's subagent example) spawns isolated Pi processes:
+
+```typescript
+import { spawn } from "child_process";
+
+const child = spawn("pi", [
+  "--print",           // Non-interactive JSON output mode
+  "-s", systemPrompt,  // Inject system prompt (working style, constraints)
+  "-p", taskPrompt,    // The task to execute
+], { signal });
+
+// Parse JSON events from stdout for messages, tool calls, results
+// Handle SIGTERM → 5s wait → SIGKILL for cleanup
+```
+
+Key properties:
+- Each sub-agent gets an **isolated context window** and tool configuration
+- Communicates via **JSON-formatted events on stdout**
+- Supports **abort signal** for cancellation
+- Agent definitions from `~/.pi/agent/agents/` or `.pi/agents/` are discoverable
+
+---
+
+## Key API Methods
+
+| Method | Purpose |
+|--------|---------|
+| `pi.registerTool(def)` | Register a tool the LLM can call |
+| `pi.registerCommand(name, opts)` | Register a `/slash` command |
+| `pi.on(event, handler)` | Subscribe to lifecycle events |
+| `pi.sendMessage(msg, opts?)` | Inject a message into conversation |
+| `pi.exec(cmd, args, opts?)` | Execute shell commands |
+| `pi.getActiveTools()` / `pi.setActiveTools(names)` | Manage tool availability |
+| `pi.appendEntry(type, data?)` | Persist state across sessions |
+
+---
+
+## Lifecycle Events (Relevant to Orchestration)
+
+| Event | When | Use Case |
+|-------|------|----------|
+| `session_start` | Session loads | Initialize extension state |
+| `before_agent_start` | Before LLM starts | Inject system prompt additions |
+| `tool_call` | LLM invokes a tool | Intercept/modify tool calls |
+| `tool_result` | Tool returns result | Transform results before LLM sees them |
+| `turn_start` / `turn_end` | LLM interaction turn | Track delegation rounds |
+
+---
+
+## Extension Context (`ctx`)
+
+Available in event handlers and tool `execute` functions:
+
+- `ctx.ui.confirm(msg)` / `ctx.ui.input(prompt)` / `ctx.ui.select(opts)` — user interaction
+- `ctx.ui.notify(msg)` — status notifications
+- `ctx.cwd` — current working directory
+- `ctx.hasUI` — check if interactive UI is available (false in print/JSON mode)
+- `ctx.abort()` — abort current operation
+
+---
+
+## Package Declaration
+
+Extensions are declared in `package.json`:
+
+```json
+{
+  "keywords": ["pi-package"],
+  "pi": {
+    "extensions": ["./extensions"],
+    "skills": ["./skills"],
+    "prompts": ["./prompts"],
+    "themes": ["./themes"]
+  }
+}
+```
+
+Also auto-discovered from convention directories (`extensions/`, `skills/`, etc.).
+
+---
+
+## Key References
+
+- **pi-mono repo:** https://github.com/badlogic/pi-mono
+- **Extension docs:** `packages/coding-agent/docs/extensions.md` in pi-mono
+- **Package docs:** `packages/coding-agent/docs/packages.md` in pi-mono
+- **Subagent example:** `packages/coding-agent/examples/extensions/subagent/` in pi-mono
+- **All examples:** `packages/coding-agent/examples/extensions/` (67+ examples)

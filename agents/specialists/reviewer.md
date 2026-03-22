@@ -41,8 +41,8 @@
   - task packet constraints and success criteria
   - `agents/AGENT_DEFINITION_CONTRACT.md`
 - `forbidden_by_default`:
-  - `docs/WORKFLOW.md`
-  - `docs/handoff/*`
+  - `DECISION_LOG.md`
+  - `STATUS.md`
   - unrelated repository areas outside review scope
 
 ## Inputs and outputs

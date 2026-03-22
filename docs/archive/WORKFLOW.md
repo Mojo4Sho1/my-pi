@@ -274,6 +274,7 @@ At minimum, the orchestrator should consider:
 - `docs/handoff/NEXT_TASK.md`
 - `docs/handoff/TASK_QUEUE.md`
 - `docs/handoff/DECISION_LOG.md`
+- `docs/handoff/OPEN_DECISIONS.md`
 
 The orchestrator should update only what the completed work materially affects.
 
@@ -283,6 +284,7 @@ The orchestrator should update only what the completed work materially affects.
 - update `NEXT_TASK.md` when the immediate next task changes
 - update `TASK_QUEUE.md` when priorities or backlog items change
 - append to `DECISION_LOG.md` when a real decision is made or confirmed
+- update `OPEN_DECISIONS.md` when a decision is opened, resolved, or changes blocking status
 
 The orchestrator may also update specs, indexes, or other docs when the task materially changes them.
 
