@@ -24,6 +24,10 @@ Live execution state belongs in `STATUS.md`. This document defines the sequence 
 1. Foundation and shared types
 2. First specialist extension (builder)
 3. Remaining specialists + orchestrator
+   - 3a: Extract shared specialist infrastructure
+   - 3b: Remaining specialists (planner, reviewer, tester)
+   - 3c: Orchestrator extension
+   - 3d: Integration and end-to-end validation
 4. Team routing and validation
 5. Meta-teams and expansion
 
@@ -62,7 +66,7 @@ Establish the TypeScript foundation that all extensions share.
 
 ## Status
 
-**Complete.** All Stage 1 deliverables are implemented and tested (39 tests passing).
+**Complete.** All Stage 1 deliverables implemented and tested (39 tests).
 
 ## Dependencies
 
@@ -97,6 +101,10 @@ The builder is the most concrete specialist — it takes files and makes changes
 - Receives a structured result packet back
 - Error/escalation cases are handled
 
+## Status
+
+**Complete.** Builder extension implemented with 4-module pattern (prompt, result-parser, subprocess, index). 26 tests.
+
 ## Dependencies
 
 - Stage 1 complete (shared types available) ✓
@@ -110,30 +118,112 @@ The builder is the most concrete specialist — it takes files and makes changes
 
 Complete the specialist layer and build the orchestrator that selects and delegates.
 
-## Key deliverables
+Stage 3 is broken into sub-stages to keep each task manageable for a single agent session.
 
-- `extensions/specialists/planner/index.ts` — Registers `delegate-to-planner`. Accepts a task, returns a structured plan.
-- `extensions/specialists/reviewer/index.ts` — Registers `delegate-to-reviewer`. Accepts artifacts, returns structured review findings.
-- `extensions/specialists/tester/index.ts` — Registers `delegate-to-tester`. Accepts verification task, returns structured test results.
+---
+
+## Stage 3a — Extract Shared Specialist Infrastructure
+
+### Purpose
+
+The builder's 4-module pattern (prompt, result-parser, subprocess, index) is reusable. Before building three more specialists, extract the generic parts into `extensions/shared/` so each new specialist is thin glue over shared infrastructure.
+
+### Key deliverables
+
+- `extensions/shared/subprocess.ts` — Extracted from builder. Specialist-agnostic sub-agent spawn, JSON event parsing, timeout/abort handling.
+- `extensions/shared/result-parser.ts` — Extracted from builder. Generic structured JSON extraction from sub-agent output.
+- `extensions/shared/specialist-prompt.ts` — Generic `buildSpecialistSystemPrompt(config)` and `buildSpecialistTaskPrompt(task)` that accept working style config as input rather than hardcoding builder values.
+- Refactor builder to use shared modules (no behavior change, verify with existing tests).
+- Tests for shared modules.
+
+### Exit criteria
+
+- Builder still passes all 26 tests after refactor
+- Shared modules are independently tested
+- Adding a new specialist requires only: a prompt config object + a thin index.ts
+
+### Dependencies
+
+- Stage 2 complete ✓
+
+---
+
+## Stage 3b — Remaining Specialists (Planner, Reviewer, Tester)
+
+### Purpose
+
+Implement the three remaining specialists following the proven pattern.
+
+### Key deliverables
+
+- `extensions/specialists/planner/index.ts` — Registers `delegate-to-planner`. Accepts a task, returns a structured plan. Planner-specific prompt config encoding working style from `agents/specialists/planner.md`.
+- `extensions/specialists/reviewer/index.ts` — Registers `delegate-to-reviewer`. Accepts artifacts, returns structured review findings. Reviewer-specific prompt config from `agents/specialists/reviewer.md`.
+- `extensions/specialists/tester/index.ts` — Registers `delegate-to-tester`. Accepts verification task, returns structured test results. Tester-specific prompt config from `agents/specialists/tester.md`.
+- Tests for each specialist (prompt config, integration with shared infra).
+
+### Exit criteria
+
+- All four `delegate-to-*` tools register successfully
+- Each specialist's system prompt encodes its definition's working style and constraints
+- Tests pass for all specialists
+
+### Dependencies
+
+- Stage 3a complete (shared infrastructure available)
+
+---
+
+## Stage 3c — Orchestrator Extension
+
+### Purpose
+
+Build the orchestrator that selects and delegates to specialists.
+
+### Key deliverables
+
 - `extensions/orchestrator/index.ts` — The orchestrator extension:
   - Reads current project state
   - Selects appropriate specialist(s) for a task
   - Packages task packets with narrowed context
   - Collects and synthesizes results
-  - Implements delegation modes: direct specialist, multi-specialist, and (later) team
+  - Implements delegation modes: direct specialist and multi-specialist
+- Tests for orchestrator delegation logic and result synthesis
 
-## Exit criteria
+### Exit criteria
 
-- User can invoke the orchestrator, describe a task, and the orchestrator:
-  - Selects the right specialist(s)
-  - Delegates via sub-agents with proper task packets
-  - Synthesizes results
+- Orchestrator can delegate to any specialist via tool invocation
+- Orchestrator packages task packets with narrowed context (not full repo)
+- Orchestrator synthesizes results from specialist(s) into a coherent response
+- Tests cover: specialist selection, packet construction, result synthesis, error propagation
+
+### Dependencies
+
+- Stage 3b complete (all specialists available)
+
+---
+
+## Stage 3d — Integration and End-to-End Validation
+
+### Purpose
+
+Validate the full delegation chain works end-to-end.
+
+### Key deliverables
+
+- Integration tests covering: plan → review → build → test loop for a simple task
+- Verification that each specialist respects its definition boundaries
+- Error/escalation propagation through orchestrator
+- Documentation updates (`STATUS.md`, this file)
+
+### Exit criteria
+
 - The full plan → review → build → test loop works for a simple task
 - Each specialist respects its definition boundaries
+- Error cases propagate correctly through the orchestrator
 
-## Dependencies
+### Dependencies
 
-- Stage 2 complete (builder pattern proven and reusable)
+- Stage 3c complete (orchestrator available)
 
 ---
 
@@ -211,6 +301,6 @@ This stage is intentionally sketched lightly. Its details should be informed by 
 
 ## Cross-stage dependency chain
 
-Stage 1 (types) → Stage 2 (builder) → Stage 3 (all specialists + orchestrator) → Stage 4 (teams + validation) → Stage 5 (meta-teams + sequences)
+Stage 1 (types) → Stage 2 (builder) → Stage 3a (shared infra) → Stage 3b (specialists) → Stage 3c (orchestrator) → Stage 3d (integration) → Stage 4 (teams + validation) → Stage 5 (meta-teams + sequences)
 
 Each stage depends on the one before it. Do not skip stages.
