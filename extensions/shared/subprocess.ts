@@ -1,5 +1,5 @@
 /**
- * Pi sub-agent process management for the builder specialist.
+ * Pi sub-agent process management for specialist extensions.
  *
  * Spawns an isolated Pi process in JSON output mode, parses the
  * event stream, and returns the final assistant text.
@@ -24,7 +24,7 @@ const DEFAULT_TIMEOUT_MS = 120_000; // 2 minutes
  * @param signal - Optional AbortSignal for cancellation
  * @param timeoutMs - Timeout in milliseconds (default: 120s)
  */
-export function spawnBuilderAgent(
+export function spawnSpecialistAgent(
   systemPrompt: string,
   taskPrompt: string,
   signal?: AbortSignal,

@@ -1,13 +1,19 @@
 /**
  * Reviewer Specialist Extension
  *
- * Registers a `delegate-to-reviewer` tool that:
- * - Accepts a TaskPacket with artifacts to review
- * - Launches an isolated Pi sub-agent process
- * - Injects the reviewer's working style from agents/specialists/reviewer.md
- * - Returns a structured ResultPacket with review findings
- *
- * Stage 3 deliverable — see docs/IMPLEMENTATION_PLAN.md
+ * Registers a `delegate-to-reviewer` tool that delegates bounded
+ * review tasks to the reviewer specialist sub-agent.
  */
 
-// TODO: Implement after Stage 2 (builder specialist) is proven
+import { createSpecialistExtension } from "../../shared/specialist-extension.js";
+import { REVIEWER_PROMPT_CONFIG } from "./prompt.js";
+
+export default createSpecialistExtension({
+  promptConfig: REVIEWER_PROMPT_CONFIG,
+  toolName: "delegate-to-reviewer",
+  toolLabel: "Delegate to Reviewer",
+  toolDescription:
+    "Delegate a review task to the reviewer specialist. The reviewer " +
+    "evaluates artifacts against scope, consistency, and constraint " +
+    "alignment, returning structured findings.",
+});

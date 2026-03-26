@@ -1,13 +1,19 @@
 /**
  * Tester Specialist Extension
  *
- * Registers a `delegate-to-tester` tool that:
- * - Accepts a TaskPacket with verification objectives
- * - Launches an isolated Pi sub-agent process
- * - Injects the tester's working style from agents/specialists/tester.md
- * - Returns a structured ResultPacket with test results
- *
- * Stage 3 deliverable — see docs/IMPLEMENTATION_PLAN.md
+ * Registers a `delegate-to-tester` tool that delegates bounded
+ * validation tasks to the tester specialist sub-agent.
  */
 
-// TODO: Implement after Stage 2 (builder specialist) is proven
+import { createSpecialistExtension } from "../../shared/specialist-extension.js";
+import { TESTER_PROMPT_CONFIG } from "./prompt.js";
+
+export default createSpecialistExtension({
+  promptConfig: TESTER_PROMPT_CONFIG,
+  toolName: "delegate-to-tester",
+  toolLabel: "Delegate to Tester",
+  toolDescription:
+    "Delegate a validation task to the tester specialist. The tester " +
+    "runs targeted checks against acceptance criteria and returns " +
+    "structured pass/fail results with evidence.",
+});

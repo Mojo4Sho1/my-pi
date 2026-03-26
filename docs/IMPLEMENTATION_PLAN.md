@@ -142,6 +142,37 @@ The builder's 4-module pattern (prompt, result-parser, subprocess, index) is reu
 - Shared modules are independently tested
 - Adding a new specialist requires only: a prompt config object + a thin index.ts
 
+### Implementation Notes (pre-resolved design decisions)
+
+**Result structure: Uniform.** All specialists return the same `ResultPacket` fields (`status`, `summary`, `deliverables`, `modifiedFiles`, `escalation`). Specialist-specific data goes in `deliverables` as strings. This matches the existing `ResultPacket` interface in `extensions/shared/types.ts` — no type changes needed.
+
+**Prompt config shape.** `buildSpecialistSystemPrompt(config)` accepts:
+```typescript
+interface SpecialistPromptConfig {
+  id: string;           // e.g. "specialist_builder"
+  name: string;         // e.g. "Builder"
+  role: string;         // e.g. "Execute bounded implementation tasks within explicit scope"
+  workingStyle: WorkingStyle;  // from extensions/shared/types.ts
+  constraints: string[];       // specialist-specific constraints
+  outputFields?: string[];     // any specialist-specific JSON fields to add to output format
+}
+```
+The shared prompt builder renders these into the system prompt template. The builder passes its values explicitly; future specialists pass theirs.
+
+**Function naming.** Extracted functions:
+- `spawnBuilderAgent()` → `spawnSubAgent()` (in `extensions/shared/subprocess.ts`)
+- `parseBuilderOutput()` → `parseSpecialistOutput()` (in `extensions/shared/result-parser.ts`)
+- `ParsedBuilderResult` → `ParsedSpecialistResult` (same file)
+
+**Test organization: Dedicated files.** New test files matching the existing pattern:
+- `tests/subprocess.test.ts` — tests the shared subprocess spawner
+- `tests/result-parser.test.ts` — tests the shared result parser
+- `tests/specialist-prompt.test.ts` — tests the shared prompt builder
+
+Existing `tests/builder.test.ts` keeps builder-specific prompt tests and integration tests, but imports from shared modules after refactor.
+
+**Extraction approach.** Move code first, update imports, verify builder tests still pass, then add shared tests. The builder's `prompt.ts` stays in `extensions/specialists/builder/` as a thin wrapper that calls the shared `buildSpecialistSystemPrompt()` with builder-specific config.
+
 ### Dependencies
 
 - Stage 2 complete ✓
@@ -196,9 +227,69 @@ Build the orchestrator that selects and delegates to specialists.
 - Orchestrator synthesizes results from specialist(s) into a coherent response
 - Tests cover: specialist selection, packet construction, result synthesis, error propagation
 
+### Implementation Notes (pre-resolved design decisions)
+
+**Orchestrator is structurally different from specialists.** Specialists register a single tool (`delegate-to-X`) that the LLM calls. The orchestrator is the *caller* of those tools — it selects which specialist(s) to invoke and manages the delegation lifecycle. The orchestrator extension registers its own tool(s) and uses the shared infrastructure directly.
+
+**Tool registration: `orchestrate` tool.** The orchestrator registers a single tool named `orchestrate` (or `orchestrate-task`). The LLM calls this tool with a high-level task description. Inside, the orchestrator selects specialist(s), constructs task packets, spawns sub-agents, and synthesizes results. Parameters should include:
+- `task`: string — what needs to be done
+- `relevantFiles`: string[] — files related to the task
+- `delegationHint`: optional string — "planner" | "reviewer" | "builder" | "tester" | "auto" — lets the caller suggest which specialist(s) to use, with "auto" as default
+
+**Specialist selection strategy: keep it simple for Stage 3c.** The orchestrator does NOT need an LLM-based selection step. Use a straightforward approach:
+- If `delegationHint` names a specific specialist, use that specialist
+- If `delegationHint` is "auto" or omitted, use keyword/heuristic matching on the task description (e.g., "plan" → planner, "review" → reviewer, "implement"/"build"/"fix" → builder, "test"/"validate"/"verify" → tester)
+- Multi-specialist: if the task clearly spans multiple specialists, delegate sequentially and feed results forward
+- The selection logic should be a separate pure function (`selectSpecialists`) for testability
+
+**How the orchestrator invokes specialists: use shared infrastructure directly.** The orchestrator imports specialist prompt configs and shared modules:
+```typescript
+import { PLANNER_PROMPT_CONFIG } from "../specialists/planner/prompt.js";
+import { BUILDER_PROMPT_CONFIG } from "../specialists/builder/prompt.js";
+// ... etc.
+import { buildSpecialistSystemPrompt, buildSpecialistTaskPrompt } from "../shared/specialist-prompt.js";
+import { spawnSpecialistAgent } from "../shared/subprocess.js";
+import { parseSpecialistOutput } from "../shared/result-parser.js";
+import { createTaskPacket, createResultPacket, validateTaskPacket } from "../shared/packets.js";
+```
+It constructs task packets, builds prompts from the specialist's config, spawns sub-agents via `spawnSpecialistAgent()`, and parses results via `parseSpecialistOutput()`. This reuses the exact same delegation lifecycle as `specialist-extension.ts` but driven by the orchestrator instead of a registered tool handler.
+
+**Context narrowing.** The orchestrator narrows context by:
+- Setting `allowedReadSet` and `allowedWriteSet` on the task packet based on `relevantFiles`
+- Not passing the full repo — only files relevant to the task
+- The specialist's system prompt already enforces scope constraints
+
+**Multi-specialist delegation: sequential with result forwarding.** When multiple specialists are needed:
+1. Run them sequentially (planner first, then reviewer, then builder, then tester — following the natural workflow order)
+2. Each subsequent specialist receives prior results in the task packet's `context` field
+3. If any specialist returns `failure` or `escalation`, stop the chain and return the error
+
+**Result synthesis.** The orchestrator's return value should be an `AgentToolResult` containing:
+- A human-readable text summary synthesizing all specialist results
+- A `details` object containing: all individual `ResultPacket`s, the list of specialists invoked, and overall status
+- Overall status: `success` only if all specialists succeeded; `partial` if some succeeded; `failure` if the critical specialist failed; `escalation` if any specialist escalated
+
+**File structure.** The orchestrator is more complex than a specialist and warrants multiple modules:
+- `extensions/orchestrator/index.ts` — extension entry point, tool registration
+- `extensions/orchestrator/select.ts` — `selectSpecialists(task, hint)` pure function
+- `extensions/orchestrator/delegate.ts` — `delegateToSpecialist(config, taskPacket, signal)` — wraps the spawn/parse cycle
+- `extensions/orchestrator/synthesize.ts` — `synthesizeResults(results[])` — combines multiple ResultPackets into a summary
+
+**Test organization.**
+- `tests/orchestrator-select.test.ts` — specialist selection logic (keyword matching, hint handling, edge cases)
+- `tests/orchestrator-delegate.test.ts` — delegation lifecycle (packet construction, spawn mocking, error handling)
+- `tests/orchestrator-synthesize.test.ts` — result synthesis (single result, multi-result, mixed statuses, escalation)
+
+**What the orchestrator does NOT do in Stage 3c:**
+- No team routing (Stage 4)
+- No sequence execution (Stage 4+)
+- No LLM-based specialist selection (keep it heuristic)
+- No `STATUS.md` or `DECISION_LOG.md` updates (those are orchestrator-agent behaviors, not extension behaviors)
+- No reading of project state files — the *extension* receives task info from the LLM; the *LLM* reads project state
+
 ### Dependencies
 
-- Stage 3b complete (all specialists available)
+- Stage 3b complete (all specialists available) ✓
 
 ---
 

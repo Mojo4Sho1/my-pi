@@ -1,6 +1,6 @@
 # STATUS.md
 
-Last updated: 2026-03-24
+Last updated: 2026-03-26
 
 ## Progress Checklist
 
@@ -24,25 +24,26 @@ Last updated: 2026-03-24
 - [x] Dependencies added: `@sinclair/typebox`, `@mariozechner/pi-coding-agent`
 - [x] 4-module pattern proven (prompt, result-parser, subprocess, index)
 
-### Stage 3a — Extract Shared Specialist Infrastructure [NOT STARTED]
+### Stage 3a — Extract Shared Specialist Infrastructure [COMPLETE]
 
-- [ ] Extract `subprocess.ts` to `extensions/shared/subprocess.ts` (specialist-agnostic)
-- [ ] Extract `result-parser.ts` to `extensions/shared/result-parser.ts` (generic JSON extraction)
-- [ ] Create `extensions/shared/specialist-prompt.ts` — generic `buildSpecialistSystemPrompt(config)` and `buildSpecialistTaskPrompt(task)` that accept working style config
-- [ ] Refactor builder to use shared infrastructure (verify no regressions)
-- [ ] Tests for shared modules
+- [x] Extract `subprocess.ts` to `extensions/shared/subprocess.ts` (specialist-agnostic)
+- [x] Extract `result-parser.ts` to `extensions/shared/result-parser.ts` (generic JSON extraction)
+- [x] Create `extensions/shared/specialist-prompt.ts` — generic `buildSpecialistSystemPrompt(config)` and `buildSpecialistTaskPrompt(task)` that accept working style config
+- [x] Refactor builder to use shared infrastructure (verify no regressions)
+- [x] Tests for shared modules
 
-### Stage 3b — Remaining Specialists (Planner, Reviewer, Tester) [NOT STARTED]
+### Stage 3b — Remaining Specialists (Planner, Reviewer, Tester) [COMPLETE]
 
-- [ ] `extensions/specialists/planner/index.ts` — `delegate-to-planner` tool (planning-only, returns structured plan)
-- [ ] `extensions/specialists/planner/prompt.ts` — Planner-specific prompt overrides (if any beyond shared)
-- [ ] `tests/planner.test.ts`
-- [ ] `extensions/specialists/reviewer/index.ts` — `delegate-to-reviewer` tool (review-only, returns findings)
-- [ ] `extensions/specialists/reviewer/prompt.ts` — Reviewer-specific prompt overrides
-- [ ] `tests/reviewer.test.ts`
-- [ ] `extensions/specialists/tester/index.ts` — `delegate-to-tester` tool (validation-only, returns pass/fail)
-- [ ] `extensions/specialists/tester/prompt.ts` — Tester-specific prompt overrides
-- [ ] `tests/tester.test.ts`
+- [x] `extensions/specialists/planner/index.ts` — `delegate-to-planner` tool (planning-only, returns structured plan)
+- [x] `extensions/specialists/planner/prompt.ts` — Planner-specific prompt config (working style, constraints, anti-patterns)
+- [x] `tests/planner.test.ts` — 13 tests
+- [x] `extensions/specialists/reviewer/index.ts` — `delegate-to-reviewer` tool (review-only, returns findings)
+- [x] `extensions/specialists/reviewer/prompt.ts` — Reviewer-specific prompt config
+- [x] `tests/reviewer.test.ts` — 13 tests
+- [x] `extensions/specialists/tester/index.ts` — `delegate-to-tester` tool (validation-only, returns pass/fail)
+- [x] `extensions/specialists/tester/prompt.ts` — Tester-specific prompt config
+- [x] `tests/tester.test.ts` — 13 tests
+- [x] All specialists use shared factory (`createSpecialistExtension`), 118 total tests pass
 
 ### Stage 3c — Orchestrator Extension [NOT STARTED]
 

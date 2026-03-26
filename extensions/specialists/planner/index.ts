@@ -1,13 +1,18 @@
 /**
  * Planner Specialist Extension
  *
- * Registers a `delegate-to-planner` tool that:
- * - Accepts a TaskPacket describing what needs to be planned
- * - Launches an isolated Pi sub-agent process
- * - Injects the planner's working style from agents/specialists/planner.md
- * - Returns a structured ResultPacket with a decomposed plan
- *
- * Stage 3 deliverable — see docs/IMPLEMENTATION_PLAN.md
+ * Registers a `delegate-to-planner` tool that delegates bounded
+ * planning tasks to the planner specialist sub-agent.
  */
 
-// TODO: Implement after Stage 2 (builder specialist) is proven
+import { createSpecialistExtension } from "../../shared/specialist-extension.js";
+import { PLANNER_PROMPT_CONFIG } from "./prompt.js";
+
+export default createSpecialistExtension({
+  promptConfig: PLANNER_PROMPT_CONFIG,
+  toolName: "delegate-to-planner",
+  toolLabel: "Delegate to Planner",
+  toolDescription:
+    "Delegate a scoped task to the planner specialist for decomposition " +
+    "into an actionable plan with dependencies and risk analysis.",
+});

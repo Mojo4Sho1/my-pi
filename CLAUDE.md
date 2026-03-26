@@ -55,8 +55,12 @@ Supporting: `agents/` (definition specs), `docs/` (architectural reference), `te
 See `STATUS.md` for live project state. The project follows a 5-stage implementation plan (`docs/IMPLEMENTATION_PLAN.md`):
 
 1. **Foundation and shared types** (complete) — TypeScript interfaces, packet validation, routing utilities
-2. **First specialist extension (builder)** — prove the sub-agent delegation pattern
+2. **First specialist extension (builder)** (complete) — proved sub-agent delegation pattern
 3. **Remaining specialists + orchestrator** — complete the core delegation loop
+   - 3a: Extract shared specialist infrastructure (complete)
+   - 3b: Remaining specialists — planner, reviewer, tester (complete)
+   - **3c: Orchestrator extension (next)** — see `docs/IMPLEMENTATION_PLAN.md` for pre-resolved design decisions
+   - 3d: Integration and end-to-end validation
 4. **Team routing and validation** — state-machine teams, primitive validation
 5. **Meta-teams and expansion** — teams that build other primitives, sequences
 
