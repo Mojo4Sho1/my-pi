@@ -27,9 +27,26 @@ Live execution state belongs in `STATUS.md`. This document defines the sequence 
    - 3a: Extract shared specialist infrastructure
    - 3b: Remaining specialists (planner, reviewer, tester)
    - 3c: Orchestrator extension
+   - 3c.1: Selective context forwarding
    - 3d: Integration and end-to-end validation
 4. Team routing and validation
-5. Meta-teams and expansion
+   - 4a: I/O contracts and typed deliverables
+   - 4b: Team definition format and router
+   - 4c: Schema validation
+   - 4d: Observability
+5. Meta-teams and self-expansion
+   - 5a: Bootstrap specialists (spec-writer, critic)
+   - 5b: Specialist-creator team (first meta-team)
+   - 5c: Team-creator team
+   - 5d: Sequence definition and execution
+   - 5e: Sequence-creator team
+   - 5f: Seed-creator team
+   - 5g: Dynamic selection and discovery
+   - 5h: Escalation and retry
+6. Slash commands and interactive workflows
+   - 6a: `/plan` command
+   - 6b: `/next` command
+   - 6c: `/specialist` command
 
 ---
 
@@ -287,9 +304,116 @@ It constructs task packets, builds prompts from the specialist's config, spawns 
 - No `STATUS.md` or `DECISION_LOG.md` updates (those are orchestrator-agent behaviors, not extension behaviors)
 - No reading of project state files — the *extension* receives task info from the LLM; the *LLM* reads project state
 
+### Status
+
+**Complete.** Orchestrator extension implemented with 4-module pattern (select, delegate, synthesize, index). 41 tests. See `STATUS.md` for details.
+
 ### Dependencies
 
 - Stage 3b complete (all specialists available) ✓
+
+---
+
+## Stage 3c.1 — Selective Context Forwarding
+
+### Purpose
+
+Replace the current "pass all prior ResultPackets" approach with selective context forwarding. Each downstream specialist receives only the fields it needs from prior results, not full ResultPackets with metadata.
+
+### Why this matters
+
+In a 4-specialist chain, the current approach passes O(n²) context — the tester receives 3 full ResultPackets including tracing fields (`id`, `taskId`, `createdAt`, `sourceAgent`) it doesn't need. This wastes ~40-50% of context tokens. See Decision #15 in `DECISION_LOG.md`.
+
+### Key deliverables
+
+- `buildContextForSpecialist(specialistId, priorResults)` function in `extensions/orchestrator/delegate.ts`
+- Updated orchestrator `index.ts` to use selective forwarding
+- Tests for context mapping
+
+### Implementation Notes (pre-resolved design decisions)
+
+**Context mapping per specialist type:**
+- **Planner:** No prior context (always first in chain) — return `undefined`
+- **Builder:** `{ planSummary: string, planDeliverables: string[] }` extracted from planner's ResultPacket (if present)
+- **Reviewer:** `{ modifiedFiles: string[], implementationSummary: string }` extracted from builder's ResultPacket (if present)
+- **Tester:** `{ modifiedFiles: string[], implementationSummary: string }` extracted from builder's ResultPacket (if present)
+
+If a specialist's expected prior isn't present (e.g., builder runs without planner), return `undefined` — don't pass an empty context object.
+
+**This is a tactical step toward Stage 4 I/O contracts.** The mapping function will be replaced by formal contract validation in Stage 4a. For now, it's a simple switch-case over specialist type.
+
+### Exact changes required
+
+**Files to modify (2):**
+
+1. **`extensions/orchestrator/delegate.ts`** — Add a new exported function:
+
+```typescript
+/**
+ * Build selective context for a specialist from prior results.
+ * Each specialist type receives only the fields it needs.
+ * Returns undefined if no relevant context exists.
+ */
+export function buildContextForSpecialist(
+  specialistId: SpecialistId,
+  priorResults: ResultPacket[]
+): Record<string, unknown> | undefined
+```
+
+Implementation: switch on `specialistId`. For each case, find the relevant prior result by `sourceAgent` field (e.g., look for `sourceAgent === "specialist_planner"` when building context for builder). Extract only the needed fields. Return `undefined` if the expected prior result isn't present.
+
+Lookup helpers — use these to find specific prior results:
+- `priorResults.find(r => r.sourceAgent === "specialist_planner")` → planner result
+- `priorResults.find(r => r.sourceAgent === "specialist_builder")` → builder result
+
+Field extraction from ResultPacket:
+- `summary` → use as `planSummary` or `implementationSummary`
+- `deliverables` → use as `planDeliverables`
+- `modifiedFiles` → pass through as `modifiedFiles`
+
+2. **`extensions/orchestrator/index.ts`** — Change one line (line 91):
+
+```typescript
+// BEFORE (current):
+context: priorResults.length > 0 ? { priorResults } : undefined,
+
+// AFTER:
+context: buildContextForSpecialist(specialistId, priorResults),
+```
+
+Add import of `buildContextForSpecialist` from `./delegate.js`.
+
+**Files to create (1):**
+
+3. **`tests/orchestrator-context.test.ts`** — Tests for `buildContextForSpecialist()`:
+   - Planner always gets `undefined` (even with prior results)
+   - Builder gets `{ planSummary, planDeliverables }` when planner result exists
+   - Builder gets `undefined` when no planner result exists
+   - Reviewer gets `{ modifiedFiles, implementationSummary }` when builder result exists
+   - Reviewer gets `undefined` when no builder result exists
+   - Tester gets `{ modifiedFiles, implementationSummary }` when builder result exists
+   - Tester gets `undefined` when no builder result exists
+   - No full ResultPacket objects appear in any returned context
+
+**Testing pattern:** Use `createResultPacket()` from `extensions/shared/packets.ts` to build mock prior results. No subprocess mocking needed — this is a pure function test.
+
+**No other files need to change.** The existing 159 tests should continue to pass since the orchestrator-delegate tests mock `spawnSpecialistAgent` and don't inspect context forwarding. The orchestrator-select and orchestrator-synthesize tests are unaffected.
+
+### Exit criteria
+
+- Context passed to each specialist contains only relevant fields
+- No specialist receives full ResultPackets in context
+- All 159 existing tests pass (no regressions)
+- New context mapping tests pass
+- Context does not grow O(n²) with chain length
+
+### Status
+
+**Complete.** `buildContextForSpecialist()` added to `delegate.ts`, orchestrator updated to use selective forwarding. 14 new tests in `tests/orchestrator-context.test.ts`. All 173 tests pass.
+
+### Dependencies
+
+- Stage 3c complete ✓
 
 ---
 
@@ -297,24 +421,263 @@ It constructs task packets, builds prompts from the specialist's config, spawns 
 
 ### Purpose
 
-Validate the full delegation chain works end-to-end.
+Validate the full orchestration chain works end-to-end via integration tests with mocked subprocesses. These tests exercise the orchestrator's `execute()` function in `extensions/orchestrator/index.ts` as an integrated whole — the unit tests in 3c tested each module in isolation.
 
 ### Key deliverables
 
-- Integration tests covering: plan → review → build → test loop for a simple task
-- Verification that each specialist respects its definition boundaries
-- Error/escalation propagation through orchestrator
+- `tests/orchestrator-e2e.test.ts` — Integration tests covering all scenarios below
 - Documentation updates (`STATUS.md`, this file)
+
+### Test scenarios
+
+**Full workflow integration tests:**
+
+1. **2-specialist success (planner → builder):** Mock `child_process.spawn` to return success from both. Call `orchestrate` tool with task "plan and implement the feature", `relevantFiles: ["src/index.ts"]`. Verify: planner invoked first with `allowedWriteSet: []`, builder invoked second with planner context forwarded and `allowedWriteSet: ["src/index.ts"]`, synthesized result is `status: "success"` with both summaries.
+
+2. **3-specialist success (planner → builder → tester):** All three succeed. Verify context forwarding at each step and final synthesis.
+
+3. **Mid-chain failure (planner succeeds, builder fails):** Verify: chain stops after builder, tester never invoked, synthesized status is `"partial"`, planner's success result preserved alongside builder's failure.
+
+4. **Escalation stops chain (planner escalates):** Planner returns `status: "escalation"` with `{ reason: "scope ambiguous", suggestedAction: "clarify requirements" }`. Verify: no subsequent specialists invoked, synthesized status is `"escalation"`, escalation details preserved.
+
+5. **Reviewer rejection (planner → reviewer, reviewer fails):** Reviewer returns `status: "failure"`. Verify chain stops, synthesized status is `"partial"`.
+
+**Context forwarding tests:**
+
+6. Builder's task packet `context` contains relevant planner output (after 3c.1: only `planSummary` and `planDeliverables`, not full ResultPacket).
+7. Tester's task packet `context` contains builder's `modifiedFiles` and `summary`.
+8. First specialist (planner) receives no `context` field.
+
+**Boundary enforcement tests** (verify packet structure, not LLM behavior):
+
+9. Read-only specialists (planner, reviewer) receive `allowedWriteSet: []`.
+10. Write specialists (builder, tester) receive `allowedWriteSet` matching `relevantFiles`.
+11. Each specialist's task packet has `targetAgent` matching the specialist's config ID (e.g., `specialist_builder`).
+
+**Error handling tests:**
+
+12. Subprocess spawn throws → failure result returned, chain stops.
+13. Subprocess exits non-zero with no output → failure packet includes stderr.
+14. Malformed specialist output (no JSON block) → `status: "partial"` in result.
+
+### Implementation Notes (pre-resolved design decisions)
+
+#### How to invoke the orchestrator's `execute()` in tests
+
+The orchestrator's `execute()` function is defined inline inside `pi.registerTool()` in `extensions/orchestrator/index.ts`. To call it in tests, you must:
+
+1. **Mock the Pi `ExtensionAPI`** — create a fake `pi` object that captures the registered tool
+2. **Import and call the extension** — `orchestratorExtension(mockPi)` which triggers `pi.registerTool()`
+3. **Extract the captured tool's `execute` method** — then call it directly
+
+```typescript
+// Step 1: Create a mock Pi API that captures the registered tool
+let capturedTool: any;
+const mockPi = {
+  registerTool: (config: any) => { capturedTool = config; },
+  // Add other methods as stubs if needed (none are currently used by the orchestrator)
+};
+
+// Step 2: Import and invoke the extension to register the tool.
+// IMPORTANT: Use vi.doMock() + dynamic import to get the module with mocked child_process.
+const { default: orchestratorExtension } = await import("../extensions/orchestrator/index.js");
+orchestratorExtension(mockPi as any);
+
+// Step 3: Call execute directly
+const result = await capturedTool.execute(
+  "test-call-id",             // toolCallId
+  {                            // params (OrchestrateParamsType)
+    task: "plan and implement the feature",
+    relevantFiles: ["src/index.ts"],
+    delegationHint: "auto",   // or omit for auto
+  },
+  undefined,                   // signal (AbortSignal | undefined)
+  undefined,                   // onUpdate callback
+  {} as any,                   // ctx (ExtensionContext — not used by orchestrator)
+);
+
+// result is AgentToolResult<unknown> with .content and .details
+expect(result.details.overallStatus).toBe("success");
+```
+
+#### How to mock `child_process.spawn` with per-specialist responses
+
+The mock needs to return different outputs depending on which specialist is being spawned. The specialist is identified by the **system prompt** passed to `spawnSpecialistAgent()`, which ultimately calls `child_process.spawn("pi", ["--print", "-s", systemPrompt, "-p", taskPrompt])`. The system prompt contains the specialist's ID (e.g., `"specialist_planner"`, `"specialist_builder"`).
+
+Use this pattern (same as `tests/subprocess.test.ts`):
+
+```typescript
+import { EventEmitter } from "events";
+import { Readable } from "stream";
+
+// Helper: create a mock child process that emits a Pi JSON event stream
+function createMockChild(jsonOutput: Record<string, unknown>) {
+  const child = new EventEmitter() as any;
+  child.stdout = new Readable({ read() {} });
+  child.stderr = new Readable({ read() {} });
+  child.kill = vi.fn();
+
+  // Emit the response asynchronously (must be async so spawn returns first)
+  setTimeout(() => {
+    const event = JSON.stringify({
+      type: "message_end",
+      message: {
+        role: "assistant",
+        content: [{ type: "text", text: "```json\n" + JSON.stringify(jsonOutput) + "\n```" }],
+      },
+    });
+    child.stdout.push(event + "\n");
+    child.stdout.push(null);
+    child.stderr.push(null);
+    child.emit("close", 0);
+  }, 10);
+
+  return child;
+}
+
+// Helper: build a mock spawn function that routes by specialist
+function createSpecialistMockSpawn(responses: Record<string, Record<string, unknown>>) {
+  return vi.fn().mockImplementation((_cmd: string, args: string[]) => {
+    const systemPrompt = args[2]; // args = ["--print", "-s", systemPrompt, "-p", taskPrompt]
+
+    // Determine which specialist is being spawned by checking the system prompt
+    for (const [specialistKey, output] of Object.entries(responses)) {
+      if (systemPrompt.includes(specialistKey)) {
+        return createMockChild(output);
+      }
+    }
+
+    // Fallback: unknown specialist
+    return createMockChild({ status: "failure", summary: "Unknown specialist", deliverables: [], modifiedFiles: [] });
+  });
+}
+```
+
+Usage in a test:
+
+```typescript
+it("2-specialist success: planner → builder", async () => {
+  const mockSpawn = createSpecialistMockSpawn({
+    specialist_planner: {
+      status: "success",
+      summary: "Plan: add handler and tests",
+      deliverables: ["step-1: create handler", "step-2: add tests"],
+      modifiedFiles: [],
+    },
+    specialist_builder: {
+      status: "success",
+      summary: "Implemented handler and tests",
+      deliverables: ["Added handler"],
+      modifiedFiles: ["src/index.ts"],
+    },
+  });
+
+  vi.doMock("child_process", () => ({ spawn: mockSpawn }));
+
+  // Must re-import everything after mocking child_process
+  const { default: orchestratorExtension } = await import("../extensions/orchestrator/index.js");
+  let capturedTool: any;
+  orchestratorExtension({ registerTool: (c: any) => { capturedTool = c; } } as any);
+
+  const result = await capturedTool.execute("call-1", {
+    task: "plan and implement the feature",
+    relevantFiles: ["src/index.ts"],
+  }, undefined, undefined, {} as any);
+
+  expect(result.details.overallStatus).toBe("success");
+  expect(result.details.specialistsInvoked).toHaveLength(2);
+  expect(mockSpawn).toHaveBeenCalledTimes(2);
+});
+```
+
+**CRITICAL:** Because `vi.doMock()` + `await import()` is used, each test must call `vi.restoreAllMocks()` and `vi.resetModules()` in `beforeEach` to ensure clean imports.
+
+#### Capturing task packets to verify context forwarding and boundary enforcement
+
+To verify what task packets were constructed for each specialist, capture the `systemPrompt` and `taskPrompt` arguments from the mock spawn:
+
+```typescript
+// After the test runs, inspect mockSpawn.mock.calls
+const calls = mockSpawn.mock.calls;
+// calls[0] = first specialist spawn: [cmd, args, options]
+// calls[0][1][4] = taskPrompt (args = ["--print", "-s", systemPrompt, "-p", taskPrompt])
+const firstTaskPrompt = calls[0][1][4];
+const secondTaskPrompt = calls[1][1][4];
+
+// The task prompt is built by buildSpecialistTaskPrompt() in extensions/shared/specialist-prompt.ts
+// It contains the task packet fields in a structured text format.
+// Check for context forwarding:
+expect(secondTaskPrompt).toContain("planSummary");  // builder got planner's summary
+expect(firstTaskPrompt).not.toContain("Additional context");  // planner got no context
+
+// Check boundary enforcement:
+expect(firstTaskPrompt).toContain("Allowed write set: (none)");  // planner is read-only
+expect(secondTaskPrompt).toContain("Allowed write set: src/index.ts");  // builder gets write access
+```
+
+#### Error handling mock patterns
+
+For subprocess errors, configure the mock differently:
+
+```typescript
+// Spawn throws (test scenario 12):
+vi.fn().mockImplementation(() => { throw new Error("ENOENT"); });
+
+// Non-zero exit with no output (test scenario 13):
+createMockChild but with: child.emit("close", 1) and no stdout data, stderr.push("out of memory")
+
+// Malformed output (test scenario 14):
+Same as createMockChild but push plain text instead of JSON event:
+child.stdout.push("I did some work but forgot the JSON\n");
+```
+
+#### File structure
+
+Single test file: `tests/orchestrator-e2e.test.ts`
+
+Organize tests in `describe` blocks matching the categories above:
+- `describe("full workflow integration")`
+- `describe("context forwarding")`
+- `describe("boundary enforcement")`
+- `describe("error handling")`
+
+All share the same `beforeEach` with `vi.restoreAllMocks()` and `vi.resetModules()`, and the same helper functions (`createMockChild`, `createSpecialistMockSpawn`).
+
+#### Key files to read before implementing
+
+| File | Why |
+|------|-----|
+| `extensions/orchestrator/index.ts` | The `execute()` function being tested end-to-end |
+| `extensions/orchestrator/delegate.ts` | `delegateToSpecialist()` + `buildContextForSpecialist()` — the delegation lifecycle |
+| `extensions/orchestrator/select.ts` | `selectSpecialists()` — keyword matching that determines which specialists run |
+| `extensions/orchestrator/synthesize.ts` | `synthesizeResults()` — how results are combined |
+| `extensions/shared/subprocess.ts` | `spawnSpecialistAgent()` — what gets mocked (calls `child_process.spawn`) |
+| `extensions/shared/specialist-prompt.ts` | `buildSpecialistTaskPrompt()` — how task packets become prompt text |
+| `tests/subprocess.test.ts` | Reference mock pattern for `child_process.spawn` |
+| `tests/orchestrator-delegate.test.ts` | Reference mock pattern for `vi.doMock` + dynamic import |
+
+### What "respects definition boundaries" means
+
+Boundary enforcement is tested at the **packet level**, not the LLM level. We verify that:
+- The orchestrator constructs packets with correct `allowedReadSet`/`allowedWriteSet` for each specialist type
+- Read-only specialists cannot receive write permissions
+- Each specialist receives the correct `targetAgent` ID
+- System prompts contain the specialist's constraints and anti-patterns
+
+We do NOT test that an LLM sub-agent follows its prompt instructions — that's a property of the LLM, not the extension code.
 
 ### Exit criteria
 
-- The full plan → review → build → test loop works for a simple task
-- Each specialist respects its definition boundaries
-- Error cases propagate correctly through the orchestrator
+- All integration test scenarios above pass
+- Tests exercise the full code path from `orchestrate` tool entry to synthesized result
+- Error cases propagate correctly (failure/escalation stop the chain)
+- Context forwarding delivers only relevant data to each specialist (after 3c.1)
+- All 173 existing tests still pass (no regressions)
+- Update `STATUS.md` checklist and this file's status
 
 ### Dependencies
 
-- Stage 3c complete (orchestrator available)
+- Stage 3c.1 complete (selective context forwarding) ✓
 
 ---
 
@@ -322,69 +685,468 @@ Validate the full delegation chain works end-to-end.
 
 ## Purpose
 
-Introduce teams as composed specialist sequences with state-machine routing. Add validation for all primitives.
+Introduce teams as composed specialist sequences with state-machine routing, formalize I/O contracts for all primitives, and add validation infrastructure.
 
-## Key deliverables
+## Core design principle: Standardized I/O contracts
 
-### Team system
-- Team definition format (YAML or TypeScript): member specialists, state transitions, entry/exit conditions
-- Team router in orchestrator: reads a team definition, executes the state machine, routes packets between specialists, validates packets at each transition
-- One exemplar team (e.g., `build-team`: planner → reviewer → builder → tester)
+Every primitive (specialist, team, sequence) declares an **input contract** (what it requires in its TaskPacket) and an **output contract** (what it guarantees in its ResultPacket). See Decision #14 in `DECISION_LOG.md`.
 
-### Validation system
-- Schema validation for agent definitions: do the markdown specs in `agents/` match the expected structure from `AGENT_DEFINITION_CONTRACT.md`?
-- Packet validation: do packets conform to TypeScript interfaces at runtime?
-- Transition validation: does the state machine reject invalid transitions?
-- A `validate` command or test suite that checks all of the above
-
-## Exit criteria
-
-- Orchestrator can delegate to a named team
-- Team executes its state machine correctly
-- Invalid packets and invalid transitions fail with clear errors
-- Agent definition validator catches malformed specs
-- Validation can run as part of CI/test suite
-
-## Dependencies
-
-- Stage 3 complete (all specialists and orchestrator working)
+Teams are **opaque to the orchestrator** — the orchestrator sends a team-level TaskPacket and receives a team-level ResultPacket. Intra-team communication is the team's responsibility. The orchestrator only evaluates the outcome. This ensures token efficiency and composability.
 
 ---
 
-# Stage 5 — Meta-Teams and Expansion
+## Stage 4a — I/O Contracts and Typed Deliverables
+
+### Purpose
+
+Formalize what each primitive requires as input and guarantees as output. This replaces the current generic `deliverables: string[]` with typed schemas.
+
+### Key deliverables
+
+- `InputContract` and `OutputContract` types in `extensions/shared/types.ts`
+- Each specialist declares its contract (what its `deliverables` field actually contains):
+  - **Planner output:** `{ steps: string[], dependencies: string[], risks: string[] }`
+  - **Builder output:** `{ modifiedFiles: string[], changeDescription: string }`
+  - **Reviewer output:** `{ findings: string[], approved: boolean, blockers: string[] }`
+  - **Tester output:** `{ passed: boolean, evidence: string[], failures: string[] }`
+- Contract validation function: given specialist A's output and specialist B's input contract, verify compatibility
+- Output templates: each specialist receives its expected output schema in its system prompt so it knows exactly what shape to produce
+
+### Exit criteria
+
+- Every specialist has a declared input and output contract
+- Contracts are machine-checkable at transition points
+- Output templates reduce ambiguity in specialist responses
+
+### Dependencies
+
+- Stage 3d complete
+
+---
+
+## Stage 4b — Team Definition Format and Router
+
+### Purpose
+
+Enable reusable multi-specialist collaboration patterns as first-class primitives.
+
+### Key deliverables
+
+- Team definition format (TypeScript interface): members, state transitions, entry/exit contracts, I/O contract for the team as a whole
+- Team router: reads a team definition, executes the state machine from `extensions/shared/routing.ts`, routes packets between specialists, validates contracts at each transition
+- Teams are **opaque to orchestrator**: orchestrator sends team-level TaskPacket, receives team-level ResultPacket
+- Intra-team context passing governed by I/O contracts (Stage 4a), not raw result forwarding
+- Exemplar team: `build-team` (planner → reviewer → builder → tester)
+- Orchestrator can delegate to a named team via the existing `orchestrate` tool (new delegation mode)
+
+### Exit criteria
+
+- Orchestrator can delegate to a named team
+- Team executes its state machine correctly
+- Team returns a single ResultPacket (not individual specialist results)
+- Invalid contracts and transitions fail with clear errors
+
+### Dependencies
+
+- Stage 4a complete (I/O contracts available)
+
+---
+
+## Stage 4c — Schema Validation
+
+### Purpose
+
+Make all primitive definitions machine-checkable for correctness and consistency.
+
+### Key deliverables
+
+- Agent definition validator: `.md` specs in `agents/` match the expected structure from `AGENT_DEFINITION_CONTRACT.md`
+- Packet validation at runtime (existing) + contract validation at transitions (new from 4a)
+- Team definition validation: members exist, state machine is valid, contracts are compatible
+- `validate` command or test suite that checks all of the above
+
+### Exit criteria
+
+- Agent definition validator catches malformed specs
+- Contract validator catches incompatible transitions
+- Validation can run as part of CI/test suite
+
+### Dependencies
+
+- Stage 4b complete (team definitions exist to validate)
+
+---
+
+## Stage 4d — Observability
+
+### Purpose
+
+Add execution logging and pre-flight validation to support debugging and auditability.
+
+### Key deliverables
+
+- Execution logging via `pi.appendEntry()`: audit trail for each delegation event (who delegated, to whom, what packet, what result)
+- Pre-flight validation: before delegating, check that task packet meets specialist's input contract requirements
+
+### Exit criteria
+
+- Delegation events are logged and inspectable
+- Malformed task packets are caught before subprocess spawn
+
+### Dependencies
+
+- Stage 4a complete (contracts needed for pre-flight validation)
+
+---
+
+# Stage 5 — Meta-Teams and Self-Expansion
 
 ## Purpose
 
-Build infrastructure for teams that create other primitives, and introduce sequences for multi-stage workflows.
+Build the system's ability to create new primitives through its own orchestration. The progression is: bootstrap specialists → specialist-creator team → team-creator team → sequences → sequence-creator → seed-creator. Each layer validates the one below before building the one above.
 
-## Key deliverables
+See Decisions #16, #17, #19, and #20 in `DECISION_LOG.md`.
 
-- Sequence definition format and execution engine
-- Meta-team capability: a team whose output is a new specialist, team, or sequence definition
-- Discovery/activation system: orchestrator can query available specialists, teams, and sequences
-- Controlled team-layer expansion: add teams only when they test new useful patterns
+---
 
-## Exit criteria
+## Stage 5a — Bootstrap Specialists
 
-- System can build new primitives through its own orchestration
+### Purpose
+
+Manually build five new specialists required before the specialist-creator team can function. These fill reasoning-posture gaps that the original four specialists cannot cover. See Decision #20 for the full roster rationale.
+
+### New specialists
+
+Each specialist has a distinct reasoning posture — the test for inclusion is whether its cognitive mode cannot be achieved by prompting another specialist differently.
+
+**1. Spec-writer** — Writes prose specifications: agent definitions, boundary definitions, working style design, "what this does NOT do" framing. Reasoning posture: **exhaustive enumeration and boundary-first thinking**.
+- Distinct from planner (thinks in steps, not boundaries) and builder (thinks in code, not specs)
+
+**2. Schema-designer** — Defines all typed structures: TypeScript types, packet shapes, I/O contracts, invariants, failure modes, output templates, validation constraints. Reasoning posture: **formal type design** — "what are the exact shapes, invariants, and failure modes?"
+- Distinct from spec-writer (prose specs, not TypeScript types) and builder (implements types, doesn't design them)
+- Named "schema-designer" (not "contract-writer") because scope covers types, packets, contracts, templates, and validation shapes — not just contracts. Pairs with routing-designer as a fellow design-time specialist.
+
+**3. Routing-designer** — Designs state machine routing definitions for teams: states, allowed transitions, entry/exit conditions, escalation states, invalid-transition behavior. Reasoning posture: **state enumeration and transition completeness** — "what states exist, what transitions are valid, what's unreachable?"
+- Distinct from builder (would implement routing as side effect, not an inspectable design artifact)
+- Output is a design artifact that gets reviewed before runtime code exists
+
+**4. Critic** — Broad evaluative lens: is this well-designed? Redundant? Could it be simpler? More efficient? The right abstraction? Reasoning posture: **adversarial evaluation** — finding what's wrong, wasteful, or unnecessary. Also responsible for reuse scouting (searching existing primitives before approving new creation).
+- Distinct from reviewer (pass/fail on acceptance criteria, not big-picture evaluation)
+
+**5. Boundary-auditor** — Inspects designs for access control violations: excess context exposure, undeclared assumptions, overly broad permissions, hidden routing authority, packet fields that violate minimal-context intent. Reasoning posture: **control philosophy enforcement**.
+- Distinct from critic (checks design quality) and reviewer (checks deliverable correctness)
+- This is the specialist that enforces the project's narrow-by-default doctrine
+
+### Key deliverables
+
+For each of the five new specialists:
+- Agent definition markdown in `agents/specialists/`
+- TypeScript extension following the existing factory pattern (`createSpecialistExtension`)
+- Prompt config with working style, constraints, anti-patterns
+- Tests
+
+Additionally:
+- Register all five in the orchestrator's `select.ts` (keyword matching) and `delegate.ts` (config map)
+- Update `buildContextForSpecialist()` if any need specific prior-result fields
+
+### Deferred specialists (revisit later)
+
+- **Registry-curator** — manage admission metadata, canonical naming, lifecycle state. Better handled by tooling until primitive count exceeds ~15-20. Revisit when 5g (discovery) is operational.
+- **Doc-sync auditor** — compare contracts, routing definitions, and stable docs for drift. Valuable once creator teams generate primitives faster than humans review. Revisit when self-expansion is operational.
+
+### Exit criteria
+
+- All five specialists register, delegate, and return structured results
+- Orchestrator can select and invoke them
+- All existing tests still pass
+- Full 9-specialist roster operational
+
+### Dependencies
+
+- Stage 4a complete (I/O contracts — so the new specialists have typed contracts from the start)
+
+---
+
+## Stage 5b — Specialist-Creator Team
+
+### Purpose
+
+The first meta-team. Its output is a fully working new specialist: agent definition markdown, TypeScript extension, prompt config, and tests.
+
+### Roster
+
+All 9 specialists available. Typical creation workflow uses a subset:
+
+### Workflow
+
+1. **Planner** — designs the creation workflow for the candidate specialist
+2. **Spec-writer** — writes the agent definition, working style, constraints, boundary framing
+3. **Schema-designer** — writes the I/O contracts, packet types, validation constraints
+4. **Routing-designer** — (if the new specialist participates in teams) designs routing integration
+5. **Critic** — evaluates: is this specialist warranted? Does it overlap? Is the scope right? Reuse search.
+6. **Boundary-auditor** — checks for excess context exposure, permission violations
+7. **Builder** — implements the TypeScript extension, prompt config, factory integration
+8. **Reviewer** — pass/fail on the deliverable against the spec
+9. **Tester** — validates the specialist works end-to-end
+
+Not every creation needs every specialist — the planner decides which are relevant.
+
+### Key deliverables
+
+- Specialist-creator team definition (state machine, member roster, I/O contracts)
+- Governed creation: new specialists validated against existing ones for overlap (critic), boundary compliance (boundary-auditor), schema (4c) before activation
+- At least one specialist successfully created by the team as proof
+
+### Exit criteria
+
+- Creator team can produce a working specialist end-to-end
+- Output includes: agent definition `.md`, TypeScript extension, prompt config, tests
+- New specialists are validated (no redundancy, passes schema checks, boundary-compliant)
+
+### Dependencies
+
+- Stage 5a complete (spec-writer and critic available)
+- Stage 4b complete (team infrastructure)
+- Stage 4c complete (schema validation for new primitives)
+
+---
+
+## Stage 5c — Team-Creator Team
+
+### Purpose
+
+A meta-team that creates new teams by selecting members, defining state machines, and validating I/O contracts.
+
+### Key deliverables
+
+- Team-creator team: define team purpose → select member specialists → define state machine transitions → validate contracts → test
+- Can compose any existing specialists (including those created by 5b)
+- Governed creation: new teams validated against I/O contracts before activation
+
+### Exit criteria
+
+- Creator team can produce a working team definition end-to-end
+- At least one team successfully created by the team as proof
+
+### Dependencies
+
+- Stage 5b complete (specialist-creator proven)
+
+---
+
+## Stage 5d — Sequence Definition and Execution
+
+### Purpose
+
+Enable multi-stage workflows that compose teams and specialists with ordering, parallel branches, and merge points.
+
+### Key deliverables
+
+- Sequence definition format: ordered stages, parallel branches, merge/synthesis points, stop conditions
+- Sequence engine: execute stages, validate I/O contracts between stages
+- Each stage's output contract must satisfy the next stage's input contract (same principle as teams)
+
+### Exit criteria
+
 - Sequences can compose teams and specialists across multiple stages
-- The orchestrator discovers available primitives dynamically
+- I/O contracts validated at each stage boundary
+- Stop conditions and merge points work correctly
 
-## Dependencies
+### Dependencies
 
-- Stage 4 complete (team routing and validation working)
+- Stage 4b complete (teams available as sequence building blocks)
+
+---
+
+## Stage 5e — Sequence-Creator Team
+
+### Purpose
+
+A meta-team that creates new sequence definitions by composing teams and specialists into multi-stage workflows.
+
+### Key deliverables
+
+- Sequence-creator team: define sequence purpose → select stages → validate contracts at boundaries → test
+- Governed creation with validation at each stage boundary
+
+### Exit criteria
+
+- Creator team can produce a working sequence definition end-to-end
+
+### Dependencies
+
+- Stage 5d complete (sequence infrastructure)
+- Stage 5c complete (team-creator pattern proven)
+
+---
+
+## Stage 5f — Seed-Creator Team
+
+### Purpose
+
+A meta-team that creates seeds — reusable bootstrap context packs for setting up project repos. Seeds include `SEED.md` instructions and template files. Can target fresh repos, forked repos, or non-project use cases.
+
+See Decision #19 and existing seed infrastructure in `skills/seed/`.
+
+### Roster
+
+Likely the same as specialist-creator: planner + spec-writer + builder + critic + reviewer + tester.
+
+### Workflow
+
+1. **Planner** — designs what the seed covers, target audience, prerequisites
+2. **Spec-writer** — writes the `SEED.md` (instructions, template manifest, expected output structure)
+3. **Builder** — creates the template files in `templates/` subdirectory
+4. **Critic** — evaluates scope, overlap with existing seeds, completeness
+5. **Reviewer** — pass/fail on the deliverable
+6. **Tester** — validates the seed works when applied to a target repo
+
+### Exit criteria
+
+- Creator team can produce a working seed end-to-end
+- At least one seed successfully created by the team as proof
+
+### Dependencies
+
+- Stage 5b complete (specialist-creator proven — same pattern)
+- Existing seed infrastructure in `skills/seed/` functional
+
+---
+
+## Stage 5g — Dynamic Selection and Discovery
+
+### Purpose
+
+Replace hardcoded specialist selection with dynamic, capability-aware routing.
+
+### Key deliverables
+
+- Discovery service: index available specialists, teams, and sequences at load time, expose via query
+- LLM-based specialist selection: replace keyword heuristics in `select.ts` with capability analysis
+- Runtime tool management: `getActiveTools()`/`setActiveTools()` to scope available tools per task context (disable irrelevant specialists based on task type)
+
+### Exit criteria
+
+- Orchestrator discovers available primitives dynamically
+- Selection adapts to available capabilities rather than hardcoded mappings
+
+### Dependencies
+
+- Stage 4b complete (teams must be discoverable)
+
+---
+
+## Stage 5h — Escalation and Retry
+
+### Purpose
+
+Handle escalation as a workflow event, not just a terminal status.
+
+### Key deliverables
+
+- Escalation re-try handler: when a specialist escalates requesting broader context, orchestrator expands scope and re-invokes
+- Session persistence: carry orchestration state across sessions via `appendEntry()`
+
+### Exit criteria
+
+- Escalation-driven context expansion works end-to-end
+- Orchestration state survives session boundaries
+
+### Dependencies
+
+- Stage 4d complete (logging infrastructure)
+
+---
+
+# Stage 6 — Slash Commands and Interactive Workflows
+
+## Purpose
+
+Provide user-facing entry points for orchestrated work. These commands operate at a higher level than individual specialists — the orchestrator decides which primitives to invoke.
+
+See Decision #17 in `DECISION_LOG.md`.
+
+---
+
+## Stage 6a — `/plan` Command
+
+### Purpose
+
+Interactive planning session where the user describes goals, the agent helps refine them, and then the orchestrator executes using available primitives.
+
+### Key deliverables
+
+- Register `/plan` via `pi.registerCommand()`
+- Interactive planning flow: gather requirements → select primitives → build execution plan → confirm with user → orchestrate
+- Plan output stored in repo (e.g., `plans/` directory or structured format) for resumability via `/next`
+
+### Exit criteria
+
+- User can invoke `/plan`, discuss goals interactively, and trigger orchestrated execution
+- Plan state is persisted in the repo
+
+### Dependencies
+
+- Stage 4d complete (observability for tracking execution)
+- Orchestrator functional (Stage 3d+)
+
+---
+
+## Stage 6b — `/next` Command
+
+### Purpose
+
+Resume an existing plan. The orchestrator reads plan state from the repo and executes the next set of tasks.
+
+### Key deliverables
+
+- Register `/next` via `pi.registerCommand()`
+- Plan discovery: find active plan in repo, determine what's been completed, identify next steps
+- Orchestrate next steps using available primitives
+- Update plan state after execution (mark completed, note failures/escalations)
+
+### Exit criteria
+
+- User can invoke `/next` to continue a previously created plan
+- Plan state is updated after execution
+
+### Dependencies
+
+- Stage 6a complete (plans must exist to resume)
+
+---
+
+## Stage 6c — `/specialist` Command
+
+### Purpose
+
+Interactive session to discuss whether a new specialist is needed. Evaluates the gap, checks for redundancy, and delegates to the specialist-creator team if approved.
+
+### Key deliverables
+
+- Register `/specialist` via `pi.registerCommand()`
+- Discussion flow: what gap does this specialist fill? → check existing specialists for overlap → propose spec → user approval → delegate to creator team (5b)
+
+### Exit criteria
+
+- User can invoke `/specialist` to discuss and optionally create a new specialist
+- Redundancy checks prevent overlapping specialists
+
+### Dependencies
+
+- Stage 5b complete (specialist-creator team)
+
+---
 
 ## Notes
 
-This stage is intentionally sketched lightly. Its details should be informed by real experience from Stages 1-4. Do not over-design before the lower layers are proven.
+Stages 5–6 are intentionally sketched at a higher level than Stages 1–4. Their details should be informed by real experience from earlier stages. Do not over-design before the lower layers are proven.
 
 ---
 
 ## Explicitly deferred work
 
-- Seed system design (deferred until specialist/team layer proves useful patterns)
 - Host-platform realization decisions (only when justified by actual needs)
-- Sequence runtime implementation (until team layer is stable)
 - Coordinator-agent design for complex teams
 - Public package decomposition
 
@@ -392,6 +1154,19 @@ This stage is intentionally sketched lightly. Its details should be informed by 
 
 ## Cross-stage dependency chain
 
-Stage 1 (types) → Stage 2 (builder) → Stage 3a (shared infra) → Stage 3b (specialists) → Stage 3c (orchestrator) → Stage 3d (integration) → Stage 4 (teams + validation) → Stage 5 (meta-teams + sequences)
+```
+Stage 1 (types)
+  → Stage 2 (builder)
+    → Stage 3a (shared infra) → 3b (specialists) → 3c (orchestrator) → 3c.1 (context) → 3d (integration)
+      → Stage 4a (I/O contracts) → 4b (teams) → 4c (validation) → 4d (observability)
+        → Stage 5a (bootstrap: spec-writer + critic)
+          → Stage 5b (specialist-creator team) → 5c (team-creator team)
+        → Stage 5d (sequences) → 5e (sequence-creator team)
+        → Stage 5f (seed-creator team) [depends on 5b]
+        → Stage 5g (discovery)
+        → Stage 5h (escalation)
+          → Stage 6a (/plan) → 6b (/next)
+          → Stage 6c (/specialist) [depends on 5b]
+```
 
-Each stage depends on the one before it. Do not skip stages.
+Stages within the same level can be parallelized where dependencies allow. Do not skip stages.
