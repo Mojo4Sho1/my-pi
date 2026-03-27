@@ -99,6 +99,33 @@ export interface SpecialistConfig extends AgentDefinition {
   workingStyle: WorkingStyle; // Required for specialists
 }
 
+// --- I/O Contract Types (Stage 4a) ---
+
+export type ContractFieldType = "string" | "string[]" | "boolean" | "number" | "object";
+
+export interface ContractField {
+  /** Field name (e.g. "planSummary") */
+  name: string;
+  /** Expected type of the field value */
+  type: ContractFieldType;
+  /** Whether this field must be present */
+  required: boolean;
+  /** Human-readable description */
+  description: string;
+  /** Which specialist's output provides this field (for input contracts) */
+  sourceSpecialist?: string;
+}
+
+/** What a specialist/team requires in its TaskPacket.context */
+export interface InputContract {
+  fields: ContractField[];
+}
+
+/** What a specialist/team guarantees in its structured deliverables */
+export interface OutputContract {
+  fields: ContractField[];
+}
+
 // --- Team and Routing Types ---
 
 export interface TeamDefinition {
@@ -107,6 +134,10 @@ export interface TeamDefinition {
   purpose: string;
   members: string[]; // Specialist IDs
   states: StateMachineDefinition;
+  /** What the team requires as input */
+  entryContract: InputContract;
+  /** What the team guarantees as output */
+  exitContract: OutputContract;
   entryPacketTypes: string[];
   exitPacketTypes: string[];
   activationConditions: string[];
@@ -122,8 +153,12 @@ export interface StateMachineDefinition {
 export interface StateDefinition {
   /** Which specialist handles this state */
   agent: string;
+  /** For fan-out states — dispatch to all agents (type stub, not yet implemented) */
+  agents?: string[];
   /** Valid transitions from this state */
   transitions: TransitionDefinition[];
+  /** How to aggregate fan-out results (type stub, not yet implemented) */
+  fanOutJoin?: "all" | "any";
 }
 
 export interface TransitionDefinition {
@@ -131,4 +166,6 @@ export interface TransitionDefinition {
   on: PacketStatus;
   /** Target state */
   to: string;
+  /** Max iterations for loop edges — escalate when exhausted */
+  maxIterations?: number;
 }

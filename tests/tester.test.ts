@@ -50,7 +50,9 @@ describe("buildTesterSystemPrompt", () => {
     expect(prompt).toContain("```json");
     expect(prompt).toContain('"status"');
     expect(prompt).toContain('"summary"');
-    expect(prompt).toContain('"deliverables"');
+    expect(prompt).toContain('"passed"');
+    expect(prompt).toContain('"evidence"');
+    expect(prompt).toContain('"failures"');
     expect(prompt).toContain('"modifiedFiles"');
     expect(prompt).toContain('"escalation"');
   });

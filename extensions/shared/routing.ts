@@ -3,6 +3,9 @@
  *
  * Provides functions to validate state machine definitions,
  * check transition legality, and advance state.
+ *
+ * Extended in Stage 4b with iteration tracking for loop edges
+ * and maxIterations guards.
  */
 
 import type {
@@ -19,7 +22,21 @@ export interface MachineState {
     on: PacketStatus;
     timestamp: string;
   }>;
+  /** Tracks iteration counts for loop edges: "fromState->toState" -> count */
+  iterationCounts: Record<string, number>;
 }
+
+/** Returned by advanceState when a loop edge exceeds its maxIterations guard */
+export interface ExhaustedResult {
+  exhausted: true;
+  edge: string;
+  iterations: number;
+}
+
+export type AdvanceResult =
+  | { newState: MachineState }
+  | { error: string }
+  | ExhaustedResult;
 
 /**
  * Validate a state machine definition for structural correctness.
@@ -45,12 +62,22 @@ export function validateStateMachine(
     }
   }
 
-  // All transition targets must exist
+  // All transition targets must exist, and validate maxIterations
   for (const [stateName, state] of Object.entries(definition.states)) {
     for (const transition of state.transitions) {
       if (!stateNames.includes(transition.to)) {
         errors.push(
           `State '${stateName}' has transition to unknown state '${transition.to}'`
+        );
+      }
+      if (
+        transition.maxIterations !== undefined &&
+        (typeof transition.maxIterations !== "number" ||
+          !Number.isInteger(transition.maxIterations) ||
+          transition.maxIterations < 1)
+      ) {
+        errors.push(
+          `State '${stateName}' transition to '${transition.to}' has invalid maxIterations: ${transition.maxIterations} (must be a positive integer)`
         );
       }
     }
@@ -88,18 +115,22 @@ export function initMachineState(
   return {
     currentState: definition.startState,
     history: [],
+    iterationCounts: {},
   };
 }
 
 /**
  * Attempt to advance the state machine based on a result packet.
- * Returns the new state, or an error if the transition is invalid.
+ * Returns the new state, an error, or an exhaustion indicator.
+ *
+ * When a transition has maxIterations and the loop count has been
+ * reached, returns { exhausted: true } instead of advancing.
  */
 export function advanceState(
   definition: StateMachineDefinition,
   state: MachineState,
   result: ResultPacket
-): { newState: MachineState } | { error: string } {
+): AdvanceResult {
   const currentStateDef = definition.states[state.currentState];
 
   if (!currentStateDef) {
@@ -123,6 +154,27 @@ export function advanceState(
     };
   }
 
+  // Check maxIterations guard for loop edges
+  const edgeKey = `${state.currentState}->${transition.to}`;
+  const currentCount = state.iterationCounts[edgeKey] || 0;
+
+  if (
+    transition.maxIterations !== undefined &&
+    currentCount >= transition.maxIterations
+  ) {
+    return {
+      exhausted: true,
+      edge: edgeKey,
+      iterations: currentCount,
+    };
+  }
+
+  // Update iteration count for this edge
+  const newIterationCounts = { ...state.iterationCounts };
+  if (transition.maxIterations !== undefined) {
+    newIterationCounts[edgeKey] = currentCount + 1;
+  }
+
   return {
     newState: {
       currentState: transition.to,
@@ -135,6 +187,7 @@ export function advanceState(
           timestamp: new Date().toISOString(),
         },
       ],
+      iterationCounts: newIterationCounts,
     },
   };
 }

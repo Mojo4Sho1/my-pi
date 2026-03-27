@@ -6,6 +6,7 @@
  */
 
 export type SpecialistId = "planner" | "reviewer" | "builder" | "tester";
+export type TeamId = "build-team";
 export type DelegationHint = SpecialistId | "auto";
 
 export interface SelectionResult {

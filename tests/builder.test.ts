@@ -50,8 +50,8 @@ describe("buildBuilderSystemPrompt", () => {
     expect(prompt).toContain("```json");
     expect(prompt).toContain('"status"');
     expect(prompt).toContain('"summary"');
-    expect(prompt).toContain('"deliverables"');
     expect(prompt).toContain('"modifiedFiles"');
+    expect(prompt).toContain('"changeDescription"');
     expect(prompt).toContain('"escalation"');
   });
 });

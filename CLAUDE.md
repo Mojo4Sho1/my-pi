@@ -18,7 +18,17 @@ Agent definitions in `agents/` are the specs. TypeScript extensions in `extensio
 
 **Packets carry execution state.** Task packets define what a specialist should do; result packets define what they did. Packet types and validation live in `extensions/shared/types.ts` and `extensions/shared/packets.ts`.
 
-**State-machine routing** for teams: defined in team definitions, enforced by `extensions/shared/routing.ts`.
+**State-machine routing** for teams: defined in team definitions, enforced by `extensions/shared/routing.ts`. Teams are opaque to the orchestrator — send a TaskPacket in, get a ResultPacket out.
+
+**I/O contracts** formalize what each specialist requires as input and guarantees as output. Contracts live on `SpecialistPromptConfig` and are validated by `extensions/shared/contracts.ts`.
+
+## How to Implement the Next Stage
+
+**Before exploring the codebase, read `docs/IMPLEMENTATION_PLAN.md` for the target stage.** It contains pre-resolved design decisions, exact type definitions, function signatures, file lists, and often code snippets. Start from the plan, not from scratch exploration.
+
+- If the implementation plan already has detailed specs (types, function signatures, file changes), **skip plan mode and execute directly**. Plan mode adds significant token overhead and provides no value when the plan already exists.
+- If the plan is vague or leaves open questions, use plan mode to resolve them.
+- Always check `STATUS.md` for the current state and `DECISION_LOG.md` for relevant decisions before starting.
 
 ## Key Documents
 
@@ -52,27 +62,44 @@ Supporting: `agents/` (definition specs), `docs/` (architectural reference), `te
 
 ## Current Stage
 
-See `STATUS.md` for live project state. The project follows a 5-stage implementation plan (`docs/IMPLEMENTATION_PLAN.md`):
+See `STATUS.md` for live project state. The project follows a staged implementation plan (`docs/IMPLEMENTATION_PLAN.md`):
 
 1. **Foundation and shared types** (complete) — TypeScript interfaces, packet validation, routing utilities
 2. **First specialist extension (builder)** (complete) — proved sub-agent delegation pattern
-3. **Remaining specialists + orchestrator** — complete the core delegation loop
-   - 3a: Extract shared specialist infrastructure (complete)
-   - 3b: Remaining specialists — planner, reviewer, tester (complete)
-   - **3c: Orchestrator extension (next)** — see `docs/IMPLEMENTATION_PLAN.md` for pre-resolved design decisions
-   - 3d: Integration and end-to-end validation
-4. **Team routing and validation** — state-machine teams, primitive validation
+3. **Remaining specialists + orchestrator** (complete) — full delegation loop with selective context forwarding
+4. **Team routing and validation** (4a+4b complete, 4c+4d next) — I/O contracts, team router, state-machine teams
 5. **Meta-teams and expansion** — teams that build other primitives, sequences
+6. **Slash commands and interactive workflows** — `/plan`, `/next`, `/specialist`
 
 ## Development
 
 ```bash
-npx tsc --noEmit  # Type-check without emitting
-npm test          # Run tests (vitest)
-npm run test:watch # Run tests in watch mode
+make typecheck  # Type-check without emitting
+make test       # Run tests (vitest)
+make test-watch # Run tests in watch mode
 ```
 
-Key source files:
-- `extensions/shared/types.ts` — Packet, agent, and routing type definitions
-- `extensions/shared/packets.ts` — Packet creation and validation
-- `extensions/shared/routing.ts` — State machine routing utilities
+## Key Source Files
+
+### Shared infrastructure (`extensions/shared/`)
+- `types.ts` — Packet, agent, routing, and I/O contract type definitions
+- `packets.ts` — Packet creation and validation
+- `routing.ts` — State machine routing with iteration tracking and maxIterations guards
+- `contracts.ts` — I/O contract validation (`validateOutputContract`, `validateInputContract`, `contractsCompatible`, `buildContextFromContract`)
+- `specialist-prompt.ts` — System/task prompt construction with typed output templates
+- `result-parser.ts` — Structured output extraction from sub-agent responses
+- `subprocess.ts` — Pi sub-agent spawn and JSON event parsing
+
+### Orchestrator (`extensions/orchestrator/`)
+- `index.ts` — Extension entry point, `orchestrate` tool registration (supports `delegationHint` and `teamHint`)
+- `select.ts` — Specialist selection (keyword heuristics, explicit hints)
+- `delegate.ts` — Delegation lifecycle (`delegateToSpecialist`, `delegateToTeam`, `buildContextForSpecialist`)
+- `synthesize.ts` — Result synthesis from multiple specialist outputs
+
+### Teams (`extensions/teams/`)
+- `router.ts` — Team state machine executor (`executeTeam`) with revision loops and escalation
+- `definitions.ts` — Team registry and `build-team` exemplar
+
+### Specialists (`extensions/specialists/{planner,builder,reviewer,tester}/`)
+- `prompt.ts` — Specialist-specific prompt config with I/O contracts
+- `index.ts` — Extension entry point (uses `createSpecialistExtension` factory)

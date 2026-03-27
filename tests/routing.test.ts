@@ -149,10 +149,11 @@ describe("validateStateMachine", () => {
 });
 
 describe("initMachineState", () => {
-  it("starts at the defined start state with empty history", () => {
+  it("starts at the defined start state with empty history and iteration counts", () => {
     const state = initMachineState(buildTeamMachine);
     expect(state.currentState).toBe("planning");
     expect(state.history).toEqual([]);
+    expect(state.iterationCounts).toEqual({});
   });
 });
 
@@ -194,7 +195,7 @@ describe("advanceState", () => {
   });
 
   it("rejects advancement from terminal state", () => {
-    const state = { currentState: "done", history: [] };
+    const state = { currentState: "done", history: [], iterationCounts: {} };
     const result = advanceState(buildTeamMachine, state, makeResult("success"));
 
     expect("error" in result).toBe(true);
@@ -252,19 +253,19 @@ describe("advanceState", () => {
 describe("isTerminal", () => {
   it("returns true for terminal states", () => {
     expect(
-      isTerminal(buildTeamMachine, { currentState: "done", history: [] })
+      isTerminal(buildTeamMachine, { currentState: "done", history: [], iterationCounts: {} })
     ).toBe(true);
     expect(
-      isTerminal(buildTeamMachine, { currentState: "failed", history: [] })
+      isTerminal(buildTeamMachine, { currentState: "failed", history: [], iterationCounts: {} })
     ).toBe(true);
   });
 
   it("returns false for non-terminal states", () => {
     expect(
-      isTerminal(buildTeamMachine, { currentState: "planning", history: [] })
+      isTerminal(buildTeamMachine, { currentState: "planning", history: [], iterationCounts: {} })
     ).toBe(false);
     expect(
-      isTerminal(buildTeamMachine, { currentState: "building", history: [] })
+      isTerminal(buildTeamMachine, { currentState: "building", history: [], iterationCounts: {} })
     ).toBe(false);
   });
 });
@@ -272,13 +273,13 @@ describe("isTerminal", () => {
 describe("getCurrentAgent", () => {
   it("returns the agent for the current state", () => {
     expect(
-      getCurrentAgent(buildTeamMachine, { currentState: "planning", history: [] })
+      getCurrentAgent(buildTeamMachine, { currentState: "planning", history: [], iterationCounts: {} })
     ).toBe("specialist_planner");
     expect(
-      getCurrentAgent(buildTeamMachine, { currentState: "building", history: [] })
+      getCurrentAgent(buildTeamMachine, { currentState: "building", history: [], iterationCounts: {} })
     ).toBe("specialist_builder");
     expect(
-      getCurrentAgent(buildTeamMachine, { currentState: "testing", history: [] })
+      getCurrentAgent(buildTeamMachine, { currentState: "testing", history: [], iterationCounts: {} })
     ).toBe("specialist_tester");
   });
 
@@ -287,7 +288,195 @@ describe("getCurrentAgent", () => {
       getCurrentAgent(buildTeamMachine, {
         currentState: "nonexistent",
         history: [],
+        iterationCounts: {},
       })
     ).toBeUndefined();
+  });
+});
+
+// --- Stage 4b: Extended routing tests ---
+
+/** Machine with loop transitions and maxIterations guards */
+const loopMachine: StateMachineDefinition = {
+  startState: "write",
+  terminalStates: ["done", "failed"],
+  states: {
+    write: {
+      agent: "specialist_builder",
+      transitions: [
+        { on: "success", to: "critique" },
+        { on: "failure", to: "failed" },
+      ],
+    },
+    critique: {
+      agent: "specialist_reviewer",
+      transitions: [
+        { on: "success", to: "done" },
+        { on: "failure", to: "write", maxIterations: 2 },
+        { on: "escalation", to: "failed" },
+      ],
+    },
+    done: {
+      agent: "orchestrator",
+      transitions: [],
+    },
+    failed: {
+      agent: "orchestrator",
+      transitions: [],
+    },
+  },
+};
+
+describe("validateStateMachine (extended)", () => {
+  it("accepts valid maxIterations", () => {
+    expect(validateStateMachine(loopMachine)).toEqual([]);
+  });
+
+  it("rejects maxIterations of 0", () => {
+    const machine: StateMachineDefinition = {
+      startState: "a",
+      terminalStates: ["b"],
+      states: {
+        a: {
+          agent: "x",
+          transitions: [{ on: "success", to: "a", maxIterations: 0 }],
+        },
+        b: { agent: "y", transitions: [] },
+      },
+    };
+    const errors = validateStateMachine(machine);
+    expect(errors.some((e) => e.includes("invalid maxIterations"))).toBe(true);
+  });
+
+  it("rejects negative maxIterations", () => {
+    const machine: StateMachineDefinition = {
+      startState: "a",
+      terminalStates: ["b"],
+      states: {
+        a: {
+          agent: "x",
+          transitions: [{ on: "success", to: "a", maxIterations: -1 }],
+        },
+        b: { agent: "y", transitions: [] },
+      },
+    };
+    const errors = validateStateMachine(machine);
+    expect(errors.some((e) => e.includes("invalid maxIterations"))).toBe(true);
+  });
+});
+
+describe("advanceState (loop iterations)", () => {
+  function makeResult(status: "success" | "failure" | "escalation") {
+    return createResultPacket({
+      taskId: "task_001",
+      status,
+      summary: "test",
+      deliverables: [],
+      modifiedFiles: [],
+      sourceAgent: "test",
+    });
+  }
+
+  it("allows loop transition within maxIterations", () => {
+    let state = initMachineState(loopMachine);
+
+    // write → critique (success)
+    let result = advanceState(loopMachine, state, makeResult("success"));
+    expect("newState" in result).toBe(true);
+    if ("newState" in result) state = result.newState;
+
+    // critique → write (failure, iteration 1 of 2)
+    result = advanceState(loopMachine, state, makeResult("failure"));
+    expect("newState" in result).toBe(true);
+    if ("newState" in result) {
+      expect(result.newState.currentState).toBe("write");
+      expect(result.newState.iterationCounts["critique->write"]).toBe(1);
+      state = result.newState;
+    }
+  });
+
+  it("returns exhausted when maxIterations is reached", () => {
+    let state = initMachineState(loopMachine);
+
+    // write → critique
+    let result = advanceState(loopMachine, state, makeResult("success"));
+    if ("newState" in result) state = result.newState;
+
+    // critique → write (iteration 1)
+    result = advanceState(loopMachine, state, makeResult("failure"));
+    if ("newState" in result) state = result.newState;
+
+    // write → critique
+    result = advanceState(loopMachine, state, makeResult("success"));
+    if ("newState" in result) state = result.newState;
+
+    // critique → write (iteration 2)
+    result = advanceState(loopMachine, state, makeResult("failure"));
+    if ("newState" in result) state = result.newState;
+
+    // write → critique
+    result = advanceState(loopMachine, state, makeResult("success"));
+    if ("newState" in result) state = result.newState;
+
+    // critique → write (iteration 3 — should be exhausted, maxIterations=2)
+    result = advanceState(loopMachine, state, makeResult("failure"));
+    expect("exhausted" in result).toBe(true);
+    if ("exhausted" in result) {
+      expect(result.edge).toBe("critique->write");
+      expect(result.iterations).toBe(2);
+    }
+  });
+
+  it("does not track iterations for non-guarded transitions", () => {
+    let state = initMachineState(loopMachine);
+
+    // write → critique (success — no maxIterations)
+    const result = advanceState(loopMachine, state, makeResult("success"));
+    expect("newState" in result).toBe(true);
+    if ("newState" in result) {
+      // No iteration count recorded for non-guarded edge
+      expect(result.newState.iterationCounts).toEqual({});
+    }
+  });
+
+  it("tracks independent loop edges separately", () => {
+    const multiLoopMachine: StateMachineDefinition = {
+      startState: "a",
+      terminalStates: ["done"],
+      states: {
+        a: {
+          agent: "x",
+          transitions: [
+            { on: "success", to: "b" },
+            { on: "failure", to: "a", maxIterations: 3 },
+          ],
+        },
+        b: {
+          agent: "y",
+          transitions: [
+            { on: "success", to: "done" },
+            { on: "failure", to: "a", maxIterations: 2 },
+          ],
+        },
+        done: { agent: "z", transitions: [] },
+      },
+    };
+
+    let state = initMachineState(multiLoopMachine);
+
+    // a → a (self-loop, iteration 1)
+    let result = advanceState(multiLoopMachine, state, makeResult("failure"));
+    if ("newState" in result) state = result.newState;
+    expect(state.iterationCounts["a->a"]).toBe(1);
+
+    // a → b
+    result = advanceState(multiLoopMachine, state, makeResult("success"));
+    if ("newState" in result) state = result.newState;
+
+    // b → a (different edge, iteration 1)
+    result = advanceState(multiLoopMachine, state, makeResult("failure"));
+    if ("newState" in result) state = result.newState;
+    expect(state.iterationCounts["b->a"]).toBe(1);
+    expect(state.iterationCounts["a->a"]).toBe(1); // still 1 from before
   });
 });

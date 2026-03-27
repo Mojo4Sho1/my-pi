@@ -138,3 +138,42 @@ Supersedes Decision #18. The system's specialist roster expands from the initial
 - Doc-sync auditor — valuable once creator teams generate primitives faster than humans review; revisit when self-expansion is operational
 
 **Bootstrapping:** Five new specialists (spec-writer, schema-designer, routing-designer, critic, boundary-auditor) must be manually built in Stage 5a before the specialist-creator team (5b) can function. After bootstrap, the creator team can sustain itself.
+
+### 21. Extended state machine with loop transitions and fan-out (2026-03-26) [active]
+
+Team routing uses the existing state machine model extended with two additions:
+
+1. **Loop transitions** — A state can transition back to an earlier state (e.g., `critique → revise_spec → critique`). A `maxIterations` guard on loop edges prevents infinite cycles. When iterations are exhausted, the team escalates.
+2. **Fan-out states** — A state type that dispatches to multiple specialists and collects results before transitioning. Enables patterns like "critic reviews spec and schema in parallel."
+
+**Critic pass-through:** When the critic has no revisions, it returns `status: "success"` and the state machine transitions forward normally. The loop only activates on `partial`/`failure`.
+
+**Why extended state machine (not DAG):** The state machine is already proven, handles the required patterns (linear, branching, loops), and is incrementally extensible. A DAG-based model would be more expressive but requires a larger rewrite. If the state machine proves limiting in practice (e.g., complex dependency graphs between parallel branches), a DAG model is the natural evolution path.
+
+**Rejected alternative:** DAG-based routing. Deferred as a potential future evolution if the extended state machine proves insufficient.
+
+### 22. Critic reviews artifacts individually with upstream context (2026-03-26) [active]
+
+The critic specialist reviews artifacts one at a time (not batched), but receives relevant upstream context for each review. For example, when reviewing a spec, the critic's task packet includes the plan summary the spec was derived from, enabling alignment checks.
+
+**Why individual reviews:** Narrow context per review (matches narrow-by-default principle), clear traceability (each review produces a distinct result packet tied to a specific artifact), and targeted revisions (if one artifact needs rework, it's clear which one).
+
+**Why upstream context:** Reviewing a spec in isolation misses alignment issues. The critic needs to verify that the spec faithfully implements the plan, so it needs the plan as context. This is the same pattern as selective context forwarding (Decision #15) — each specialist gets only the upstream fields it needs.
+
+**Not a manifest approach:** The critic does not receive a manifest of all artifacts. It receives only the specific upstream artifact(s) relevant to its current review task.
+
+### 23. Intra-team revision loops (2026-03-26) [active]
+
+When a critic (or reviewer) identifies issues with an artifact, the team router sends the critique back to the original author as a new TaskPacket with the critique in the context field. The author revises and the critic re-reviews. This is a loop in the team's state machine.
+
+**Max-iteration guard:** Each loop edge in the state machine has a `maxIterations` limit (e.g., 2-3 revision cycles). When exhausted, the team escalates to the orchestrator rather than looping forever.
+
+**Escalation as safety valve:** If the critique is severe (fundamental scope problem, not a fixable revision), the critic returns `status: "escalation"` which exits the team entirely. The orchestrator decides what to do.
+
+**Why intra-team (not escalation-first):** Keeps the team opaque to the orchestrator (Decision #14). The orchestrator sends a task in and gets a result out — it doesn't need to know about internal revision cycles. The revision logic stays where the domain knowledge lives.
+
+### 24. Stage 4 scope: 4a + 4b together (2026-03-26) [active]
+
+Stage 4a (I/O contracts) and 4b (team router) are implemented together. Contracts without a router are types with no consumer; a router without contracts has nothing to validate.
+
+Stage 4c (schema validation) and 4d (observability) follow as a separate pass — they are independent of 4a/4b and benefit from having both contracts and router available to validate against.

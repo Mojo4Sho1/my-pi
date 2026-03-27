@@ -5,7 +5,7 @@
  * spawning, result parsing) into a single delegation call.
  */
 
-import type { TaskPacket, ResultPacket } from "../shared/types.js";
+import type { TaskPacket, ResultPacket, TeamDefinition } from "../shared/types.js";
 import type { SpecialistPromptConfig } from "../shared/specialist-prompt.js";
 import { buildSpecialistSystemPrompt, buildSpecialistTaskPrompt } from "../shared/specialist-prompt.js";
 import { spawnSpecialistAgent } from "../shared/subprocess.js";
@@ -160,4 +160,38 @@ export function buildContextForSpecialist(
       };
     }
   }
+}
+
+/**
+ * Delegate a task to a named team.
+ * The team router executes the team's state machine and returns
+ * a single team-level result (teams are opaque to the orchestrator).
+ */
+export async function delegateToTeam(input: {
+  teamId: string;
+  taskPacket: TaskPacket;
+  signal?: AbortSignal;
+}): Promise<DelegationOutput> {
+  const { TEAM_REGISTRY } = await import("../teams/definitions.js");
+  const team = TEAM_REGISTRY[input.teamId];
+
+  if (!team) {
+    const failurePacket = createResultPacket({
+      taskId: input.taskPacket.id,
+      status: "failure",
+      summary: `Unknown team: '${input.teamId}'`,
+      deliverables: [],
+      modifiedFiles: [],
+      sourceAgent: "orchestrator",
+    });
+    return { resultPacket: failurePacket, success: false };
+  }
+
+  const { executeTeam } = await import("../teams/router.js");
+  const teamResult = await executeTeam(team, input.taskPacket, input.signal);
+
+  return {
+    resultPacket: teamResult.resultPacket,
+    success: teamResult.success,
+  };
 }

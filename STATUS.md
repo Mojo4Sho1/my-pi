@@ -1,6 +1,6 @@
 # STATUS.md
 
-Last updated: 2026-03-26
+Last updated: 2026-03-27
 
 ## Progress Checklist
 
@@ -73,49 +73,59 @@ Last updated: 2026-03-26
 - [x] `tests/orchestrator-context.test.ts` — 14 tests (pure function, no mocking)
 - [x] All 173 tests pass (159 existing + 14 new), TypeScript compiles cleanly
 
-### Stage 3d — Integration and End-to-End Validation [NOT STARTED]
+### Stage 3d — Integration and End-to-End Validation [COMPLETE]
 
 All 3d tests are **integration tests with mocked subprocesses** (not live sub-agent runs). They test the orchestrator's `execute()` function in `extensions/orchestrator/index.ts` end-to-end.
 
 **Full workflow integration tests** (`tests/orchestrator-e2e.test.ts`):
-- [ ] **Success path:** Mock `child_process.spawn` for planner and builder. Call `orchestrate` with task "plan and implement the feature". Verify: planner invoked first, builder invoked second with planner's context forwarded, synthesized result is `status: "success"`, both specialist summaries present.
-- [ ] **3-specialist success:** Planner → builder → tester all succeed. Verify full chain and synthesis.
-- [ ] **Mid-chain failure:** Planner succeeds, builder returns `status: "failure"`. Verify: chain stops, tester never invoked, synthesized status is `"partial"`, planner result preserved.
-- [ ] **Escalation stops chain:** Planner returns `status: "escalation"` with reason. Verify: no subsequent specialists invoked, synthesized status is `"escalation"`, escalation reason preserved.
-- [ ] **Reviewer rejection:** Planner → reviewer where reviewer returns `status: "failure"`. Verify chain stops with `"partial"`.
+- [x] **Success path:** Mock `spawnSpecialistAgent` for planner and builder. Call `orchestrate` with task "plan and implement the feature". Verify: planner invoked first, builder invoked second with planner's context forwarded, synthesized result is `status: "success"`, both specialist summaries present.
+- [x] **3-specialist success:** Planner → builder → tester all succeed. Verify full chain and synthesis.
+- [x] **Mid-chain failure:** Planner succeeds, builder returns `status: "failure"`. Verify: chain stops, tester never invoked, synthesized status is `"partial"`, planner result preserved.
+- [x] **Escalation stops chain:** Planner returns `status: "escalation"` with reason. Verify: no subsequent specialists invoked, synthesized status is `"escalation"`, escalation reason preserved.
+- [x] **Reviewer rejection:** Planner → reviewer where reviewer returns `status: "failure"`. Verify chain stops with `"partial"`.
 
 **Context forwarding tests:**
-- [ ] Builder's task packet contains planner's plan in `context` field (after 3c.1: only relevant fields, not full ResultPacket)
-- [ ] Tester's task packet contains builder's `modifiedFiles` and `summary` in `context`
-- [ ] First specialist (planner) receives no `context` field
+- [x] Builder's task packet contains planner's plan in `context` field (after 3c.1: only relevant fields, not full ResultPacket)
+- [x] Tester's task packet contains builder's `modifiedFiles` and `summary` in `context`
+- [x] First specialist (planner) receives no `context` field
 
 **Boundary enforcement tests** (verify packet structure, not LLM behavior):
-- [ ] Read-only specialists (planner, reviewer) receive `allowedWriteSet: []`
-- [ ] Builder/tester receive `allowedWriteSet` matching `relevantFiles`
-- [ ] Each specialist's task packet has correct `targetAgent` matching the specialist's ID
+- [x] Read-only specialists (planner, reviewer) receive `allowedWriteSet: []`
+- [x] Builder/tester receive `allowedWriteSet` matching `relevantFiles`
+- [x] Each specialist's task packet has correct `targetAgent` matching the specialist's ID
 
 **Error handling tests:**
-- [ ] Subprocess spawn throws → orchestrator returns failure, chain stops
-- [ ] Subprocess exits non-zero with no output → failure packet with stderr
-- [ ] Malformed specialist output (no JSON) → `status: "partial"`, chain continues if not terminal
+- [x] Subprocess spawn throws → orchestrator returns failure, chain stops
+- [x] Subprocess exits non-zero with no output → failure packet with stderr
+- [x] Malformed specialist output (no JSON) → `status: "partial"`, chain continues if not terminal
 
-**Testing approach:** Mock at `child_process.spawn` level (same pattern as `tests/subprocess.test.ts`). Use `vi.doMock()` with different mock responses per specialist to simulate the full chain.
+**Testing approach:** Mock at `spawnSpecialistAgent` level (same pattern as `tests/orchestrator-delegate.test.ts`). Use `vi.doMock()` with `.mockResolvedValueOnce()` chaining per specialist to simulate the full chain. All 188 tests pass (173 existing + 15 new).
 
-### Stage 4 — Team Routing and Validation [NOT STARTED]
+### Stage 4 — Team Routing and Validation [IN PROGRESS]
 
-#### 4a — I/O Contracts and Typed Deliverables
-- [ ] Define `InputContract` and `OutputContract` types in `extensions/shared/types.ts`
-- [ ] Each specialist declares its input requirements and output schema (what its `deliverables` field contains)
-- [ ] Contract validation at delegation boundaries: "does specialist A's output satisfy specialist B's input?"
-- [ ] Output templates: each specialist knows the exact schema required of its result
+**Note:** 4a + 4b are implemented together (Decision #24). 4c + 4d follow as a separate pass.
 
-#### 4b — Team Definition Format and Router
-- [ ] Team definition format (TypeScript interface or YAML): members, state transitions, entry/exit contracts
-- [ ] Team router: reads team definition, executes state machine, routes packets between specialists
-- [ ] Teams are **opaque to orchestrator**: orchestrator sends team-level TaskPacket, receives team-level ResultPacket
-- [ ] Intra-team context passing governed by I/O contracts (not raw result forwarding)
-- [ ] Exemplar team: `build-team` (planner → reviewer → builder → tester)
-- [ ] Orchestrator can delegate to a named team
+#### 4a — I/O Contracts and Typed Deliverables [COMPLETE]
+- [x] Define `InputContract` and `OutputContract` types in `extensions/shared/types.ts`
+- [x] Each specialist declares its input requirements and output schema (what its `deliverables` field contains)
+- [x] Contract validation at delegation boundaries: "does specialist A's output satisfy specialist B's input?" — `extensions/shared/contracts.ts`
+- [x] Output templates: each specialist knows the exact schema required of its result — typed output format in system prompt
+- [x] `tests/contracts.test.ts` — 20 tests (validation, compatibility, context building)
+
+#### 4b — Team Definition Format and Router [COMPLETE]
+- [x] Extended state machine: loop transitions with `maxIterations` guard (Decision #21) — `MachineState.iterationCounts`, `advanceState()` returns `{ exhausted }` when limit reached
+- [x] Extended state machine: fan-out state type for parallel dispatch (Decision #21) — type stubs only (`agents?`, `fanOutJoin?`), implementation deferred
+- [x] Team definition format (TypeScript interface): members, state transitions, entry/exit contracts — `TeamDefinition` extended with `entryContract`/`exitContract`
+- [x] Team router: reads team definition, executes extended state machine, routes packets between specialists — `extensions/teams/router.ts`
+- [x] Intra-team revision loops: critique sent back to original author, max-iteration guard, escalation on exhaust (Decision #23)
+- [x] Critic receives relevant upstream context per review (e.g., plan summary when reviewing a spec) via input contract (Decision #22) — `buildContextFromContract()` in contracts.ts
+- [x] Teams are **opaque to orchestrator**: orchestrator sends team-level TaskPacket, receives team-level ResultPacket
+- [x] Intra-team context passing governed by I/O contracts (not raw result forwarding)
+- [x] Exemplar team: `build-team` (planner → reviewer → builder → tester) — `extensions/teams/definitions.ts`
+- [x] Orchestrator can delegate to a named team — `teamHint` parameter on `orchestrate` tool
+- [x] `tests/team-router.test.ts` — 10 tests (happy path, loops, exhaustion, escalation, errors)
+- [x] `tests/orchestrator-team-e2e.test.ts` — 5 tests (team delegation through orchestrate tool)
+- [x] All 230 tests pass (188 existing + 42 new), TypeScript compiles cleanly
 
 #### 4c — Schema Validation
 - [ ] Agent definition validator: `.md` specs match `AGENT_DEFINITION_CONTRACT.md` structure

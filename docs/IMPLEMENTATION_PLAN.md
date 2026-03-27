@@ -718,9 +718,13 @@ Formalize what each primitive requires as input and guarantees as output. This r
 - Contracts are machine-checkable at transition points
 - Output templates reduce ambiguity in specialist responses
 
+### Status
+
+**Complete.** `ContractField`, `InputContract`, `OutputContract` types added. All 4 specialists declare typed input/output contracts. `extensions/shared/contracts.ts` provides validation and context building. Typed output templates render in system prompts. 20 new tests in `tests/contracts.test.ts`.
+
 ### Dependencies
 
-- Stage 3d complete
+- Stage 3d complete ✓
 
 ---
 
@@ -733,22 +737,67 @@ Enable reusable multi-specialist collaboration patterns as first-class primitive
 ### Key deliverables
 
 - Team definition format (TypeScript interface): members, state transitions, entry/exit contracts, I/O contract for the team as a whole
-- Team router: reads a team definition, executes the state machine from `extensions/shared/routing.ts`, routes packets between specialists, validates contracts at each transition
+- **Extended state machine** (see Decision #21):
+  - **Loop transitions** with `maxIterations` guard — enables revision cycles (e.g., critique → revise → critique). When iterations exhaust, the team escalates.
+  - **Fan-out states** — dispatch to multiple specialists, collect all results before transitioning. Enables patterns like "critic reviews spec and schema."
+- Team router: reads a team definition, executes the extended state machine, routes packets between specialists, validates contracts at each transition
 - Teams are **opaque to orchestrator**: orchestrator sends team-level TaskPacket, receives team-level ResultPacket
 - Intra-team context passing governed by I/O contracts (Stage 4a), not raw result forwarding
-- Exemplar team: `build-team` (planner → reviewer → builder → tester)
+- **Intra-team revision loops** (see Decision #23): when critic/reviewer identifies issues, the team router sends critique back to the original author. Critic success transitions forward; critic partial/failure loops back to the author for revision.
+- **Critic context** (see Decision #22): when reviewing an artifact, the critic receives relevant upstream context (e.g., the plan summary when reviewing a spec) via its input contract.
+- Exemplar team: `build-team` (planner → reviewer → builder → tester), demonstrating linear flow with a review gate
 - Orchestrator can delegate to a named team via the existing `orchestrate` tool (new delegation mode)
+
+### Implementation Notes (pre-resolved design decisions)
+
+**Extended `TransitionDefinition` type.** Add an optional `maxIterations` field to loop edges:
+
+```typescript
+interface TransitionDefinition {
+  on: PacketStatus;
+  to: string;
+  maxIterations?: number;  // For loop edges — escalate when exhausted
+}
+```
+
+**Fan-out state type.** A new optional field on `StateDefinition`:
+
+```typescript
+interface StateDefinition {
+  agent: string;              // For regular states
+  agents?: string[];          // For fan-out states — dispatch to all, collect results
+  transitions: TransitionDefinition[];
+  fanOutJoin?: "all" | "any"; // How to aggregate fan-out results
+}
+```
+
+Fan-out states dispatch to all listed agents, collect results, then aggregate (all-must-succeed or any-success-proceeds) before transitioning. This is a **future addition** — the initial 4b implementation focuses on loop transitions. Fan-out is deferred until a concrete team definition requires it.
+
+**Revision loop example (specialist-creator team):**
+
+```
+write_spec → critique_spec → (success → design_schema | partial → write_spec)
+```
+
+The `critique_spec → write_spec` edge has `maxIterations: 3`. After 3 revision cycles without success, the team escalates.
+
+**DAG model as future evolution.** If the extended state machine proves limiting for complex dependency graphs between parallel branches, a DAG-based routing model is the natural evolution path. Not needed now — the state machine handles linear, branching, and loop patterns.
 
 ### Exit criteria
 
 - Orchestrator can delegate to a named team
-- Team executes its state machine correctly
+- Team executes its state machine correctly, including revision loops
+- Loop transitions respect `maxIterations` and escalate when exhausted
 - Team returns a single ResultPacket (not individual specialist results)
 - Invalid contracts and transitions fail with clear errors
 
+### Status
+
+**Complete.** Extended state machine with `maxIterations` guards and iteration tracking. Team router (`extensions/teams/router.ts`) executes state machines with revision loops. `build-team` exemplar defined in `extensions/teams/definitions.ts`. Orchestrator gains `teamHint` parameter for team delegation. Fan-out is type stubs only (deferred). 15 new tests across `tests/team-router.test.ts` and `tests/orchestrator-team-e2e.test.ts`. All 230 tests pass.
+
 ### Dependencies
 
-- Stage 4a complete (I/O contracts available)
+- Stage 4a complete ✓
 
 ---
 

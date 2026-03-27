@@ -50,7 +50,9 @@ describe("buildPlannerSystemPrompt", () => {
     expect(prompt).toContain("```json");
     expect(prompt).toContain('"status"');
     expect(prompt).toContain('"summary"');
-    expect(prompt).toContain('"deliverables"');
+    expect(prompt).toContain('"steps"');
+    expect(prompt).toContain('"dependencies"');
+    expect(prompt).toContain('"risks"');
     expect(prompt).toContain('"modifiedFiles"');
     expect(prompt).toContain('"escalation"');
   });

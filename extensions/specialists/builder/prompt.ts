@@ -35,6 +35,18 @@ export const BUILDER_PROMPT_CONFIG: SpecialistPromptConfig = {
     "claim validation beyond what was actually run",
     "embed orchestration decisions in your output",
   ],
+  inputContract: {
+    fields: [
+      { name: "planSummary", type: "string", required: false, description: "Summary of the plan", sourceSpecialist: "planner" },
+      { name: "planSteps", type: "string[]", required: false, description: "Steps from the planner", sourceSpecialist: "planner" },
+    ],
+  },
+  outputContract: {
+    fields: [
+      { name: "modifiedFiles", type: "string[]", required: true, description: "Files that were modified" },
+      { name: "changeDescription", type: "string", required: true, description: "Description of changes made" },
+    ],
+  },
 };
 
 /**

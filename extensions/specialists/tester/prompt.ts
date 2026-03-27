@@ -37,6 +37,19 @@ export const TESTER_PROMPT_CONFIG: SpecialistPromptConfig = {
     "report pass/fail without evidence",
     "convert validation tasks into redesign proposals",
   ],
+  inputContract: {
+    fields: [
+      { name: "modifiedFiles", type: "string[]", required: false, description: "Files to test", sourceSpecialist: "builder" },
+      { name: "implementationSummary", type: "string", required: false, description: "What to validate", sourceSpecialist: "builder" },
+    ],
+  },
+  outputContract: {
+    fields: [
+      { name: "passed", type: "boolean", required: true, description: "Whether tests passed" },
+      { name: "evidence", type: "string[]", required: true, description: "Validation evidence" },
+      { name: "failures", type: "string[]", required: true, description: "Failed checks" },
+    ],
+  },
 };
 
 /**

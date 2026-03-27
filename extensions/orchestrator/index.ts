@@ -18,7 +18,7 @@ import type { ExtensionAPI, ExtensionContext, AgentToolResult, AgentToolUpdateCa
 import { Type, type Static } from "@sinclair/typebox";
 import { createTaskPacket, validateTaskPacket } from "../shared/packets.js";
 import { selectSpecialists, type DelegationHint } from "./select.js";
-import { delegateToSpecialist, getPromptConfig, buildContextForSpecialist } from "./delegate.js";
+import { delegateToSpecialist, delegateToTeam, getPromptConfig, buildContextForSpecialist } from "./delegate.js";
 import { synthesizeResults } from "./synthesize.js";
 import type { ResultPacket } from "../shared/types.js";
 
@@ -36,6 +36,9 @@ const OrchestrateParams = Type.Object({
       Type.Literal("tester"),
       Type.Literal("auto"),
     ], { description: "Which specialist(s) to use. Defaults to auto-selection." })
+  ),
+  teamHint: Type.Optional(
+    Type.String({ description: "Team ID to delegate to (e.g. 'build-team'). Overrides specialist selection." })
   ),
 });
 
@@ -58,7 +61,39 @@ export default function orchestratorExtension(pi: ExtensionAPI) {
       onUpdate: AgentToolUpdateCallback | undefined,
       ctx: ExtensionContext
     ): Promise<AgentToolResult<unknown>> {
-      const { task, relevantFiles, delegationHint } = params;
+      const { task, relevantFiles, delegationHint, teamHint } = params;
+
+      // 0. Team delegation — bypasses specialist selection entirely
+      if (teamHint) {
+        const teamTaskPacket = createTaskPacket({
+          objective: task,
+          allowedReadSet: relevantFiles,
+          allowedWriteSet: relevantFiles,
+          acceptanceCriteria: [`Complete the task via team '${teamHint}'`],
+          targetAgent: `team_${teamHint}`,
+          sourceAgent: "orchestrator",
+        });
+
+        const { resultPacket, success } = await delegateToTeam({
+          teamId: teamHint,
+          taskPacket: teamTaskPacket,
+          signal,
+        });
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: `## Team Orchestration Result\n\n**Team:** ${teamHint}\n**Status:** ${resultPacket.status}\n\n${resultPacket.summary}`,
+            },
+          ],
+          details: {
+            overallStatus: resultPacket.status,
+            teamId: teamHint,
+            result: resultPacket,
+          },
+        };
+      }
 
       // 1. Select specialist(s)
       const selection = selectSpecialists(task, delegationHint as DelegationHint | undefined);

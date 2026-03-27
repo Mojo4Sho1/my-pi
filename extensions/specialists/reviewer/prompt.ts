@@ -37,6 +37,19 @@ export const REVIEWER_PROMPT_CONFIG: SpecialistPromptConfig = {
     "flag subjective preferences as hard failures",
     "make policy decisions outside review authority",
   ],
+  inputContract: {
+    fields: [
+      { name: "modifiedFiles", type: "string[]", required: false, description: "Files to review", sourceSpecialist: "builder" },
+      { name: "implementationSummary", type: "string", required: false, description: "What was implemented", sourceSpecialist: "builder" },
+    ],
+  },
+  outputContract: {
+    fields: [
+      { name: "findings", type: "string[]", required: true, description: "Review findings" },
+      { name: "approved", type: "boolean", required: true, description: "Whether the review passed" },
+      { name: "blockers", type: "string[]", required: true, description: "Blocking issues found" },
+    ],
+  },
 };
 
 /**

@@ -37,6 +37,14 @@ export const PLANNER_PROMPT_CONFIG: SpecialistPromptConfig = {
     "hide unresolved assumptions inside vague plan steps",
     "expand read scope beyond packet-defined context without escalation",
   ],
+  inputContract: { fields: [] },
+  outputContract: {
+    fields: [
+      { name: "steps", type: "string[]", required: true, description: "Ordered implementation steps" },
+      { name: "dependencies", type: "string[]", required: true, description: "Dependencies between steps" },
+      { name: "risks", type: "string[]", required: true, description: "Identified risks" },
+    ],
+  },
 };
 
 /**

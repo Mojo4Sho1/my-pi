@@ -50,7 +50,9 @@ describe("buildReviewerSystemPrompt", () => {
     expect(prompt).toContain("```json");
     expect(prompt).toContain('"status"');
     expect(prompt).toContain('"summary"');
-    expect(prompt).toContain('"deliverables"');
+    expect(prompt).toContain('"findings"');
+    expect(prompt).toContain('"approved"');
+    expect(prompt).toContain('"blockers"');
     expect(prompt).toContain('"modifiedFiles"');
     expect(prompt).toContain('"escalation"');
   });
