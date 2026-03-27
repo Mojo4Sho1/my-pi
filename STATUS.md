@@ -127,13 +127,13 @@ All 3d tests are **integration tests with mocked subprocesses** (not live sub-ag
 - [x] `tests/orchestrator-team-e2e.test.ts` — 5 tests (team delegation through orchestrate tool)
 - [x] All 230 tests pass (188 existing + 42 new), TypeScript compiles cleanly
 
-#### 4c — Schema Validation
-- [ ] `extensions/shared/validation.ts` — `parseAgentDefinition()`, `validateAgentDefinition()`, `validateTeamDefinition()`
-- [ ] Agent definition validator: parse `.md` specs, validate sections/fields/values against `AGENT_DEFINITION_CONTRACT.md`
-- [ ] Team definition validator: member existence, state agent references, contract compatibility at transitions (reuses `validateStateMachine()` and `contractsCompatible()`)
-- [ ] `tests/validation-agents.test.ts` — validate all 4 specialist `.md` files + synthetic bad definitions
-- [ ] `tests/validation-teams.test.ts` — validate `BUILD_TEAM` + synthetic bad team definitions
-- [ ] All existing tests still pass
+#### 4c — Schema Validation [COMPLETE]
+- [x] `extensions/shared/validation.ts` — `parseAgentDefinition()`, `validateAgentDefinition()`, `validateTeamDefinition()`
+- [x] Agent definition validator: parse `.md` specs, validate sections/fields/values against `AGENT_DEFINITION_CONTRACT.md`
+- [x] Team definition validator: member existence, state agent references, contract compatibility at transitions (reuses `validateStateMachine()` and `contractsCompatible()`)
+- [x] `tests/validation-agents.test.ts` — 19 tests (parser, 4 real specialist defs, 9 synthetic bad definitions)
+- [x] `tests/validation-teams.test.ts` — 8 tests (BUILD_TEAM, unknown member, unknown agent, incompatible contracts, structural errors)
+- [x] All 257 tests pass (230 existing + 27 new), TypeScript compiles cleanly
 
 #### 4d — Observability
 - [ ] Execution logging via `pi.appendEntry()` — audit trail for delegation chains
