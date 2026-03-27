@@ -1,6 +1,6 @@
 # STATUS.md
 
-Last updated: 2026-03-27
+Last updated: 2026-03-28
 
 ## Progress Checklist
 
@@ -101,7 +101,7 @@ All 3d tests are **integration tests with mocked subprocesses** (not live sub-ag
 
 **Testing approach:** Mock at `spawnSpecialistAgent` level (same pattern as `tests/orchestrator-delegate.test.ts`). Use `vi.doMock()` with `.mockResolvedValueOnce()` chaining per specialist to simulate the full chain. All 188 tests pass (173 existing + 15 new).
 
-### Stage 4 — Team Routing and Validation [IN PROGRESS]
+### Stage 4 — Team Routing and Validation [COMPLETE]
 
 **Note:** 4a + 4b are implemented together (Decision #24). 4c + 4d follow as a separate pass.
 
@@ -135,9 +135,16 @@ All 3d tests are **integration tests with mocked subprocesses** (not live sub-ag
 - [x] `tests/validation-teams.test.ts` — 8 tests (BUILD_TEAM, unknown member, unknown agent, incompatible contracts, structural errors)
 - [x] All 257 tests pass (230 existing + 27 new), TypeScript compiles cleanly
 
-#### 4d — Observability
-- [ ] Execution logging via `pi.appendEntry()` — audit trail for delegation chains
-- [ ] Pre-flight validation: check task packet meets specialist requirements before delegating
+#### 4d — Observability [COMPLETE]
+- [x] `extensions/shared/logging.ts` — `DelegationLogger`, `DelegationLogEntry`, `NULL_LOGGER`, `createPiLogger()`, `computeTeamVersion()`
+- [x] Execution logging: injectable `DelegationLogger` passed through `delegateToSpecialist()`, `executeTeam()`, and orchestrator
+- [x] Pre-flight validation: check task packet context against specialist's `inputContract` before subprocess spawn
+- [x] `FailureReason` taxonomy, `StateTraceEntry`, `SpecialistInvocationSummary`, `TeamSessionArtifact` types in `types.ts`
+- [x] Team session artifacts: `executeTeam()` builds structured `TeamSessionArtifact` with state trace, metrics, and outcome
+- [x] `tests/logging.test.ts` — 8 tests (NULL_LOGGER, createPiLogger, computeTeamVersion determinism/structural changes)
+- [x] `tests/preflight.test.ts` — 5 tests (no contract, optional-only, required missing, preflight_fail logged, required present)
+- [x] `tests/session-artifact.test.ts` — 10 tests (happy path, state trace, specialist summaries, loops, escalation, failure, version, contracts, validation errors, logger events)
+- [x] All 280 tests pass (257 existing + 23 new), TypeScript compiles cleanly
 
 ### Stage 5 — Meta-Teams and Self-Expansion [NOT STARTED]
 

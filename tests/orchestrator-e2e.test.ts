@@ -52,6 +52,7 @@ async function setupOrchestrator(mockSpawn: ReturnType<typeof vi.fn>) {
     registerTool: vi.fn((def: any) => {
       execute = def.execute;
     }),
+    appendEntry: vi.fn(),
   };
   mod.default(mockPi as any);
   return execute as (

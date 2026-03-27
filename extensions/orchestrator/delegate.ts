@@ -11,6 +11,8 @@ import { buildSpecialistSystemPrompt, buildSpecialistTaskPrompt } from "../share
 import { spawnSpecialistAgent } from "../shared/subprocess.js";
 import { parseSpecialistOutput } from "../shared/result-parser.js";
 import { createResultPacket, validateResultPacket } from "../shared/packets.js";
+import { validateInputContract } from "../shared/contracts.js";
+import type { DelegationLogger } from "../shared/logging.js";
 import { BUILDER_PROMPT_CONFIG } from "../specialists/builder/prompt.js";
 import { PLANNER_PROMPT_CONFIG } from "../specialists/planner/prompt.js";
 import { REVIEWER_PROMPT_CONFIG } from "../specialists/reviewer/prompt.js";
@@ -24,6 +26,8 @@ export interface DelegationInput {
   taskPacket: TaskPacket;
   /** Optional abort signal */
   signal?: AbortSignal;
+  /** Optional logger for delegation events */
+  logger?: DelegationLogger;
 }
 
 export interface DelegationOutput {
@@ -31,6 +35,8 @@ export interface DelegationOutput {
   resultPacket: ResultPacket;
   /** Whether the delegation was successful (status is "success") */
   success: boolean;
+  /** Team session artifact (only present for team delegations) */
+  sessionArtifact?: import("../shared/types.js").TeamSessionArtifact;
 }
 
 const PROMPT_CONFIG_MAP: Record<SpecialistId, SpecialistPromptConfig> = {
@@ -58,14 +64,54 @@ export function getPromptConfig(specialistId: SpecialistId): SpecialistPromptCon
  * 5. Return result with success flag
  */
 export async function delegateToSpecialist(input: DelegationInput): Promise<DelegationOutput> {
-  const { promptConfig, taskPacket, signal } = input;
+  const { promptConfig, taskPacket, signal, logger } = input;
   const agentId = promptConfig.id;
 
   // 1. Build prompts
   const systemPrompt = buildSpecialistSystemPrompt(promptConfig);
   const taskPrompt = buildSpecialistTaskPrompt(taskPacket);
 
-  // 2. Spawn the specialist sub-agent
+  // 1.5 Pre-flight contract validation
+  if (promptConfig.inputContract) {
+    const preflightErrors = validateInputContract(
+      taskPacket.context as Record<string, unknown> | undefined,
+      promptConfig.inputContract
+    );
+    if (preflightErrors.length > 0) {
+      logger?.log({
+        timestamp: new Date().toISOString(),
+        level: "error",
+        event: "preflight_fail",
+        sourceAgent: taskPacket.sourceAgent,
+        targetAgent: agentId,
+        taskId: taskPacket.id,
+        summary: `Pre-flight validation failed: ${preflightErrors.join("; ")}`,
+        failureReason: "contract_violation",
+      });
+      const failurePacket = createResultPacket({
+        taskId: taskPacket.id,
+        status: "failure",
+        summary: `Pre-flight validation failed for ${promptConfig.roleName}: ${preflightErrors.join("; ")}`,
+        deliverables: [],
+        modifiedFiles: [],
+        sourceAgent: agentId,
+      });
+      return { resultPacket: failurePacket, success: false };
+    }
+  }
+
+  // 2. Log delegation start
+  logger?.log({
+    timestamp: new Date().toISOString(),
+    level: "info",
+    event: "delegation_start",
+    sourceAgent: taskPacket.sourceAgent,
+    targetAgent: agentId,
+    taskId: taskPacket.id,
+    summary: taskPacket.objective,
+  });
+
+  // 3. Spawn the specialist sub-agent
   let subAgentResult;
   try {
     subAgentResult = await spawnSpecialistAgent(systemPrompt, taskPrompt, signal);
@@ -79,10 +125,21 @@ export async function delegateToSpecialist(input: DelegationInput): Promise<Dele
       modifiedFiles: [],
       sourceAgent: agentId,
     });
+    logger?.log({
+      timestamp: new Date().toISOString(),
+      level: "error",
+      event: "delegation_error",
+      sourceAgent: taskPacket.sourceAgent,
+      targetAgent: agentId,
+      taskId: taskPacket.id,
+      status: "failure",
+      summary: errorMsg,
+      failureReason: "task_failure",
+    });
     return { resultPacket: failurePacket, success: false };
   }
 
-  // 3. Handle process-level failures
+  // 4. Handle process-level failures
   if (subAgentResult.exitCode !== 0 && !subAgentResult.finalText) {
     const failurePacket = createResultPacket({
       taskId: taskPacket.id,
@@ -92,13 +149,24 @@ export async function delegateToSpecialist(input: DelegationInput): Promise<Dele
       modifiedFiles: [],
       sourceAgent: agentId,
     });
+    logger?.log({
+      timestamp: new Date().toISOString(),
+      level: "error",
+      event: "delegation_error",
+      sourceAgent: taskPacket.sourceAgent,
+      targetAgent: agentId,
+      taskId: taskPacket.id,
+      status: "failure",
+      summary: failurePacket.summary,
+      failureReason: "task_failure",
+    });
     return { resultPacket: failurePacket, success: false };
   }
 
-  // 4. Parse specialist output
+  // 5. Parse specialist output
   const parsed = parseSpecialistOutput(subAgentResult.finalText, agentId);
 
-  // 5. Create and validate result packet
+  // 6. Create and validate result packet
   const resultPacket = createResultPacket({
     taskId: taskPacket.id,
     status: parsed.status,
@@ -119,8 +187,31 @@ export async function delegateToSpecialist(input: DelegationInput): Promise<Dele
       modifiedFiles: [],
       sourceAgent: agentId,
     });
+    logger?.log({
+      timestamp: new Date().toISOString(),
+      level: "error",
+      event: "delegation_error",
+      sourceAgent: taskPacket.sourceAgent,
+      targetAgent: agentId,
+      taskId: taskPacket.id,
+      status: "failure",
+      summary: fallbackPacket.summary,
+      failureReason: "validation_failure",
+    });
     return { resultPacket: fallbackPacket, success: false };
   }
+
+  // 7. Log delegation complete
+  logger?.log({
+    timestamp: new Date().toISOString(),
+    level: resultPacket.status === "failure" || resultPacket.status === "escalation" ? "warn" : "info",
+    event: "delegation_complete",
+    sourceAgent: taskPacket.sourceAgent,
+    targetAgent: agentId,
+    taskId: taskPacket.id,
+    status: resultPacket.status,
+    summary: resultPacket.summary,
+  });
 
   return {
     resultPacket,
@@ -171,6 +262,7 @@ export async function delegateToTeam(input: {
   teamId: string;
   taskPacket: TaskPacket;
   signal?: AbortSignal;
+  logger?: DelegationLogger;
 }): Promise<DelegationOutput> {
   const { TEAM_REGISTRY } = await import("../teams/definitions.js");
   const team = TEAM_REGISTRY[input.teamId];
@@ -188,10 +280,11 @@ export async function delegateToTeam(input: {
   }
 
   const { executeTeam } = await import("../teams/router.js");
-  const teamResult = await executeTeam(team, input.taskPacket, input.signal);
+  const teamResult = await executeTeam(team, input.taskPacket, input.signal, input.logger);
 
   return {
     resultPacket: teamResult.resultPacket,
     success: teamResult.success,
+    sessionArtifact: teamResult.sessionArtifact,
   };
 }

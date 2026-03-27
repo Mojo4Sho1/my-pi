@@ -28,6 +28,7 @@ describe("orchestrator team delegation", () => {
       registerTool: (config: any) => {
         capturedTool = config;
       },
+      appendEntry: vi.fn(),
     };
     orchestratorExtension(mockPi as any);
     return capturedTool;

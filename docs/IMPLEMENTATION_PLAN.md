@@ -941,7 +941,7 @@ This is testing guidance, not new infrastructure — existing vitest patterns su
 
 ---
 
-## Stage 4d — Observability
+## Stage 4d — Observability [COMPLETE]
 
 ### Purpose
 
@@ -973,6 +973,337 @@ Add execution logging, pre-flight validation, and structured team session artifa
 
 - Stage 4a complete (contracts needed for pre-flight validation)
 - Stage 4b complete (team router exists to emit artifacts)
+
+### Implementation Notes (pre-resolved design decisions)
+
+**Three workstreams.** Stage 4d has three distinct deliverables that can be implemented in order:
+1. Execution logging (delegation audit trail)
+2. Pre-flight contract validation (catch bad inputs before spawning)
+3. Team session artifacts (structured execution records)
+
+---
+
+#### Workstream 1: Execution Logging
+
+**Approach: injectable logger.** Logging is implemented via a `DelegationLogger` interface that `delegateToSpecialist()` and `executeTeam()` accept as an optional parameter. In production, the orchestrator passes a logger backed by `pi.appendEntry()`. In tests, no logger is passed (or a mock is used). This avoids coupling shared library code to the Pi runtime.
+
+```typescript
+// extensions/shared/logging.ts
+
+export type LogLevel = "info" | "warn" | "error";
+
+export interface DelegationLogEntry {
+  timestamp: string;
+  level: LogLevel;
+  event: DelegationEvent;
+  sourceAgent: string;
+  targetAgent: string;
+  /** Task packet ID */
+  taskId: string;
+  /** Result status (only present for completion/failure events) */
+  status?: PacketStatus;
+  /** Bounded summary (not full packet) */
+  summary?: string;
+  /** Failure reason category (only for failures) */
+  failureReason?: FailureReason;
+}
+
+export type DelegationEvent =
+  | "delegation_start"      // About to delegate to specialist
+  | "delegation_complete"   // Specialist returned result
+  | "delegation_error"      // Specialist failed to start or crashed
+  | "preflight_fail"        // Pre-flight validation rejected task packet
+  | "team_start"            // Team execution beginning
+  | "team_state_transition" // State machine advanced
+  | "team_complete"         // Team execution finished
+  | "team_loop_exhausted";  // Revision loop hit maxIterations
+
+export interface DelegationLogger {
+  log(entry: DelegationLogEntry): void;
+}
+
+/** No-op logger for tests and environments without Pi runtime */
+export const NULL_LOGGER: DelegationLogger = {
+  log() {},
+};
+
+/**
+ * Create a logger backed by pi.appendEntry().
+ * Called once in the orchestrator extension's execute() function.
+ */
+export function createPiLogger(pi: { appendEntry(type: string, data?: unknown): void }): DelegationLogger {
+  return {
+    log(entry: DelegationLogEntry) {
+      pi.appendEntry("delegation_log", entry);
+    },
+  };
+}
+```
+
+**Where logging hooks in:**
+
+1. `delegateToSpecialist()` in `extensions/orchestrator/delegate.ts` — accepts optional `logger?: DelegationLogger` in `DelegationInput`. Logs `delegation_start` before spawning, `delegation_complete` or `delegation_error` after.
+
+2. `executeTeam()` in `extensions/teams/router.ts` — accepts optional `logger?: DelegationLogger` parameter. Logs `team_start` at entry, `team_state_transition` on each advance, `team_complete` at end, `team_loop_exhausted` on exhaustion. Passes logger through to `delegateToSpecialist()` calls within the team.
+
+3. `orchestratorExtension()` in `extensions/orchestrator/index.ts` — creates a `createPiLogger(pi)` once and passes it to `delegateToSpecialist()` and `delegateToTeam()` calls. `delegateToTeam()` forwards it to `executeTeam()`.
+
+**Signature changes:**
+
+```typescript
+// delegate.ts
+export interface DelegationInput {
+  promptConfig: SpecialistPromptConfig;
+  taskPacket: TaskPacket;
+  signal?: AbortSignal;
+  logger?: DelegationLogger;  // NEW
+}
+
+export async function delegateToTeam(input: {
+  teamId: string;
+  taskPacket: TaskPacket;
+  signal?: AbortSignal;
+  logger?: DelegationLogger;  // NEW
+}): Promise<DelegationOutput>
+
+// router.ts
+export async function executeTeam(
+  team: TeamDefinition,
+  taskPacket: TaskPacket,
+  signal?: AbortSignal,
+  logger?: DelegationLogger,  // NEW
+): Promise<TeamExecutionResult>
+```
+
+---
+
+#### Workstream 2: Pre-flight Contract Validation
+
+**Approach: validate input contract before subprocess spawn.** Before each `delegateToSpecialist()` call, check that the task packet's `context` satisfies the specialist's `inputContract` using `validateInputContract()` from `contracts.ts`.
+
+**Where it hooks in:** Inside `delegateToSpecialist()` in `delegate.ts`, after building prompts (step 1) but before spawning the subprocess (step 2). If validation fails, return a failure ResultPacket immediately without spawning — and log a `preflight_fail` event if a logger is present.
+
+```typescript
+// In delegateToSpecialist(), new step between prompt building and spawn:
+
+// 1.5 Pre-flight contract validation
+if (promptConfig.inputContract) {
+  const preflightErrors = validateInputContract(
+    taskPacket.context as Record<string, unknown> | undefined,
+    promptConfig.inputContract
+  );
+  if (preflightErrors.length > 0) {
+    logger?.log({
+      timestamp: new Date().toISOString(),
+      level: "error",
+      event: "preflight_fail",
+      sourceAgent: taskPacket.sourceAgent,
+      targetAgent: agentId,
+      taskId: taskPacket.id,
+      summary: `Pre-flight validation failed: ${preflightErrors.join("; ")}`,
+      failureReason: "contract_violation",
+    });
+    const failurePacket = createResultPacket({
+      taskId: taskPacket.id,
+      status: "failure",
+      summary: `Pre-flight validation failed for ${promptConfig.roleName}: ${preflightErrors.join("; ")}`,
+      deliverables: [],
+      modifiedFiles: [],
+      sourceAgent: agentId,
+    });
+    return { resultPacket: failurePacket, success: false };
+  }
+}
+```
+
+**Important:** Existing specialists have only optional input contract fields (all `required: false`), so pre-flight validation will pass for current specialists. The guard becomes meaningful in Stage 5a when new specialists may declare required input fields.
+
+---
+
+#### Workstream 3: Team Session Artifacts
+
+**Approach: `executeTeam()` builds and returns a `TeamSessionArtifact`.** The artifact is constructed inside `executeTeam()` as the state machine runs, then included in the `TeamExecutionResult`. The orchestrator can then log it via `pi.appendEntry()`.
+
+```typescript
+// extensions/shared/types.ts — new types
+
+export type FailureReason =
+  | "task_failure"          // Specialist returned failure status
+  | "contract_violation"    // Input/output contract check failed
+  | "policy_refusal"       // Specialist declined the task
+  | "scope_mismatch"       // Task outside specialist's declared boundary
+  | "retry_exhaustion"     // Loop maxIterations reached
+  | "missing_artifact"     // Required input artifact not available
+  | "validation_failure"   // Packet or state machine validation error
+  | "escalation"           // Specialist explicitly escalated
+  | "abort";               // Execution aborted by signal
+
+export interface StateTraceEntry {
+  /** State name */
+  state: string;
+  /** Agent that executed this state */
+  agent: string;
+  /** Result status from the agent */
+  resultStatus: PacketStatus;
+  /** Transition taken (target state name) */
+  transitionTo: string;
+  /** Timestamp when this state was entered */
+  enteredAt: string;
+  /** Timestamp when this state completed */
+  completedAt: string;
+  /** Loop iteration count for this edge (if applicable) */
+  iterationCount?: number;
+}
+
+export interface SpecialistInvocationSummary {
+  /** Specialist agent ID */
+  agentId: string;
+  /** Invocation order (1-indexed) */
+  order: number;
+  /** Bounded summary of the specialist's output */
+  outputSummary: string;
+  /** Result status */
+  status: PacketStatus;
+  /** Whether output contract was satisfied */
+  contractSatisfied: boolean;
+  /** Duration in milliseconds (if measurable) */
+  durationMs?: number;
+}
+
+export interface TeamSessionArtifact {
+  /** Unique session ID */
+  sessionId: string;
+  /** Timestamp of session start */
+  startedAt: string;
+  /** Timestamp of session completion */
+  completedAt: string;
+  /** Team definition ID */
+  teamId: string;
+  /** Team definition name */
+  teamName: string;
+  /** Hash or version identifier of the team definition used */
+  teamVersion: string;
+  /** Starting state */
+  startState: string;
+  /** Ending state */
+  endState: string;
+  /** Why the team stopped */
+  terminationReason: FailureReason | "success";
+  /** Ordered state trace */
+  stateTrace: StateTraceEntry[];
+  /** Per-specialist invocation summaries */
+  specialistSummaries: SpecialistInvocationSummary[];
+  /** Final outcome */
+  outcome: {
+    status: PacketStatus;
+    failureReason?: FailureReason;
+  };
+  /** Lightweight metrics */
+  metrics: {
+    totalTransitions: number;
+    loopCount: number;
+    retryCount: number;
+    totalDurationMs: number;
+    revisionCount: number;
+  };
+}
+```
+
+**Team version identity.** For 4d, team version is a deterministic hash of the `TeamDefinition` object (JSON.stringify + simple hash). This is lightweight and sufficient until a formal versioning scheme is needed. A helper `computeTeamVersion(team: TeamDefinition): string` lives in `extensions/shared/logging.ts`.
+
+```typescript
+/** Compute a deterministic version string from a team definition */
+export function computeTeamVersion(team: TeamDefinition): string {
+  const content = JSON.stringify({
+    id: team.id,
+    members: team.members,
+    states: team.states,
+    entryContract: team.entryContract,
+    exitContract: team.exitContract,
+  });
+  // Simple djb2 hash — not cryptographic, just a fingerprint
+  let hash = 5381;
+  for (let i = 0; i < content.length; i++) {
+    hash = ((hash << 5) + hash + content.charCodeAt(i)) & 0xffffffff;
+  }
+  return `v0-${(hash >>> 0).toString(16)}`;
+}
+```
+
+**Where it hooks in:**
+
+1. `executeTeam()` in `router.ts` — builds `StateTraceEntry` items during the execution loop and `SpecialistInvocationSummary` items after each delegation. Assembles the full `TeamSessionArtifact` at the end.
+
+2. `TeamExecutionResult` gains a new field: `sessionArtifact: TeamSessionArtifact`.
+
+3. The orchestrator logs the artifact via `pi.appendEntry("team_session", artifact)` after receiving the team result.
+
+**Mapping `FailureReason` from existing failure modes.** The team router already handles several failure cases — each maps to a specific reason:
+- `resultPacket.status === "failure"` → `"task_failure"`
+- `resultPacket.status === "escalation"` → `"escalation"`
+- Loop exhaustion (`exhausted` in advanceResult) → `"retry_exhaustion"`
+- State machine error → `"validation_failure"`
+- Abort signal → `"abort"`
+- Pre-flight contract failure → `"contract_violation"`
+
+**Contract satisfaction check in specialist summaries.** After each specialist delegation within the team, if the specialist has an `outputContract`, validate the result's deliverables against it using `validateOutputContract()`. Record `contractSatisfied: true/false` in the summary. This is informational (does not block execution — a specialist may produce a valid result without structured deliverables).
+
+---
+
+#### File structure
+
+| File | Purpose |
+|------|---------|
+| `extensions/shared/logging.ts` | **NEW** — `DelegationLogger`, `DelegationLogEntry`, `DelegationEvent`, `NULL_LOGGER`, `createPiLogger()`, `computeTeamVersion()` |
+| `extensions/shared/types.ts` | **MODIFY** — Add `FailureReason`, `StateTraceEntry`, `SpecialistInvocationSummary`, `TeamSessionArtifact` |
+| `extensions/orchestrator/delegate.ts` | **MODIFY** — Add `logger` param to `DelegationInput` and `delegateToTeam()`, add pre-flight validation, add logging calls |
+| `extensions/teams/router.ts` | **MODIFY** — Add `logger` param, build `TeamSessionArtifact` during execution, include in `TeamExecutionResult` |
+| `extensions/orchestrator/index.ts` | **MODIFY** — Create `PiLogger` from `pi.appendEntry()`, pass to delegation calls |
+| `tests/logging.test.ts` | **NEW** — Test `DelegationLogger`, `createPiLogger()`, `computeTeamVersion()` |
+| `tests/preflight.test.ts` | **NEW** — Test pre-flight validation in `delegateToSpecialist()` (mock subprocess, verify failure packet returned without spawn) |
+| `tests/session-artifact.test.ts` | **NEW** — Test `TeamSessionArtifact` construction in `executeTeam()` (mock delegations, verify artifact fields, state trace, metrics) |
+
+#### Test scenarios
+
+**Logging tests (`tests/logging.test.ts`):**
+- `NULL_LOGGER.log()` does not throw
+- `createPiLogger()` calls `pi.appendEntry()` with correct type and data
+- `computeTeamVersion()` returns deterministic hash for same definition
+- `computeTeamVersion()` returns different hash when members/states change
+
+**Pre-flight validation tests (`tests/preflight.test.ts`):**
+- Specialist with no input contract — delegation proceeds normally
+- Specialist with optional-only input contract — delegation proceeds normally
+- Specialist with required input contract field missing from context — returns failure packet, does not spawn subprocess
+- Pre-flight failure logs `preflight_fail` event when logger is present
+
+**Session artifact tests (`tests/session-artifact.test.ts`):**
+- Happy path team execution produces artifact with correct metadata, state trace, and metrics
+- Artifact `stateTrace` has one entry per non-terminal state visited
+- Artifact `specialistSummaries` has one entry per delegation
+- Loop/revision produces correct `loopCount` and `revisionCount` in metrics
+- Escalation (loop exhaustion) produces artifact with `terminationReason: "retry_exhaustion"`
+- Failure in mid-chain produces artifact with `terminationReason: "task_failure"`
+- `teamVersion` is consistent and deterministic
+- `contractSatisfied` is correctly computed per specialist
+
+#### What this stage does NOT do
+
+- Does not add a CLI command or Pi-registered command for querying logs (logs are persisted via `appendEntry`, queryable by future tooling)
+- Does not add raw transcript capture (bounded summaries only, per plan)
+- Does not add session-level token usage tracking (Pi subprocess API doesn't expose token counts yet — `durationMs` is the available proxy)
+- Does not add output contract enforcement at delegation boundaries (contract check is informational in specialist summaries, not blocking)
+
+#### Key files to read before implementing
+
+| File | Why |
+|------|-----|
+| `extensions/orchestrator/delegate.ts` | Where pre-flight validation and logging hook into specialist delegation |
+| `extensions/teams/router.ts` | Where session artifacts are built and logging hooks into team execution |
+| `extensions/orchestrator/index.ts` | Where `PiLogger` is created from `pi.appendEntry()` and passed to delegation |
+| `extensions/shared/contracts.ts` | `validateInputContract()` and `validateOutputContract()` — reused for pre-flight and contract satisfaction checks |
+| `extensions/shared/types.ts` | Where new types (`FailureReason`, `TeamSessionArtifact`, etc.) are added |
+| `docs/PI_EXTENSION_API.md` | `pi.appendEntry()` API reference |
 
 ---
 

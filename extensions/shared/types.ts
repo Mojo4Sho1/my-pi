@@ -169,3 +169,88 @@ export interface TransitionDefinition {
   /** Max iterations for loop edges — escalate when exhausted */
   maxIterations?: number;
 }
+
+// --- Failure Reason Taxonomy (Stage 4d) ---
+
+export type FailureReason =
+  | "task_failure"
+  | "contract_violation"
+  | "policy_refusal"
+  | "scope_mismatch"
+  | "retry_exhaustion"
+  | "missing_artifact"
+  | "validation_failure"
+  | "escalation"
+  | "abort";
+
+// --- Team Session Artifacts (Stage 4d) ---
+
+export interface StateTraceEntry {
+  /** State name */
+  state: string;
+  /** Agent that executed this state */
+  agent: string;
+  /** Result status from the agent */
+  resultStatus: PacketStatus;
+  /** Transition taken (target state name) */
+  transitionTo: string;
+  /** Timestamp when this state was entered */
+  enteredAt: string;
+  /** Timestamp when this state completed */
+  completedAt: string;
+  /** Loop iteration count for this edge (if applicable) */
+  iterationCount?: number;
+}
+
+export interface SpecialistInvocationSummary {
+  /** Specialist agent ID */
+  agentId: string;
+  /** Invocation order (1-indexed) */
+  order: number;
+  /** Bounded summary of the specialist's output */
+  outputSummary: string;
+  /** Result status */
+  status: PacketStatus;
+  /** Whether output contract was satisfied */
+  contractSatisfied: boolean;
+  /** Duration in milliseconds (if measurable) */
+  durationMs?: number;
+}
+
+export interface TeamSessionArtifact {
+  /** Unique session ID */
+  sessionId: string;
+  /** Timestamp of session start */
+  startedAt: string;
+  /** Timestamp of session completion */
+  completedAt: string;
+  /** Team definition ID */
+  teamId: string;
+  /** Team definition name */
+  teamName: string;
+  /** Hash or version identifier of the team definition used */
+  teamVersion: string;
+  /** Starting state */
+  startState: string;
+  /** Ending state */
+  endState: string;
+  /** Why the team stopped */
+  terminationReason: FailureReason | "success";
+  /** Ordered state trace */
+  stateTrace: StateTraceEntry[];
+  /** Per-specialist invocation summaries */
+  specialistSummaries: SpecialistInvocationSummary[];
+  /** Final outcome */
+  outcome: {
+    status: PacketStatus;
+    failureReason?: FailureReason;
+  };
+  /** Lightweight metrics */
+  metrics: {
+    totalTransitions: number;
+    loopCount: number;
+    retryCount: number;
+    totalDurationMs: number;
+    revisionCount: number;
+  };
+}

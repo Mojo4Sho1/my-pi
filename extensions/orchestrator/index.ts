@@ -20,6 +20,7 @@ import { createTaskPacket, validateTaskPacket } from "../shared/packets.js";
 import { selectSpecialists, type DelegationHint } from "./select.js";
 import { delegateToSpecialist, delegateToTeam, getPromptConfig, buildContextForSpecialist } from "./delegate.js";
 import { synthesizeResults } from "./synthesize.js";
+import { createPiLogger } from "../shared/logging.js";
 import type { ResultPacket } from "../shared/types.js";
 
 /** Specialists that produce plans/reviews but don't modify files */
@@ -62,6 +63,7 @@ export default function orchestratorExtension(pi: ExtensionAPI) {
       ctx: ExtensionContext
     ): Promise<AgentToolResult<unknown>> {
       const { task, relevantFiles, delegationHint, teamHint } = params;
+      const logger = createPiLogger(pi);
 
       // 0. Team delegation — bypasses specialist selection entirely
       if (teamHint) {
@@ -74,11 +76,17 @@ export default function orchestratorExtension(pi: ExtensionAPI) {
           sourceAgent: "orchestrator",
         });
 
-        const { resultPacket, success } = await delegateToTeam({
+        const { resultPacket, success, sessionArtifact } = await delegateToTeam({
           teamId: teamHint,
           taskPacket: teamTaskPacket,
           signal,
+          logger,
         });
+
+        // Log team session artifact
+        if (sessionArtifact) {
+          pi.appendEntry("team_session", sessionArtifact);
+        }
 
         return {
           content: [
@@ -91,6 +99,7 @@ export default function orchestratorExtension(pi: ExtensionAPI) {
             overallStatus: resultPacket.status,
             teamId: teamHint,
             result: resultPacket,
+            sessionArtifact,
           },
         };
       }
@@ -141,6 +150,7 @@ export default function orchestratorExtension(pi: ExtensionAPI) {
           promptConfig,
           taskPacket,
           signal,
+          logger,
         });
 
         collectedResults.push(resultPacket);
