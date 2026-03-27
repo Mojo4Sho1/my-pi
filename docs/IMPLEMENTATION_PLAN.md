@@ -1382,6 +1382,839 @@ Compliance review should precede quality review — there's no point evaluating 
 
 - Stage 4a complete (I/O contracts — so the new specialists have typed contracts from the start)
 
+### Implementation Notes (pre-resolved design decisions)
+
+**Pattern.** Every new specialist follows the exact same 6-step pattern as the existing four. No new infrastructure is needed — only new files and registrations.
+
+**Step-by-step per specialist:**
+1. Create `agents/specialists/{name}.md` — agent definition markdown
+2. Create `extensions/specialists/{name}/prompt.ts` — `SpecialistPromptConfig` + two helper functions
+3. Create `extensions/specialists/{name}/index.ts` — `createSpecialistExtension()` factory call
+4. Create `tests/{name}.test.ts` — config validation, system prompt assertions, task prompt assertions
+5. Add to `extensions/orchestrator/select.ts` — extend `SpecialistId` type, add `SPECIALIST_KEYWORDS` entry, add to `WORKFLOW_ORDER`
+6. Add to `extensions/orchestrator/delegate.ts` — import config, add to `PROMPT_CONFIG_MAP`, add case to `buildContextForSpecialist()`
+
+**Registration changes (select.ts):**
+
+```typescript
+// Updated SpecialistId type (add all 5 at once)
+export type SpecialistId =
+  | "planner" | "reviewer" | "builder" | "tester"
+  | "spec-writer" | "schema-designer" | "routing-designer" | "critic" | "boundary-auditor";
+
+// Updated WORKFLOW_ORDER — new specialists slot in between plan/review and build/test
+const WORKFLOW_ORDER: SpecialistId[] = [
+  "planner",
+  "spec-writer",
+  "schema-designer",
+  "routing-designer",
+  "critic",
+  "boundary-auditor",
+  "reviewer",
+  "builder",
+  "tester",
+];
+
+// New keyword entries
+const SPECIALIST_KEYWORDS: Record<SpecialistId, RegExp> = {
+  // ... existing 4 entries unchanged ...
+  "spec-writer": /\b(spec\w*|defin\w*|boundar\w*|scope\s+doc|agent\s+def|working\s+style|non.?goal)\b/i,
+  "schema-designer": /\b(schema|type\s+def|contract|packet\s+shape|i.?o\s+contract|typebox|interface\s+design|validation\s+constraint)\b/i,
+  "routing-designer": /\b(state\s+machine|routing|transition|escalation\s+path|unreachable|team\s+definition|workflow\s+design)\b/i,
+  "critic": /\b(critic\w*|evaluat\w*\s+design|redundan\w*|simplif\w*|over.?engineer|reuse|unnecessary|proportional)\b/i,
+  "boundary-auditor": /\b(boundary|access\s+control|permission|minimal.?context|narrow.?by.?default|excess\s+context|control\s+philosophy)\b/i,
+};
+```
+
+**Registration changes (delegate.ts):**
+
+```typescript
+// Add imports (after existing specialist imports)
+import { SPEC_WRITER_PROMPT_CONFIG } from "../specialists/spec-writer/prompt.js";
+import { SCHEMA_DESIGNER_PROMPT_CONFIG } from "../specialists/schema-designer/prompt.js";
+import { ROUTING_DESIGNER_PROMPT_CONFIG } from "../specialists/routing-designer/prompt.js";
+import { CRITIC_PROMPT_CONFIG } from "../specialists/critic/prompt.js";
+import { BOUNDARY_AUDITOR_PROMPT_CONFIG } from "../specialists/boundary-auditor/prompt.js";
+
+// Add to PROMPT_CONFIG_MAP
+const PROMPT_CONFIG_MAP: Record<SpecialistId, SpecialistPromptConfig> = {
+  builder: BUILDER_PROMPT_CONFIG,
+  planner: PLANNER_PROMPT_CONFIG,
+  reviewer: REVIEWER_PROMPT_CONFIG,
+  tester: TESTER_PROMPT_CONFIG,
+  "spec-writer": SPEC_WRITER_PROMPT_CONFIG,
+  "schema-designer": SCHEMA_DESIGNER_PROMPT_CONFIG,
+  "routing-designer": ROUTING_DESIGNER_PROMPT_CONFIG,
+  "critic": CRITIC_PROMPT_CONFIG,
+  "boundary-auditor": BOUNDARY_AUDITOR_PROMPT_CONFIG,
+};
+
+// Add to buildContextForSpecialist() switch:
+case "spec-writer":
+  return undefined; // Spec-writer works from the task objective, no prior-result context needed
+
+case "schema-designer": {
+  // Needs spec content from spec-writer if available
+  const specResult = priorResults.find(r => r.sourceAgent === "specialist_spec-writer");
+  if (!specResult) return undefined;
+  return {
+    specSummary: specResult.summary,
+    specDeliverables: specResult.deliverables,
+  };
+}
+
+case "routing-designer": {
+  // Needs schema info from schema-designer if available
+  const schemaResult = priorResults.find(r => r.sourceAgent === "specialist_schema-designer");
+  if (!schemaResult) return undefined;
+  return {
+    schemaSummary: schemaResult.summary,
+    schemaDeliverables: schemaResult.deliverables,
+  };
+}
+
+case "critic": {
+  // Needs whatever artifacts have been produced so far
+  const allSummaries = priorResults.map(r => `[${r.sourceAgent}] ${r.summary}`);
+  if (allSummaries.length === 0) return undefined;
+  return {
+    priorSummaries: allSummaries,
+    priorDeliverables: priorResults.flatMap(r => r.deliverables),
+  };
+}
+
+case "boundary-auditor": {
+  // Same as critic — needs all prior artifacts for audit
+  const allSummaries = priorResults.map(r => `[${r.sourceAgent}] ${r.summary}`);
+  if (allSummaries.length === 0) return undefined;
+  return {
+    priorSummaries: allSummaries,
+    priorDeliverables: priorResults.flatMap(r => r.deliverables),
+  };
+}
+```
+
+**Also update `extractFieldFromResult()` in `contracts.ts`** to map the new field names:
+
+```typescript
+// Add to the switch in extractFieldFromResult():
+case "specSummary":
+  return result.summary;
+case "specDeliverables":
+  return result.deliverables;
+case "schemaSummary":
+  return result.summary;
+case "schemaDeliverables":
+  return result.deliverables;
+case "priorSummaries":
+  return undefined; // These are built from multiple results, not extracted from one
+case "priorDeliverables":
+  return undefined; // Same — handled by buildContextForSpecialist directly
+```
+
+**Also update `_SPECIALISTS_INDEX.md`** to include the new specialists.
+
+**Also add all 5 new specialists as `"read-only"` in the `READ_ONLY_SPECIALISTS` set in `index.ts`:**
+
+```typescript
+// extensions/orchestrator/index.ts
+const READ_ONLY_SPECIALISTS = new Set([
+  "planner", "reviewer",
+  "spec-writer", "schema-designer", "routing-designer", "critic", "boundary-auditor",
+]);
+```
+
+All five new specialists are read-only (they produce design artifacts, not code changes). Only builder and tester get write access.
+
+---
+
+#### Specialist 1: Spec-Writer
+
+**Agent definition** (`agents/specialists/spec-writer.md`):
+
+```markdown
+# spec-writer.md
+
+## Definition
+
+- `id`: specialist_spec-writer
+- `name`: Specialist Spec-Writer
+- `definition_type`: specialist
+
+## Intent
+
+- `purpose`: Write exhaustive prose specifications for agent definitions, boundary definitions, working style design, and "what this does NOT do" framing.
+- `scope`:
+  - write agent definition markdown files
+  - define scope boundaries and non-goals
+  - design working style postures
+  - enumerate what a primitive does NOT do
+- `non_goals`:
+  - implementation of TypeScript code
+  - type or schema design
+  - routing or state machine design
+  - broad architectural planning
+
+## Working Style
+
+- `working_style`:
+  - `reasoning_posture`: Exhaustive enumeration and boundary-first thinking — systematically list all cases, then define scope by exclusion before inclusion.
+  - `communication_posture`: Precise boundary-oriented prose — every scope claim paired with an explicit exclusion.
+  - `risk_posture`: Conservative on scope — when uncertain whether something belongs, exclude it and note the exclusion.
+  - `default_bias`: Prefer tight, well-fenced definitions over broad, flexible ones.
+  - `anti_patterns`:
+    - write implementation code instead of specifications
+    - leave scope boundaries implicit or ambiguous
+    - define what something does without defining what it does NOT do
+    - produce vague specifications that could apply to multiple primitives
+
+## Routing and access
+
+- `routing_class`: downstream
+- `context_scope`: narrow
+- `default_read_set`:
+  - task packet
+  - existing agent definitions for reference
+  - `agents/AGENT_DEFINITION_CONTRACT.md`
+- `forbidden_by_default`:
+  - `DECISION_LOG.md`
+  - `STATUS.md`
+  - edits outside explicit scope
+
+## Inputs and outputs
+
+- `required_inputs`:
+  - what primitive to specify (name, purpose)
+  - design constraints or boundary requirements
+- `expected_outputs`:
+  - complete agent definition markdown
+  - explicit non-goals list
+  - working style design
+- `handback_format`:
+  - the specification document
+  - assumptions made
+  - open questions requiring resolution
+
+## Control and escalation
+
+- `activation_conditions`:
+  - new primitive needs a specification
+  - existing specification needs revision
+- `escalation_conditions`:
+  - purpose overlaps significantly with an existing primitive
+  - scope cannot be adequately bounded
+
+## Validation
+
+- `validation_expectations`:
+  - specification follows AGENT_DEFINITION_CONTRACT.md structure
+  - all required sections present
+  - non-goals are explicit and testable
+
+## Relationships
+
+- `related_docs`:
+  - `agents/AGENT_DEFINITION_CONTRACT.md`
+  - `agents/specialists/_SPECIALISTS_INDEX.md`
+- `related_definitions`:
+  - `agents/specialists/planner.md`
+  - `agents/specialists/critic.md`
+
+## Authority flags
+
+- `can_delegate`: false
+- `can_synthesize`: false
+- `can_update_handoff`: false
+- `can_update_workflow_docs`: false
+- `can_request_broader_context`: true
+
+## Specialist-specific fields
+
+- `specialization`: Exhaustive prose specification writing with boundary-first framing.
+- `task_boundary`: Specification tasks with clear subject and design constraints.
+- `deliverable_boundary`: Agent definition markdowns and scope boundary documents.
+- `failure_boundary`: Stop when purpose overlaps unresolvably with existing primitives.
+
+## Summary
+
+Downstream specialist for specification writing. Produces exhaustive prose definitions with explicit boundaries, non-goals, and working style design without taking implementation or architectural ownership.
+```
+
+**Prompt config** (`extensions/specialists/spec-writer/prompt.ts`):
+
+```typescript
+import type { TaskPacket } from "../../shared/types.js";
+import {
+  buildSpecialistSystemPrompt,
+  buildSpecialistTaskPrompt,
+  type SpecialistPromptConfig,
+} from "../../shared/specialist-prompt.js";
+
+export const SPEC_WRITER_PROMPT_CONFIG: SpecialistPromptConfig = {
+  id: "specialist_spec-writer",
+  roleName: "Spec-Writer Specialist",
+  roleDescription:
+    "Write exhaustive prose specifications with boundary-first framing for agent definitions, scope boundaries, and working style design.",
+  workingStyle: {
+    reasoning:
+      "Exhaustive enumeration and boundary-first thinking — systematically list all cases, then define scope by exclusion before inclusion.",
+    communication:
+      "Precise boundary-oriented prose — every scope claim paired with an explicit exclusion.",
+    risk: "Conservative on scope — when uncertain whether something belongs, exclude it and note the exclusion.",
+    defaultBias:
+      "Prefer tight, well-fenced definitions over broad, flexible ones.",
+  },
+  constraints: [
+    "You may ONLY write specifications — do NOT implement code.",
+    "Every scope claim must have a corresponding non-goal or exclusion.",
+    "Follow the structure defined in agents/AGENT_DEFINITION_CONTRACT.md.",
+    "Do NOT define types, schemas, or routing — only prose specifications.",
+  ],
+  antiPatterns: [
+    "leave scope boundaries implicit or ambiguous",
+    "define what something does without defining what it does NOT do",
+    "produce vague specifications that could apply to multiple primitives",
+    "write implementation code instead of specifications",
+  ],
+  inputContract: { fields: [] },
+  outputContract: {
+    fields: [
+      { name: "specification", type: "string", required: true, description: "The complete specification document" },
+      { name: "nonGoals", type: "string[]", required: true, description: "Explicit non-goals" },
+      { name: "openQuestions", type: "string[]", required: true, description: "Unresolved questions" },
+    ],
+  },
+};
+
+export function buildSpecWriterSystemPrompt(): string {
+  return buildSpecialistSystemPrompt(SPEC_WRITER_PROMPT_CONFIG);
+}
+
+export function buildSpecWriterTaskPrompt(task: TaskPacket): string {
+  return buildSpecialistTaskPrompt(task);
+}
+```
+
+**Extension entry** (`extensions/specialists/spec-writer/index.ts`):
+
+```typescript
+import { createSpecialistExtension } from "../../shared/specialist-extension.js";
+import { SPEC_WRITER_PROMPT_CONFIG } from "./prompt.js";
+
+export default createSpecialistExtension({
+  promptConfig: SPEC_WRITER_PROMPT_CONFIG,
+  toolName: "delegate-to-spec-writer",
+  toolLabel: "Delegate to Spec-Writer",
+  toolDescription:
+    "Delegate a specification-writing task to the spec-writer specialist. " +
+    "The spec-writer produces exhaustive prose definitions with explicit boundaries " +
+    "and returns a structured result packet.",
+});
+```
+
+---
+
+#### Specialist 2: Schema-Designer
+
+**Prompt config** (`extensions/specialists/schema-designer/prompt.ts`):
+
+```typescript
+import type { TaskPacket } from "../../shared/types.js";
+import {
+  buildSpecialistSystemPrompt,
+  buildSpecialistTaskPrompt,
+  type SpecialistPromptConfig,
+} from "../../shared/specialist-prompt.js";
+
+export const SCHEMA_DESIGNER_PROMPT_CONFIG: SpecialistPromptConfig = {
+  id: "specialist_schema-designer",
+  roleName: "Schema-Designer Specialist",
+  roleDescription:
+    "Design all typed structures: TypeScript interfaces, packet shapes, I/O contracts, invariants, failure modes, output templates, and validation constraints.",
+  workingStyle: {
+    reasoning:
+      "Formal type design — enumerate exact shapes, invariants, and failure modes before writing any type definition.",
+    communication:
+      "Express designs as TypeScript interfaces with inline documentation of invariants and edge cases.",
+    risk: "Conservative on type breadth — prefer narrow, exact types over permissive ones; flag ambiguous shapes for resolution.",
+    defaultBias:
+      "Prefer precise types that make invalid states unrepresentable over flexible types with runtime validation.",
+  },
+  constraints: [
+    "You may ONLY design types and schemas — do NOT implement runtime logic.",
+    "Every type must document its invariants.",
+    "I/O contracts must specify required vs optional fields explicitly.",
+    "Do NOT design routing, state machines, or prose specifications.",
+  ],
+  antiPatterns: [
+    "design overly permissive types that require extensive runtime validation",
+    "omit failure mode types or error shapes",
+    "define types without specifying invariants",
+    "conflate schema design with implementation",
+  ],
+  inputContract: {
+    fields: [
+      { name: "specSummary", type: "string", required: false, description: "Specification summary from spec-writer", sourceSpecialist: "spec-writer" },
+      { name: "specDeliverables", type: "string[]", required: false, description: "Specification deliverables", sourceSpecialist: "spec-writer" },
+    ],
+  },
+  outputContract: {
+    fields: [
+      { name: "typeDefinitions", type: "string", required: true, description: "TypeScript interface definitions" },
+      { name: "contracts", type: "string", required: true, description: "I/O contract definitions" },
+      { name: "invariants", type: "string[]", required: true, description: "Type invariants and constraints" },
+    ],
+  },
+};
+
+export function buildSchemaDesignerSystemPrompt(): string {
+  return buildSpecialistSystemPrompt(SCHEMA_DESIGNER_PROMPT_CONFIG);
+}
+
+export function buildSchemaDesignerTaskPrompt(task: TaskPacket): string {
+  return buildSpecialistTaskPrompt(task);
+}
+```
+
+**Agent definition** — same structural pattern as spec-writer above, with:
+- ID: `specialist_schema-designer`
+- reasoning_posture: "Formal type design — enumerate exact shapes, invariants, and failure modes"
+- specialization: "Typed structure design: interfaces, contracts, packet shapes, validation constraints"
+- task_boundary: "Schema design tasks with clear subject and structural requirements"
+- deliverable_boundary: "TypeScript type definitions, I/O contracts, invariant documentation"
+- failure_boundary: "Stop when type design cannot be completed without implementation decisions"
+
+**Extension entry** (`extensions/specialists/schema-designer/index.ts`):
+
+```typescript
+import { createSpecialistExtension } from "../../shared/specialist-extension.js";
+import { SCHEMA_DESIGNER_PROMPT_CONFIG } from "./prompt.js";
+
+export default createSpecialistExtension({
+  promptConfig: SCHEMA_DESIGNER_PROMPT_CONFIG,
+  toolName: "delegate-to-schema-designer",
+  toolLabel: "Delegate to Schema-Designer",
+  toolDescription:
+    "Delegate a schema or type design task to the schema-designer specialist. " +
+    "The schema-designer produces TypeScript interfaces, I/O contracts, and invariant documentation.",
+});
+```
+
+---
+
+#### Specialist 3: Routing-Designer
+
+**Prompt config** (`extensions/specialists/routing-designer/prompt.ts`):
+
+```typescript
+import type { TaskPacket } from "../../shared/types.js";
+import {
+  buildSpecialistSystemPrompt,
+  buildSpecialistTaskPrompt,
+  type SpecialistPromptConfig,
+} from "../../shared/specialist-prompt.js";
+
+export const ROUTING_DESIGNER_PROMPT_CONFIG: SpecialistPromptConfig = {
+  id: "specialist_routing-designer",
+  roleName: "Routing-Designer Specialist",
+  roleDescription:
+    "Design state machine routing definitions for teams: states, transitions, entry/exit conditions, escalation paths, and unreachable state detection.",
+  workingStyle: {
+    reasoning:
+      "State enumeration and transition completeness — systematically list all states, verify all transitions are reachable, identify dead ends and missing escalation paths.",
+    communication:
+      "Express routing designs as state machine definitions with explicit transition tables and completeness analysis.",
+    risk: "Conservative on missing transitions — flag any state without a clear exit path or escalation route.",
+    defaultBias:
+      "Prefer simple, linear state machines with explicit loop guards over complex branching designs.",
+  },
+  constraints: [
+    "You may ONLY design routing and state machines — do NOT implement runtime logic.",
+    "Every state must have at least one exit transition or be explicitly terminal.",
+    "Loop edges must have maxIterations guards.",
+    "Do NOT design types, schemas, or prose specifications.",
+  ],
+  antiPatterns: [
+    "design state machines with unreachable states",
+    "omit escalation paths for failure or loop exhaustion",
+    "create unbounded loops without maxIterations guards",
+    "conflate routing design with implementation",
+  ],
+  inputContract: {
+    fields: [
+      { name: "schemaSummary", type: "string", required: false, description: "Schema design summary", sourceSpecialist: "schema-designer" },
+      { name: "schemaDeliverables", type: "string[]", required: false, description: "Schema deliverables", sourceSpecialist: "schema-designer" },
+    ],
+  },
+  outputContract: {
+    fields: [
+      { name: "stateMachine", type: "string", required: true, description: "State machine definition" },
+      { name: "transitionTable", type: "string", required: true, description: "Complete transition table" },
+      { name: "completenessAnalysis", type: "string", required: true, description: "Analysis of reachability and completeness" },
+    ],
+  },
+};
+
+export function buildRoutingDesignerSystemPrompt(): string {
+  return buildSpecialistSystemPrompt(ROUTING_DESIGNER_PROMPT_CONFIG);
+}
+
+export function buildRoutingDesignerTaskPrompt(task: TaskPacket): string {
+  return buildSpecialistTaskPrompt(task);
+}
+```
+
+**Agent definition** — same pattern, with:
+- ID: `specialist_routing-designer`
+- specialization: "State machine routing design with transition completeness verification"
+- task_boundary: "Routing design tasks with clear team purpose and member roster"
+- deliverable_boundary: "State machine definitions, transition tables, completeness analysis"
+- failure_boundary: "Stop when routing design cannot guarantee transition completeness"
+
+**Extension entry** (`extensions/specialists/routing-designer/index.ts`):
+
+```typescript
+import { createSpecialistExtension } from "../../shared/specialist-extension.js";
+import { ROUTING_DESIGNER_PROMPT_CONFIG } from "./prompt.js";
+
+export default createSpecialistExtension({
+  promptConfig: ROUTING_DESIGNER_PROMPT_CONFIG,
+  toolName: "delegate-to-routing-designer",
+  toolLabel: "Delegate to Routing-Designer",
+  toolDescription:
+    "Delegate a routing or state machine design task to the routing-designer specialist. " +
+    "The routing-designer produces state machine definitions with transition completeness analysis.",
+});
+```
+
+---
+
+#### Specialist 4: Critic
+
+**Prompt config** (`extensions/specialists/critic/prompt.ts`):
+
+```typescript
+import type { TaskPacket } from "../../shared/types.js";
+import {
+  buildSpecialistSystemPrompt,
+  buildSpecialistTaskPrompt,
+  type SpecialistPromptConfig,
+} from "../../shared/specialist-prompt.js";
+
+export const CRITIC_PROMPT_CONFIG: SpecialistPromptConfig = {
+  id: "specialist_critic",
+  roleName: "Critic Specialist",
+  roleDescription:
+    "Evaluate designs for quality, redundancy, proportional complexity, unnecessary abstractions, and reuse opportunities. Quality reviewer in the compliance/quality review split.",
+  workingStyle: {
+    reasoning:
+      "Adversarial evaluation — actively search for what is wrong, wasteful, redundant, or unnecessarily complex before acknowledging strengths.",
+    communication:
+      "Direct critique with severity rankings and concrete improvement suggestions; lead with the most impactful finding.",
+    risk: "Aggressive on identifying waste — prefer flagging potential issues over staying silent; accept some false positives to avoid missing real problems.",
+    defaultBias:
+      "Prefer simpler solutions and existing reuse over novel abstractions; burden of proof is on complexity.",
+  },
+  constraints: [
+    "You may ONLY evaluate and critique — do NOT rewrite or implement.",
+    "Search existing primitives for reuse before approving new creation.",
+    "Rank findings by severity: critical, significant, minor.",
+    "Do NOT approve designs that have unresolved critical findings.",
+  ],
+  antiPatterns: [
+    "approve designs without searching for existing reuse opportunities",
+    "provide vague feedback without concrete improvement suggestions",
+    "conflate stylistic preferences with structural problems",
+    "skip the reuse search step",
+  ],
+  inputContract: {
+    fields: [
+      { name: "priorSummaries", type: "string[]", required: false, description: "Summaries of all prior specialist outputs" },
+      { name: "priorDeliverables", type: "string[]", required: false, description: "All prior deliverables" },
+    ],
+  },
+  outputContract: {
+    fields: [
+      { name: "findings", type: "string[]", required: true, description: "Critique findings ranked by severity" },
+      { name: "reuseOpportunities", type: "string[]", required: true, description: "Existing primitives that could be reused" },
+      { name: "approved", type: "boolean", required: true, description: "Whether the design passes quality review" },
+    ],
+  },
+};
+
+export function buildCriticSystemPrompt(): string {
+  return buildSpecialistSystemPrompt(CRITIC_PROMPT_CONFIG);
+}
+
+export function buildCriticTaskPrompt(task: TaskPacket): string {
+  return buildSpecialistTaskPrompt(task);
+}
+```
+
+**Agent definition** — same pattern, with:
+- ID: `specialist_critic`
+- specialization: "Adversarial design evaluation with reuse scouting"
+- task_boundary: "Evaluation tasks with clear subject artifacts and evaluation criteria"
+- deliverable_boundary: "Ranked critique findings, reuse opportunities, approval/rejection"
+- failure_boundary: "Stop when evaluation cannot proceed without access to the subject artifacts"
+
+**Extension entry** (`extensions/specialists/critic/index.ts`):
+
+```typescript
+import { createSpecialistExtension } from "../../shared/specialist-extension.js";
+import { CRITIC_PROMPT_CONFIG } from "./prompt.js";
+
+export default createSpecialistExtension({
+  promptConfig: CRITIC_PROMPT_CONFIG,
+  toolName: "delegate-to-critic",
+  toolLabel: "Delegate to Critic",
+  toolDescription:
+    "Delegate a design evaluation task to the critic specialist. " +
+    "The critic evaluates for quality, redundancy, and reuse opportunities.",
+});
+```
+
+---
+
+#### Specialist 5: Boundary-Auditor
+
+**Prompt config** (`extensions/specialists/boundary-auditor/prompt.ts`):
+
+```typescript
+import type { TaskPacket } from "../../shared/types.js";
+import {
+  buildSpecialistSystemPrompt,
+  buildSpecialistTaskPrompt,
+  type SpecialistPromptConfig,
+} from "../../shared/specialist-prompt.js";
+
+export const BOUNDARY_AUDITOR_PROMPT_CONFIG: SpecialistPromptConfig = {
+  id: "specialist_boundary-auditor",
+  roleName: "Boundary-Auditor Specialist",
+  roleDescription:
+    "Audit designs for access control violations, excess context exposure, undeclared assumptions, overly broad permissions, and compliance with the narrow-by-default control philosophy.",
+  workingStyle: {
+    reasoning:
+      "Control philosophy enforcement — for every context exposure, permission grant, or routing authority, verify it is explicitly declared, minimally scoped, and justified.",
+    communication:
+      "Report boundary violations with exact location, violation type, and minimal remediation path.",
+    risk: "Zero tolerance for undeclared context exposure — flag every instance even if it appears benign.",
+    defaultBias:
+      "Prefer minimal-context, narrow-permission designs; burden of proof is on any request for broader access.",
+  },
+  constraints: [
+    "You may ONLY audit boundaries — do NOT redesign or implement.",
+    "Flag every undeclared context exposure, even if seemingly harmless.",
+    "Verify all permissions against the narrow-by-default doctrine.",
+    "Do NOT approve designs with undeclared routing authority.",
+  ],
+  antiPatterns: [
+    "approve designs with undeclared context exposure because they seem harmless",
+    "skip checking hidden routing authority in supposedly downstream primitives",
+    "confuse boundary auditing with general code review",
+    "accept 'it works' as justification for broad permissions",
+  ],
+  inputContract: {
+    fields: [
+      { name: "priorSummaries", type: "string[]", required: false, description: "Summaries of all prior specialist outputs" },
+      { name: "priorDeliverables", type: "string[]", required: false, description: "All prior deliverables" },
+    ],
+  },
+  outputContract: {
+    fields: [
+      { name: "violations", type: "string[]", required: true, description: "Boundary violations found" },
+      { name: "exposures", type: "string[]", required: true, description: "Undeclared context exposures" },
+      { name: "compliant", type: "boolean", required: true, description: "Whether the design is boundary-compliant" },
+    ],
+  },
+};
+
+export function buildBoundaryAuditorSystemPrompt(): string {
+  return buildSpecialistSystemPrompt(BOUNDARY_AUDITOR_PROMPT_CONFIG);
+}
+
+export function buildBoundaryAuditorTaskPrompt(task: TaskPacket): string {
+  return buildSpecialistTaskPrompt(task);
+}
+```
+
+**Agent definition** — same pattern, with:
+- ID: `specialist_boundary-auditor`
+- specialization: "Access control and minimal-context enforcement"
+- task_boundary: "Boundary audit tasks with clear subject designs and control requirements"
+- deliverable_boundary: "Violation reports, exposure lists, compliance assessment"
+- failure_boundary: "Stop when audit cannot proceed without access to the subject designs"
+
+**Extension entry** (`extensions/specialists/boundary-auditor/index.ts`):
+
+```typescript
+import { createSpecialistExtension } from "../../shared/specialist-extension.js";
+import { BOUNDARY_AUDITOR_PROMPT_CONFIG } from "./prompt.js";
+
+export default createSpecialistExtension({
+  promptConfig: BOUNDARY_AUDITOR_PROMPT_CONFIG,
+  toolName: "delegate-to-boundary-auditor",
+  toolLabel: "Delegate to Boundary-Auditor",
+  toolDescription:
+    "Delegate a boundary audit task to the boundary-auditor specialist. " +
+    "The boundary-auditor checks for access control violations and excess context exposure.",
+});
+```
+
+---
+
+#### Test pattern (same for all 5)
+
+Each test file (`tests/{name}.test.ts`) follows the builder test pattern with 13 tests per specialist:
+
+```typescript
+import { describe, it, expect } from "vitest";
+import { build{Name}SystemPrompt, build{Name}TaskPrompt, {NAME}_PROMPT_CONFIG } from "../extensions/specialists/{name}/prompt.js";
+import { createTaskPacket } from "../extensions/shared/packets.js";
+
+describe("{NAME}_PROMPT_CONFIG", () => {
+  it("has the correct specialist ID", () => {
+    expect({NAME}_PROMPT_CONFIG.id).toBe("specialist_{name}");
+  });
+  it("has the correct role name", () => {
+    expect({NAME}_PROMPT_CONFIG.roleName).toBe("{Title} Specialist");
+  });
+  it("includes all working style fields", () => {
+    expect({NAME}_PROMPT_CONFIG.workingStyle.reasoning).toBeTruthy();
+    expect({NAME}_PROMPT_CONFIG.workingStyle.communication).toBeTruthy();
+    expect({NAME}_PROMPT_CONFIG.workingStyle.risk).toBeTruthy();
+    expect({NAME}_PROMPT_CONFIG.workingStyle.defaultBias).toBeTruthy();
+  });
+  it("has constraints", () => {
+    expect({NAME}_PROMPT_CONFIG.constraints.length).toBeGreaterThan(0);
+  });
+  it("has anti-patterns", () => {
+    expect({NAME}_PROMPT_CONFIG.antiPatterns.length).toBeGreaterThan(0);
+  });
+  it("has output contract", () => {
+    expect({NAME}_PROMPT_CONFIG.outputContract).toBeDefined();
+    expect({NAME}_PROMPT_CONFIG.outputContract!.fields.length).toBeGreaterThan(0);
+  });
+});
+
+describe("build{Name}SystemPrompt", () => {
+  const prompt = build{Name}SystemPrompt();
+  it("includes the role name and ID", () => {
+    expect(prompt).toContain("{NAME}_PROMPT_CONFIG.roleName");
+    expect(prompt).toContain("specialist_{name}");
+  });
+  it("includes working style", () => {
+    expect(prompt).toContain("Working Style");
+  });
+  it("includes constraints", () => {
+    expect(prompt).toContain("Constraints");
+  });
+  it("includes anti-patterns", () => {
+    expect(prompt).toContain("Anti-Patterns");
+  });
+  it("includes JSON output format", () => {
+    expect(prompt).toContain("```json");
+    expect(prompt).toContain('"status"');
+  });
+});
+
+describe("build{Name}TaskPrompt", () => {
+  const task = createTaskPacket({
+    objective: "Test objective",
+    allowedReadSet: ["file.ts"],
+    allowedWriteSet: [],
+    acceptanceCriteria: ["Criteria"],
+    targetAgent: "specialist_{name}",
+    sourceAgent: "orchestrator",
+  });
+  it("includes task fields", () => {
+    const prompt = build{Name}TaskPrompt(task);
+    expect(prompt).toContain("Test objective");
+    expect(prompt).toContain("file.ts");
+  });
+  it("includes context when provided", () => {
+    const taskWithCtx = createTaskPacket({
+      objective: "Test",
+      allowedReadSet: [],
+      allowedWriteSet: [],
+      acceptanceCriteria: [],
+      context: { key: "value" },
+      targetAgent: "specialist_{name}",
+      sourceAgent: "orchestrator",
+    });
+    expect(build{Name}TaskPrompt(taskWithCtx)).toContain("Additional context");
+  });
+});
+```
+
+---
+
+#### Orchestrator integration tests
+
+Add a new test file `tests/orchestrator-5a-integration.test.ts` with tests verifying:
+1. All 9 specialists appear in `SpecialistId` type (compile-time check — if tests compile, this passes)
+2. `getPromptConfig()` returns valid config for each of the 5 new specialists
+3. `selectSpecialists()` returns the correct specialist for each new keyword set
+4. `buildContextForSpecialist()` returns the expected context shape for each new specialist
+
+---
+
+#### File structure summary
+
+**New files (25 total):**
+
+| File | Purpose |
+|------|---------|
+| `agents/specialists/spec-writer.md` | Agent definition |
+| `agents/specialists/schema-designer.md` | Agent definition |
+| `agents/specialists/routing-designer.md` | Agent definition |
+| `agents/specialists/critic.md` | Agent definition |
+| `agents/specialists/boundary-auditor.md` | Agent definition |
+| `extensions/specialists/spec-writer/prompt.ts` | Prompt config |
+| `extensions/specialists/spec-writer/index.ts` | Extension entry |
+| `extensions/specialists/schema-designer/prompt.ts` | Prompt config |
+| `extensions/specialists/schema-designer/index.ts` | Extension entry |
+| `extensions/specialists/routing-designer/prompt.ts` | Prompt config |
+| `extensions/specialists/routing-designer/index.ts` | Extension entry |
+| `extensions/specialists/critic/prompt.ts` | Prompt config |
+| `extensions/specialists/critic/index.ts` | Extension entry |
+| `extensions/specialists/boundary-auditor/prompt.ts` | Prompt config |
+| `extensions/specialists/boundary-auditor/index.ts` | Extension entry |
+| `tests/spec-writer.test.ts` | 13 tests |
+| `tests/schema-designer.test.ts` | 13 tests |
+| `tests/routing-designer.test.ts` | 13 tests |
+| `tests/critic.test.ts` | 13 tests |
+| `tests/boundary-auditor.test.ts` | 13 tests |
+| `tests/orchestrator-5a-integration.test.ts` | Integration tests |
+
+**Modified files (5 total):**
+
+| File | Change |
+|------|--------|
+| `extensions/orchestrator/select.ts` | Extend `SpecialistId`, `WORKFLOW_ORDER`, `SPECIALIST_KEYWORDS` |
+| `extensions/orchestrator/delegate.ts` | Add 5 imports, extend `PROMPT_CONFIG_MAP`, extend `buildContextForSpecialist()` |
+| `extensions/orchestrator/index.ts` | Extend `READ_ONLY_SPECIALISTS` set |
+| `extensions/shared/contracts.ts` | Extend `extractFieldFromResult()` with new field mappings |
+| `agents/specialists/_SPECIALISTS_INDEX.md` | Add 5 new entries |
+
+**What this stage does NOT do:**
+- Does not add the new specialists to any team definitions (that's 5b+)
+- Does not add new delegationHint values to the orchestrator tool params (auto-selection via keywords is sufficient)
+- Does not redesign the keyword matching (Stage 5g replaces it with LLM-based selection)
+
+#### Key files to read before implementing
+
+| File | Why |
+|------|-----|
+| `extensions/specialists/builder/prompt.ts` | Exemplar prompt config to follow |
+| `extensions/specialists/builder/index.ts` | Exemplar extension entry |
+| `tests/builder.test.ts` | Exemplar test file |
+| `agents/specialists/builder.md` | Exemplar agent definition |
+| `extensions/orchestrator/select.ts` | Where to register keywords and specialist IDs |
+| `extensions/orchestrator/delegate.ts` | Where to register configs and context forwarding |
+| `extensions/orchestrator/index.ts` | Where to mark new specialists as read-only |
+| `extensions/shared/contracts.ts` | Where to add field extraction mappings |
+
 ---
 
 ## Stage 5b — Specialist-Creator Team
