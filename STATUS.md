@@ -128,10 +128,12 @@ All 3d tests are **integration tests with mocked subprocesses** (not live sub-ag
 - [x] All 230 tests pass (188 existing + 42 new), TypeScript compiles cleanly
 
 #### 4c — Schema Validation
-- [ ] Agent definition validator: `.md` specs match `AGENT_DEFINITION_CONTRACT.md` structure
-- [ ] Packet validation at runtime (existing) + contract validation at transitions (new)
-- [ ] `validate` command or test suite
-- [ ] CI-checkable validation
+- [ ] `extensions/shared/validation.ts` — `parseAgentDefinition()`, `validateAgentDefinition()`, `validateTeamDefinition()`
+- [ ] Agent definition validator: parse `.md` specs, validate sections/fields/values against `AGENT_DEFINITION_CONTRACT.md`
+- [ ] Team definition validator: member existence, state agent references, contract compatibility at transitions (reuses `validateStateMachine()` and `contractsCompatible()`)
+- [ ] `tests/validation-agents.test.ts` — validate all 4 specialist `.md` files + synthetic bad definitions
+- [ ] `tests/validation-teams.test.ts` — validate `BUILD_TEAM` + synthetic bad team definitions
+- [ ] All existing tests still pass
 
 #### 4d — Observability
 - [ ] Execution logging via `pi.appendEntry()` — audit trail for delegation chains

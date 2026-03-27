@@ -810,9 +810,95 @@ Make all primitive definitions machine-checkable for correctness and consistency
 ### Key deliverables
 
 - Agent definition validator: `.md` specs in `agents/` match the expected structure from `AGENT_DEFINITION_CONTRACT.md`
-- Packet validation at runtime (existing) + contract validation at transitions (new from 4a)
-- Team definition validation: members exist, state machine is valid, contracts are compatible
-- `validate` command or test suite that checks all of the above
+- Team definition validator: members exist, state machine is valid, contracts are compatible at transitions
+- Validation test suite that checks all of the above (CI-checkable via `make test`)
+
+### Implementation Notes (pre-resolved design decisions)
+
+**Approach: test-based validation.** Validators are library functions in `extensions/shared/validation.ts`. They are exercised by test files that load actual definitions from the repo. No separate CLI command or Pi-registered command — validation runs as part of `make test`. This follows the existing pattern where `routing.ts` has `validateStateMachine()` exercised by `tests/routing.test.ts`.
+
+**Agent definition validator.** Parse markdown files from `agents/specialists/` and validate against the structure in `AGENT_DEFINITION_CONTRACT.md`. The validator should check:
+
+1. **Required sections present:** Definition, Intent, Working Style, Routing and access, Inputs and outputs, Control and escalation, Validation, Relationships, Authority flags, Specialist-specific fields
+2. **Required fields within sections:** Each section has expected fields per the contract. For specialists: `id`, `name`, `definition_type`, `purpose`, `scope`, `non_goals`, `routing_class`, `context_scope`, `required_inputs`, `expected_outputs`, `specialization`, `task_boundary`, `deliverable_boundary`, `failure_boundary`
+3. **`working_style` completeness:** For specialists, `working_style` must contain `reasoning_posture`, `communication_posture`, `risk_posture`, `default_bias`, `anti_patterns`
+4. **Value validation:** `routing_class` must be `downstream` for specialists, `definition_type` must be `specialist`, `can_delegate` must be `false`
+5. **Non-empty required fields:** `purpose`, `scope`, `specialization` should not be empty strings
+
+**Markdown parsing approach.** Agent definitions use a consistent structure: `## Section Name` headers with `- \`field_name\`: value` entries. The parser should:
+- Split by `## ` to find sections
+- Within sections, extract `\`field_name\`` entries
+- For list fields (like `scope`, `non_goals`, `anti_patterns`), recognize indented sub-items
+- Return a structured object that can be validated against expected fields
+
+```typescript
+interface ParsedAgentDefinition {
+  sections: Record<string, ParsedSection>;
+  rawContent: string;
+}
+
+interface ParsedSection {
+  name: string;
+  fields: Record<string, string | string[]>;
+}
+
+function parseAgentDefinition(markdown: string): ParsedAgentDefinition;
+function validateAgentDefinition(parsed: ParsedAgentDefinition, definitionType: DefinitionType): string[];
+```
+
+**Team definition validator.** Validate `TeamDefinition` objects from `extensions/teams/definitions.ts`. The validator should check:
+
+1. **Member existence:** All `members` IDs should correspond to known specialist IDs. The validator takes a list of known specialist IDs as a parameter (not hardcoded). For 4c, the known list comes from the four existing specialist prompt configs.
+2. **State machine structural validity:** Already handled by `validateStateMachine()` in `routing.ts` — reuse that function.
+3. **Agent references in states:** Every `state.agent` in the state machine should be either a member specialist ID or `"orchestrator"` (for terminal states). Flag unknown agent references.
+4. **Contract compatibility at transitions:** For each non-terminal transition `A → B`, check that the output contract of the specialist in state A is compatible with the input contract of the specialist in state B using `contractsCompatible()` from `contracts.ts`. This requires a mapping from specialist ID → prompt config (to access contracts).
+5. **Entry/exit contract consistency:** The team's `entryContract` should be satisfiable by the task the orchestrator sends. The team's `exitContract` should be producible by the terminal state's preceding specialist.
+
+```typescript
+interface TeamValidationContext {
+  knownSpecialistIds: string[];
+  specialistContracts: Record<string, { input: InputContract; output: OutputContract }>;
+}
+
+function validateTeamDefinition(team: TeamDefinition, context: TeamValidationContext): string[];
+```
+
+**File structure:**
+
+| File | Purpose |
+|------|---------|
+| `extensions/shared/validation.ts` | `parseAgentDefinition()`, `validateAgentDefinition()`, `validateTeamDefinition()` |
+| `tests/validation-agents.test.ts` | Test agent definition validator against actual `.md` files in `agents/specialists/` + synthetic bad definitions |
+| `tests/validation-teams.test.ts` | Test team definition validator against `BUILD_TEAM` + synthetic bad team definitions |
+
+**Test scenarios for agent definition validator:**
+
+Valid cases:
+- All four existing specialist definitions (`builder.md`, `planner.md`, `reviewer.md`, `tester.md`) pass validation
+
+Invalid cases (synthetic):
+- Missing `## Working Style` section → error
+- Missing `purpose` field in Intent → error
+- Empty `specialization` field → error
+- Wrong `routing_class` value (e.g., `orchestrator` for a specialist) → error
+- Missing `anti_patterns` in working_style → error
+
+**Test scenarios for team definition validator:**
+
+Valid cases:
+- `BUILD_TEAM` passes validation (with known specialist IDs from the four existing specialists)
+
+Invalid cases (synthetic):
+- Team references a non-existent specialist ID in `members` → error
+- State machine references an agent not in `members` (and not `"orchestrator"`) → error
+- Transition from state A to state B where A's output contract is incompatible with B's input contract → error
+- State machine with structural errors (validated by existing `validateStateMachine()`) → error
+
+**What this stage does NOT do:**
+- Does not validate orchestrator definitions (only one exists, and its structure differs significantly from specialists)
+- Does not validate sequence definitions (Stage 5d, not yet implemented)
+- Does not add runtime pre-flight validation (that's Stage 4d)
+- Does not require new Makefile targets (`make test` already runs all tests)
 
 ### Three-level team testing doctrine
 
@@ -824,16 +910,34 @@ Team tests should cover three distinct levels:
 
 This is testing guidance, not new infrastructure — existing vitest patterns suffice. Level 1 tests should resemble workflow-engine tests with controlled inputs. Levels 2-3 use representative task suites.
 
+**For 4c specifically:** Level 1 is the primary focus — the team validator and its tests prove state-machine correctness for `BUILD_TEAM` and synthetic malformed teams. Levels 2-3 are deferred to later stages when more teams exist and representative task suites can be built.
+
+### Key files to read before implementing
+
+| File | Why |
+|------|-----|
+| `agents/AGENT_DEFINITION_CONTRACT.md` | Defines expected structure for agent definition `.md` files |
+| `agents/specialists/builder.md` | Exemplar of a well-formed specialist definition (reference for parser) |
+| `extensions/shared/types.ts` | `TeamDefinition`, `InputContract`, `OutputContract`, `StateMachineDefinition` types |
+| `extensions/shared/contracts.ts` | `contractsCompatible()` — reuse for transition contract checks |
+| `extensions/shared/routing.ts` | `validateStateMachine()` — reuse for structural state machine validation |
+| `extensions/teams/definitions.ts` | `BUILD_TEAM` — the exemplar team definition to validate |
+| `extensions/specialists/*/prompt.ts` | `*_PROMPT_CONFIG` — contain `inputContract`/`outputContract` for each specialist |
+| `tests/contracts.test.ts` | Reference for contract validation test patterns |
+| `tests/routing.test.ts` | Reference for state machine validation test patterns |
+
 ### Exit criteria
 
-- Agent definition validator catches malformed specs
-- Contract validator catches incompatible transitions
-- Validation can run as part of CI/test suite
-- Team tests cover all three levels (correctness, task success, session quality)
+- Agent definition validator catches malformed specs (missing sections, missing fields, wrong values)
+- Team definition validator catches: unknown members, unknown state agents, incompatible contracts at transitions, structural state machine errors
+- All four existing specialist definitions pass validation
+- `BUILD_TEAM` passes validation
+- All existing tests still pass (no regressions)
+- Validation runs as part of `make test`
 
 ### Dependencies
 
-- Stage 4b complete (team definitions exist to validate)
+- Stage 4b complete (team definitions exist to validate) ✓
 
 ---
 
