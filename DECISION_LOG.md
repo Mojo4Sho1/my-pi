@@ -177,3 +177,21 @@ When a critic (or reviewer) identifies issues with an artifact, the team router 
 Stage 4a (I/O contracts) and 4b (team router) are implemented together. Contracts without a router are types with no consumer; a router without contracts has nothing to validate.
 
 Stage 4c (schema validation) and 4d (observability) follow as a separate pass — they are independent of 4a/4b and benefit from having both contracts and router available to validate against.
+
+### 25. Fresh-context execution as a first-class principle (2026-03-27) [active]
+
+Fresh context is a design feature, not a workaround. The system should prefer fresh execution episodes with bounded context over long-lived sessions that accumulate stale assumptions and hidden state.
+
+**Core principle:** Continuity should live in repo artifacts (handoff packages, session artifacts, checkpoint packages), not in conversation history or persistent session memory. A fresh agent should be able to pick up work from structured artifacts without needing the prior session's transcript.
+
+**How this already manifests:**
+- Specialists are fresh sub-agents with narrow context (narrow-by-default, Decision #11)
+- Selective context forwarding passes only relevant fields, not full history (Decision #15)
+- Teams are opaque — the orchestrator doesn't see intra-team context (Decision #14)
+
+**How this extends forward:**
+- Stage 4d: team session artifacts create durable records of team execution
+- Stage 5d: sequence handoff/blocker/checkpoint artifacts enable fresh-context relay across stages
+- Future: segment supervision and campaign execution use the same pattern at a higher scale
+
+**Why explicit:** This principle was implicit in the architecture but unstated. Making it explicit ensures that future design decisions (especially around sequences, escalation, and session persistence) don't accidentally introduce long-lived conversational state as a crutch.

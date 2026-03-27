@@ -1,0 +1,92 @@
+# FUTURE_WORK.md
+
+Deferred ideas and evolution paths. These concepts are architecturally sound but premature for current implementation stages. Each entry includes a "revisit when" trigger so the project knows when to bring them back.
+
+Source design documents are archived in `docs/archive/design/`.
+
+---
+
+## Team Critic / Batch Review
+
+A specialized evaluator that reviews batches of team session artifacts (from Stage 4d) and identifies workflow-level patterns: frequent failure states, wasteful transitions, repeated loops, overuse of expensive review paths, avoidable retries, recurring downstream correction of upstream omissions.
+
+The Team Critic produces structured recommendations (not direct mutations) — identified issue, supporting evidence, affected team version, severity, proposed workflow change, estimated tradeoff, confidence level.
+
+**Source:** `docs/archive/design/TEAM_EVALUATION_AND_IMPROVEMENT.md`, "Batch Review and Critique" and "Proposed reviewer role" sections.
+
+**Revisit when:** Teams are producing session artifacts at volume (10+ sessions per team) and there's enough data to detect meaningful patterns.
+
+---
+
+## Controlled Team Improvement Loop
+
+A versioned, governed process for improving teams based on Team Critic recommendations:
+
+1. Team executes and emits session artifacts
+2. Artifacts accumulate
+3. Team Critic reviews a batch and generates recommendations
+4. Human or approval layer reviews recommendations
+5. Team definition is updated with a new version
+6. New version is compared against prior versions using the three-level testing framework (4c)
+
+Key constraints: no live self-rewrite during execution, all changes versioned, new versions evaluated against old versions on representative tasks, efficiency gains that reduce quality are regressions.
+
+**Source:** `docs/archive/design/TEAM_EVALUATION_AND_IMPROVEMENT.md`, "Controlled Improvement Loop" and "Governance and Safety Constraints" sections.
+
+**Revisit when:** Team Critic is operational and producing actionable recommendations.
+
+---
+
+## Campaign Supervisor
+
+An automated, segment-scoped supervisor that manages execution of approved campaign plans. The supervisor launches fresh stage executors, evaluates handoff packages, decides whether to advance/retry/pause/escalate, and produces checkpoint packages at segment boundaries.
+
+The campaign supervisor is intentionally segment-scoped (not campaign-global) and uses a relay model: fresh supervisor for each segment, fresh executor for each stage, continuity through repo artifacts.
+
+**Source:** `docs/archive/design/SEGMENT_SUPERVISION_AND_EPISODIC_EXECUTION.md`, "Campaign Supervisor" and "Execution Model" sections.
+
+**Revisit when:** Sequences (Stage 5d) are proven and there's demand for multi-segment autonomous execution beyond what `/plan` and `/next` commands provide.
+
+---
+
+## Feasibility / Plan-Shaping Team
+
+A team that transforms a campaign plan into an execution-ready structure: stress-testing realism, identifying missing dependencies, breaking work into stages, determining specification needs, shaping stage contracts, defining checkpoint boundaries, identifying risky or ambiguous work.
+
+This team prepares campaigns for execution but does not implement them.
+
+**Source:** `docs/archive/design/SEGMENT_SUPERVISION_AND_EPISODIC_EXECUTION.md`, "Feasibility / Plan-Shaping Team" section.
+
+**Revisit when:** Campaign supervision exists and there's a concrete need for automated plan decomposition.
+
+---
+
+## Automated Packet-Level Review Gates
+
+Mandatory compliance and quality checks after every fine-grained task packet, with automated rework routing. Compliance review checks contract satisfaction before quality review evaluates implementation soundness.
+
+The current architecture handles this through the reviewer and critic specialists within team state machines. Automated review gates would formalize this as a separate execution discipline within stage execution.
+
+**Source:** `docs/archive/design/TASK_PACKETS_REVIEW_GATES_AND_WORKSPACE_ISOLATION.md`, "Review Gate Model" and "Compliance Review" / "Quality Review" sections.
+
+**Revisit when:** The reviewer/critic compliance-vs-quality split (Stage 5a) is proven in practice and there's evidence that the current team-based review flow is insufficient for fine-grained task execution.
+
+---
+
+## Workspace Isolation Automation
+
+Automated segment branching, workspace finalization status (ready for next packet / ready for merge / hold / discard), and branch readiness determination. The default model is one branch per campaign segment with structured finalization artifacts.
+
+**Source:** `docs/archive/design/TASK_PACKETS_REVIEW_GATES_AND_WORKSPACE_ISOLATION.md`, "Workspace Isolation Model" and "Completion and Finalization" sections.
+
+**Revisit when:** Sequence execution (Stage 5d) is operational and there's demand for automated branch management beyond manual git workflows.
+
+---
+
+## Merlin Integration Points
+
+Design checkpoint packages for Merlin consumption, enable cross-campaign continuity, align terminology between my-pi execution-side and Merlin control-plane vocabularies. my-pi should return structured checkpoint packages that Merlin can use for long-horizon supervision.
+
+**Source:** `docs/archive/design/SEGMENT_SUPERVISION_AND_EPISODIC_EXECUTION.md`, "Relationship to Merlin" section.
+
+**Revisit when:** Merlin exists as a concrete system with defined interfaces.

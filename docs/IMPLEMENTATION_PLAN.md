@@ -814,11 +814,22 @@ Make all primitive definitions machine-checkable for correctness and consistency
 - Team definition validation: members exist, state machine is valid, contracts are compatible
 - `validate` command or test suite that checks all of the above
 
+### Three-level team testing doctrine
+
+Team tests should cover three distinct levels:
+
+1. **State-machine correctness** — deterministic orchestration: valid transitions occur, invalid transitions are rejected, terminal states reached correctly, retry/loop guards enforced, unreachable states stay unreachable
+2. **Contract-level task success** — the team produces correct outputs for representative inputs: required deliverables present, output matches team contract, team terminates for the right reason, produced artifacts are usable by downstream consumers
+3. **Session quality** — workflow efficiency: no unnecessary loops, reasonable transition counts for task class, downstream specialists don't repeatedly catch predictable upstream mistakes
+
+This is testing guidance, not new infrastructure — existing vitest patterns suffice. Level 1 tests should resemble workflow-engine tests with controlled inputs. Levels 2-3 use representative task suites.
+
 ### Exit criteria
 
 - Agent definition validator catches malformed specs
 - Contract validator catches incompatible transitions
 - Validation can run as part of CI/test suite
+- Team tests cover all three levels (correctness, task success, session quality)
 
 ### Dependencies
 
@@ -830,21 +841,34 @@ Make all primitive definitions machine-checkable for correctness and consistency
 
 ### Purpose
 
-Add execution logging and pre-flight validation to support debugging and auditability.
+Add execution logging, pre-flight validation, and structured team session artifacts to support debugging, auditability, and future evaluation.
 
 ### Key deliverables
 
 - Execution logging via `pi.appendEntry()`: audit trail for each delegation event (who delegated, to whom, what packet, what result)
 - Pre-flight validation: before delegating, check that task packet meets specialist's input contract requirements
+- **Team Session Artifact** — a structured record emitted at the end of each team execution, containing:
+  - **Session metadata:** session id, timestamp, team name, team version, starting/ending state, termination reason
+  - **State trace:** ordered list of visited states with per-transition source, target, reason, guard outcomes, retry/loop counts
+  - **Specialist invocation summary:** per-specialist identity, invocation order, bounded input/output summaries, contract status, latency/token usage if available
+  - **Outcome summary:** final status (success/failure/escalation/decline), validation results, whether human intervention occurred
+  - **Lightweight metrics:** total transitions, loop count, retry count, total latency, per-specialist latency, total token usage, per-specialist token usage, revision count
+- **Failure reason taxonomy** — session artifacts should distinguish among: task failure, contract violation, policy refusal, scope mismatch, retry exhaustion, missing artifact, validation failure, escalation
+- **Team version identity** — every session artifact records the precise team definition version used, enabling future version-to-version comparison
+- Artifacts should prefer bounded summaries over raw transcript capture (raw transcripts gated behind optional debug mode if ever needed)
 
 ### Exit criteria
 
 - Delegation events are logged and inspectable
 - Malformed task packets are caught before subprocess spawn
+- Team router emits a structured session artifact at completion
+- Session artifacts include state trace, metrics, and outcome summary
+- Failure reasons are categorized, not generic
 
 ### Dependencies
 
 - Stage 4a complete (contracts needed for pre-flight validation)
+- Stage 4b complete (team router exists to emit artifacts)
 
 ---
 
@@ -879,7 +903,7 @@ Each specialist has a distinct reasoning posture — the test for inclusion is w
 - Distinct from builder (would implement routing as side effect, not an inspectable design artifact)
 - Output is a design artifact that gets reviewed before runtime code exists
 
-**4. Critic** — Broad evaluative lens: is this well-designed? Redundant? Could it be simpler? More efficient? The right abstraction? Reasoning posture: **adversarial evaluation** — finding what's wrong, wasteful, or unnecessary. Also responsible for reuse scouting (searching existing primitives before approving new creation).
+**4. Critic** — Broad evaluative lens: is this well-designed? Redundant? Could it be simpler? More efficient? The right abstraction? Reasoning posture: **adversarial evaluation** — finding what's wrong, wasteful, or unnecessary. Also responsible for reuse scouting (searching existing primitives before approving new creation). Functions as the **quality reviewer** in the compliance/quality review split: evaluates design soundness, proportional complexity, unnecessary abstractions, and structural weaknesses.
 - Distinct from reviewer (pass/fail on acceptance criteria, not big-picture evaluation)
 
 **5. Boundary-auditor** — Inspects designs for access control violations: excess context exposure, undeclared assumptions, overly broad permissions, hidden routing authority, packet fields that violate minimal-context intent. Reasoning posture: **control philosophy enforcement**.
@@ -897,6 +921,15 @@ For each of the five new specialists:
 Additionally:
 - Register all five in the orchestrator's `select.ts` (keyword matching) and `delegate.ts` (config map)
 - Update `buildContextForSpecialist()` if any need specific prior-result fields
+
+### Compliance vs. quality review split
+
+With the full 9-specialist roster, review responsibility is formally split between two specialists:
+
+- **Reviewer** (existing) operates as a **compliance reviewer**: did the work satisfy its contract? Were required artifacts produced? Does output match the expected schema? Were validation steps completed? This is pass/fail gatekeeping against specific acceptance criteria.
+- **Critic** (new, above) operates as a **quality reviewer**: is the design sound? Is complexity proportional to the problem? Are there unnecessary abstractions or redundancies? Does the solution introduce unjustified debt?
+
+Compliance review should precede quality review — there's no point evaluating design elegance if the deliverable doesn't meet its contract. In team state machines, this means the reviewer gate typically comes before the critic gate, or the reviewer handles compliance while the critic handles a separate quality pass.
 
 ### Deferred specialists (revisit later)
 
@@ -994,16 +1027,23 @@ Enable multi-stage workflows that compose teams and specialists with ordering, p
 - Sequence definition format: ordered stages, parallel branches, merge/synthesis points, stop conditions
 - Sequence engine: execute stages, validate I/O contracts between stages
 - Each stage's output contract must satisfy the next stage's input contract (same principle as teams)
+- **Stage handoff artifact** — structured record produced at the end of each sequence stage, containing: what was done, what changed in the repo, validation evidence, unresolved issues, explicit next tasks, risks and cautions, readiness signal for the next stage. This allows fresh-context execution across stages — a new executor can pick up from a handoff artifact without needing prior session history.
+- **Blocker artifact** — structured record when a stage cannot complete: failure category (missing dependency, environment issue, unclear requirement, failed validation, plan infeasibility), evidence, minimum remediation path, whether human decision is required, whether the sequence can continue around the blocker
+- **Sequence checkpoint** — optional review boundary between stages where human approval can be required. Checkpoints freeze progress, gather validation evidence, assess success criteria, and determine whether the next stage is ready. Checkpoints should be explicit in the sequence definition, not improvised midstream.
 
 ### Exit criteria
 
 - Sequences can compose teams and specialists across multiple stages
 - I/O contracts validated at each stage boundary
 - Stop conditions and merge points work correctly
+- Stage handoff artifacts emitted at each stage boundary
+- Blocker artifacts emitted when stages fail (not silent failure)
+- Sequence checkpoints support human review gates
 
 ### Dependencies
 
 - Stage 4b complete (teams available as sequence building blocks)
+- Stage 4d complete (session artifacts provide the structured-record patterns that handoff/blocker artifacts extend)
 
 ---
 

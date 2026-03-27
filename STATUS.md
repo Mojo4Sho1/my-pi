@@ -227,6 +227,10 @@ Interactive session to discuss adding a new specialist. Evaluates need, checks f
 - **`/seed` skill — new-project content:** Scaffold is in place (`skills/seed/`). Needs real instructions and templates for `new-project` seed. See `skills/seed/seeds/new-project/SEED.md`.
 - **`/seed` skill — interactive seeds (future):** Seeds are currently non-interactive. Future enhancement for seeds that ask questions before scaffolding.
 
+## Future Evolution
+
+See `docs/FUTURE_WORK.md` for deferred design ideas (team critic, campaign supervision, automated review gates, Merlin integration) with "revisit when" triggers. Source design documents are archived in `docs/archive/design/`.
+
 ## Blockers
 
 - None
