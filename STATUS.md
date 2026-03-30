@@ -1,6 +1,6 @@
 # STATUS.md
 
-Last updated: 2026-03-28
+Last updated: 2026-03-30
 
 ## Progress Checklist
 
@@ -146,6 +146,18 @@ All 3d tests are **integration tests with mocked subprocesses** (not live sub-ag
 - [x] `tests/session-artifact.test.ts` — 10 tests (happy path, state trace, specialist summaries, loops, escalation, failure, version, contracts, validation errors, logger events)
 - [x] All 280 tests pass (257 existing + 23 new), TypeScript compiles cleanly
 
+### Stage 4e — Substrate Hardening [NOT STARTED]
+
+Strengthen the existing specialist and orchestration substrate before expanding the specialist roster. See Decisions #26–29.
+
+#### 4e.1 — Tighten Existing Primitives
+- [ ] **Structured review findings contract** — `ReviewVerdict`, `ReviewFinding`, `StructuredReviewOutput` types; update reviewer prompt, result parser, orchestrator synthesis
+- [ ] **Per-specialist model routing policy** — 4-level resolution chain (runtime → project config → specialist default → host default); new `extensions/shared/config.ts`
+
+#### 4e.2 — Execution-State Artifact
+- [ ] **Coding-scoped worklist extension** — `extensions/worklist/` with typed items, state vocabulary, CRUD operations
+- [ ] **Worklist/orchestrator interop rules** — boundary enforcement: worklist informs status, not routing
+
 ### Stage 5 — Meta-Teams and Self-Expansion [NOT STARTED]
 
 #### 5a — Bootstrap Specialists
@@ -238,7 +250,7 @@ Interactive session to discuss adding a new specialist. Evaluates need, checks f
 
 ## Future Evolution
 
-See `docs/FUTURE_WORK.md` for deferred design ideas (team critic, campaign supervision, automated review gates, Merlin integration) with "revisit when" triggers. Source design documents are archived in `docs/archive/design/`.
+See `docs/FUTURE_WORK.md` for deferred design ideas (team critic, campaign supervision, automated review gates, Merlin integration, hashline editing, isolated execution environments) with "revisit when" triggers. Source design documents are archived in `docs/archive/design/`.
 
 ## Blockers
 

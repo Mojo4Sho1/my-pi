@@ -195,3 +195,33 @@ Fresh context is a design feature, not a workaround. The system should prefer fr
 - Future: segment supervision and campaign execution use the same pattern at a higher scale
 
 **Why explicit:** This principle was implicit in the architecture but unstated. Making it explicit ensures that future design decisions (especially around sequences, escalation, and session persistence) don't accidentally introduce long-lived conversational state as a crutch.
+
+### 26. Structured review findings contract (2026-03-30) [active]
+
+Reviewer outputs become typed: `StructuredReviewOutput` containing a `ReviewVerdict` (`approve`/`request_changes`/`comment`/`blocked`) and `ReviewFinding[]` with a priority ladder (`critical`/`major`/`minor`/`nit`). Each finding carries an id, category, title, explanation, evidence, suggested action, and optional file refs.
+
+**Why now:** The reviewer specialist already exists but outputs loosely formatted prose. The project doctrine strongly favors machine-checkable structure. Typed review output improves synthesis quality in the orchestrator, enables downstream machine consumption, and increases auditability. It also creates a natural bridge into future team-level workflows and is needed before the critic specialist (Stage 5a) can consume structured review artifacts.
+
+**Source:** `docs/archive/design/design_doc.md`, Section 4.2.
+
+### 27. Per-specialist model routing policy (2026-03-30) [active]
+
+Each specialist resolves its model via a 4-level precedence chain: explicit runtime override → project config → specialist default → host default. This is a config/delegation concern — it does not alter packet contracts.
+
+**Why:** Different specialist roles may deserve different model assignments (e.g., planner uses a reasoning model, builder uses a code-editing model). Since specialists are already differentiated typed units, role-aware model routing is a natural extension. The resolution chain ensures flexibility without hard-coding complexity.
+
+**Source:** `docs/archive/design/design_doc.md`, Section 4.3.
+
+### 28. Coding-scoped worklist extension (2026-03-30) [active]
+
+A typed execution-state tracker in `extensions/worklist/` maintaining structured worklist items for coding tasks. State vocabulary: `pending`, `in_progress`, `completed`, `blocked`, `abandoned`. The worklist is coding-scoped only — no general life tasks, personal reminders, or assistant-wide planning.
+
+**Critical boundary:** The worklist is an execution-state aid, NOT a routing authority. The orchestrator may initialize, annotate, and update worklist items, but may NOT delegate based solely on worklist contents, treat the worklist as authoritative routing, or allow specialists to invent new routing paths via worklist manipulation. These interop rules prevent the worklist from becoming a second orchestrator.
+
+**Source:** `docs/archive/design/design_doc.md`, Sections 4.1 and 4.5.
+
+### 29. Design doc observability proposal already satisfied by Stage 4d (2026-03-30) [active]
+
+Design doc item 4.4 (Delegation and Specialist Observability Layer) proposed: specialist selection logging, packet summaries, timestamps, status, escalation reasons, structured output summaries, and optional raw-result capture. All of these are already implemented in Stage 4d via `DelegationLogger`, `DelegationLogEntry`, `TeamSessionArtifact`, and related infrastructure.
+
+**Decision:** No additional observability work needed. Stage 4d satisfies the design doc's observability requirements.

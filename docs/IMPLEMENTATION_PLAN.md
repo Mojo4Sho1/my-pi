@@ -1307,6 +1307,209 @@ export function computeTeamVersion(team: TeamDefinition): string {
 
 ---
 
+## Stage 4e — Substrate Hardening
+
+### Purpose
+
+Strengthen the existing specialist and orchestration substrate before expanding the specialist roster in Stage 5a. This stage adds structured review output, model routing, and a coding-scoped execution-state tracker — all of which benefit the five new specialists immediately upon bootstrap.
+
+See Decisions #26, #27, #28 in `DECISION_LOG.md`. Design doc item 4.4 (observability) is already satisfied by Stage 4d (Decision #29).
+
+### Phase A (4e.1): Tighten Existing Primitives
+
+These improvements tighten the current substrate without adding new objects.
+
+#### Structured Review Findings Contract
+
+**What:** Replace loosely formatted reviewer prose with a typed, machine-checkable output structure.
+
+**Types (added to `extensions/shared/types.ts`):**
+
+```typescript
+type ReviewVerdict = 'approve' | 'request_changes' | 'comment' | 'blocked';
+
+type FindingPriority = 'critical' | 'major' | 'minor' | 'nit';
+
+interface ReviewFinding {
+  id: string;
+  priority: FindingPriority;
+  category: string;
+  title: string;
+  explanation: string;
+  evidence: string;
+  suggestedAction: string;
+  fileRefs?: string[];
+}
+
+interface StructuredReviewOutput {
+  verdict: ReviewVerdict;
+  findings: ReviewFinding[];
+  summary: string;
+}
+```
+
+**Changes:**
+- `extensions/shared/types.ts` — Add `ReviewVerdict`, `FindingPriority`, `ReviewFinding`, `StructuredReviewOutput` types
+- `extensions/specialists/reviewer/prompt.ts` — Update output template to require structured review format
+- `extensions/shared/result-parser.ts` — Add `parseReviewOutput()` that extracts and validates `StructuredReviewOutput` from sub-agent response
+- `extensions/orchestrator/synthesize.ts` — Update synthesis to consume structured findings (aggregate verdicts, surface critical/major findings in summary)
+- `extensions/shared/contracts.ts` — Update reviewer's output contract to declare `StructuredReviewOutput` shape
+
+**Tests (`tests/review-findings.test.ts`):**
+- Contract validation: `StructuredReviewOutput` satisfies reviewer output contract
+- Parser: extracts valid findings from well-formed sub-agent output
+- Parser: handles malformed/missing findings gracefully (falls back to unstructured)
+- Synthesis: multiple findings aggregated correctly, critical findings surfaced
+- Escalation: `blocked` verdict triggers appropriate orchestrator behavior
+- Edge cases: empty findings with `approve` verdict, all-nit findings
+
+#### Per-Specialist Model Routing Policy
+
+**What:** Allow each specialist to resolve its model through a 4-level precedence chain. This is a config/delegation concern — it does not alter packet contracts.
+
+**Resolution chain (highest to lowest priority):**
+1. Explicit runtime override (passed in task packet or delegation call)
+2. Project config (from `pi.getConfig()` or equivalent)
+3. Specialist default (declared in specialist's prompt config)
+4. Host default (whatever Pi provides)
+
+**Types (added to `extensions/shared/types.ts`):**
+
+```typescript
+interface ModelRoutingPolicy {
+  specialistDefaults: Record<string, string>;  // specialistId → model identifier
+}
+
+interface ModelResolutionContext {
+  runtimeOverride?: string;
+  projectConfig?: Record<string, string>;
+  specialistDefault?: string;
+  // host default is implicit (what Pi provides when no model is specified)
+}
+```
+
+**Changes:**
+- `extensions/shared/config.ts` — **NEW** — `resolveModel(context: ModelResolutionContext): string | undefined` implementing the precedence chain. Returns `undefined` when no override applies (use host default).
+- `extensions/shared/types.ts` — Add `ModelRoutingPolicy`, `ModelResolutionContext`
+- `extensions/specialists/*/prompt.ts` — Each specialist declares an optional `preferredModel` in its `SpecialistPromptConfig`
+- `extensions/orchestrator/delegate.ts` — Call `resolveModel()` before spawning sub-agent, pass resolved model to subprocess if non-default
+
+**Tests (`tests/model-routing.test.ts`):**
+- Precedence: runtime override wins over all
+- Precedence: project config wins over specialist default
+- Precedence: specialist default wins over host default
+- Fallback: returns `undefined` when no overrides apply
+- Per-specialist: different specialists resolve different models from same config
+- Resumed session: model resolution is stateless (no session dependency)
+
+### Phase B (4e.2): Execution-State Artifact
+
+Adds a coding-scoped worklist extension once the surrounding contract and visibility story is stronger.
+
+#### Coding-Scoped Worklist Extension
+
+**What:** A separate extension package (`extensions/worklist/`) maintaining structured execution state for coding tasks. The worklist is an execution-state aid, **not a routing authority**. Routing remains the orchestrator's responsibility.
+
+**Scope boundary:** Coding tasks only. No general life tasks, personal reminders, or assistant-wide planning.
+
+**State vocabulary:** `pending`, `in_progress`, `completed`, `blocked`, `abandoned`
+
+**Types (in `extensions/worklist/types.ts`):**
+
+```typescript
+type WorklistItemStatus = 'pending' | 'in_progress' | 'completed' | 'blocked' | 'abandoned';
+
+type WorklistItemKind = 'discovery' | 'planning' | 'implementation' | 'validation' | 'review_gate' | 'blocker' | 'completion_criteria';
+
+interface WorklistItem {
+  id: string;
+  kind: WorklistItemKind;
+  description: string;
+  status: WorklistItemStatus;
+  specialistStage?: string;   // which specialist this is attached to
+  blockReason?: string;       // if status is 'blocked'
+  metadata?: Record<string, unknown>;
+}
+
+interface Worklist {
+  taskId: string;
+  description: string;
+  items: WorklistItem[];
+  createdAt: string;
+  updatedAt: string;
+}
+```
+
+**Operations (in `extensions/worklist/operations.ts`):**
+- `createWorklist(taskId, description): Worklist`
+- `appendItem(worklist, item): Worklist`
+- `updateItemStatus(worklist, itemId, status, reason?): Worklist`
+- `markBlocked(worklist, itemId, reason): Worklist`
+- `attachToSpecialist(worklist, itemId, specialistId): Worklist`
+- `getWorklistSummary(worklist): WorklistSummary` — machine-readable state overview
+
+**Extension entry point (`extensions/worklist/index.ts`):**
+- Registers worklist management tools via Pi extension API
+- Exposes worklist state to active session and downstream specialists when appropriate
+
+**Tests (`tests/worklist.test.ts`):**
+- State transitions: valid transitions (pending → in_progress → completed, etc.)
+- State transitions: invalid transitions rejected
+- Blocker handling: marking blocked requires reason, unblocking clears reason
+- Specialist attachment: items linked to specialist stages
+- Summary: accurate status counts, blocked items surfaced
+- Serialization: worklist round-trips through JSON
+
+#### Worklist/Orchestrator Interop Rules
+
+**What:** Explicit boundary rules preventing the worklist from becoming a second orchestrator.
+
+**The orchestrator MAY:**
+- Initialize a worklist for a multi-step coding task
+- Annotate items with specialist lifecycle events (started, completed, failed)
+- Update item status based on specialist outcomes
+- Stop execution if the worklist reflects a blocking condition
+
+**The orchestrator MAY NOT:**
+- Delegate based solely on worklist contents
+- Treat the worklist as authoritative routing
+- Allow specialists to invent new routing paths via worklist manipulation
+
+**Implementation:** These rules are enforced by API design — the worklist exposes read/update operations but no routing or delegation primitives. The orchestrator reads worklist state for status awareness but uses its own selection logic (`select.ts`) for routing decisions.
+
+**Tests (`tests/worklist-interop.test.ts`):**
+- Orchestrator can initialize and update worklist items
+- Worklist state does not influence specialist selection
+- Specialists cannot modify routing through worklist manipulation
+- Blocked worklist items are surfaced in orchestrator synthesis
+
+### Exit Criteria
+
+- `StructuredReviewOutput` types exist with validation tests
+- Reviewer sub-agent output is machine-parseable with fallback for malformed output
+- Model routing resolves correctly through the 4-level precedence chain
+- Worklist extension manages typed items within its coding scope
+- Worklist/orchestrator boundary enforced: worklist informs status, not routing
+- All existing tests pass (no regressions)
+
+### Dependencies
+
+- Stage 4d complete (observability infrastructure, logging patterns) ✓
+
+### Key files to read before implementing
+
+| File | Why |
+|------|-----|
+| `extensions/shared/types.ts` | Where new types are added |
+| `extensions/shared/contracts.ts` | Existing contract validation patterns to extend |
+| `extensions/shared/result-parser.ts` | Where review output parsing hooks in |
+| `extensions/specialists/reviewer/prompt.ts` | Reviewer prompt config to update |
+| `extensions/orchestrator/synthesize.ts` | Where structured findings feed into synthesis |
+| `extensions/orchestrator/delegate.ts` | Where model routing hooks into delegation |
+| `extensions/shared/logging.ts` | Existing logging patterns (4d) to follow |
+
+---
+
 # Stage 5 — Meta-Teams and Self-Expansion
 
 ## Purpose

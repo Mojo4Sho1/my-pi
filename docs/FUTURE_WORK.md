@@ -90,3 +90,32 @@ Design checkpoint packages for Merlin consumption, enable cross-campaign continu
 **Source:** `docs/archive/design/SEGMENT_SUPERVISION_AND_EPISODIC_EXECUTION.md`, "Relationship to Merlin" section.
 
 **Revisit when:** Merlin exists as a concrete system with defined interfaces.
+
+---
+
+## Hashline Editing Extension
+
+An editing-substrate experiment that provides hashline-based file editing as a separate PI extension, orthogonal to the orchestration layer. PI allows extensions to override built-in tools (`read`, `edit`, `grep`) by registering tools with the same names, or to run with `--no-tools` and provide extension-owned implementations. This means hashline editing can be tested as a separate extension beneath `my-pi` rather than as a rewrite of the orchestrator.
+
+Key constraints: do not add hashline logic to the orchestrator, do not make it part of the orchestration milestone, test on a dedicated branch as an editing-substrate extension, adopt only if it clearly improves edit reliability for the chosen model mix.
+
+Proposed ownership: `extensions/hashline-tools/` (short term) or an external companion package.
+
+**Source:** `docs/archive/design/design_doc.md`, Section 5.1.
+
+**Revisit when:** The core workflow substrate (through Stage 5a at minimum) is stable and there's a concrete need to improve edit reliability for the chosen model mix. Should be evaluated with explicit comparative testing on the actual `my-pi` model/tool stack, not just by proxy from external benchmarks.
+
+---
+
+## Isolated Execution Environments
+
+Running specialists or entire teams in isolated backends (e.g., sandboxed workspaces, separate branches) with explicit merge behavior. Applies at two levels:
+
+1. **Specialist-level isolation** — an individual specialist executes in its own sandbox, merging results back on success.
+2. **Team-level isolation** — the team as an opaque unit operates in its own sandbox. Since teams already present an opaque interface (send TaskPacket in, get ResultPacket out), isolating the entire team preserves that abstraction cleanly. Results are merged only on successful team completion.
+
+Should be introduced as an **execution backend abstraction**, not as ad-hoc per-specialist or per-team behavior. The abstraction should work uniformly across both levels.
+
+**Source:** `docs/archive/design/design_doc.md`, Section 5.2.
+
+**Revisit when:** Routing and contracts are solidified (through Stage 5a at minimum) and there's demand for stronger execution isolation at either the specialist or team level. The current architecture benefits more from stronger contracts, observability, and routing clarity than from infrastructure-heavy isolation layers.
