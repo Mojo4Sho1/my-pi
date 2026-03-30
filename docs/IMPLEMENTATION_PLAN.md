@@ -34,8 +34,9 @@ Live execution state belongs in `STATUS.md`. This document defines the sequence 
    - 4b: Team definition format and router
    - 4c: Schema validation
    - 4d: Observability
+   - 4e: Substrate hardening (structured review findings, model routing, worklist)
 5. Meta-teams and self-expansion
-   - 5a: Bootstrap specialists (spec-writer, critic)
+   - 5a: Bootstrap specialists (spec-writer, schema-designer, routing-designer, critic, boundary-auditor)
    - 5b: Specialist-creator team (first meta-team)
    - 5c: Team-creator team
    - 5d: Sequence definition and execution
@@ -1307,7 +1308,7 @@ export function computeTeamVersion(team: TeamDefinition): string {
 
 ---
 
-## Stage 4e — Substrate Hardening
+## Stage 4e — Substrate Hardening [NOT STARTED]
 
 ### Purpose
 
@@ -1584,6 +1585,7 @@ Compliance review should precede quality review — there's no point evaluating 
 ### Dependencies
 
 - Stage 4a complete (I/O contracts — so the new specialists have typed contracts from the start)
+- Stage 4e complete (structured review findings — so the critic can consume typed review output; model routing — so new specialists can declare model preferences)
 
 ### Implementation Notes (pre-resolved design decisions)
 
@@ -2461,6 +2463,7 @@ Not every creation needs every specialist — the planner decides which are rele
 - Stage 5a complete (spec-writer and critic available)
 - Stage 4b complete (team infrastructure)
 - Stage 4c complete (schema validation for new primitives)
+- Stage 4e complete (model routing, worklist for tracking multi-step creation workflows)
 
 ---
 
@@ -2719,14 +2722,15 @@ Stage 1 (types)
   → Stage 2 (builder)
     → Stage 3a (shared infra) → 3b (specialists) → 3c (orchestrator) → 3c.1 (context) → 3d (integration)
       → Stage 4a (I/O contracts) → 4b (teams) → 4c (validation) → 4d (observability)
-        → Stage 5a (bootstrap: spec-writer + critic)
-          → Stage 5b (specialist-creator team) → 5c (team-creator team)
-        → Stage 5d (sequences) → 5e (sequence-creator team)
-        → Stage 5f (seed-creator team) [depends on 5b]
-        → Stage 5g (discovery)
-        → Stage 5h (escalation)
-          → Stage 6a (/plan) → 6b (/next)
-          → Stage 6c (/specialist) [depends on 5b]
+        → Stage 4e (substrate hardening: review findings, model routing, worklist)
+          → Stage 5a (bootstrap: spec-writer, schema-designer, routing-designer, critic, boundary-auditor)
+            → Stage 5b (specialist-creator team) → 5c (team-creator team)
+          → Stage 5d (sequences) → 5e (sequence-creator team)
+          → Stage 5f (seed-creator team) [depends on 5b]
+          → Stage 5g (discovery)
+          → Stage 5h (escalation)
+            → Stage 6a (/plan) → 6b (/next)
+            → Stage 6c (/specialist) [depends on 5b]
 ```
 
 Stages within the same level can be parallelized where dependencies allow. Do not skip stages.

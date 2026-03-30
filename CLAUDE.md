@@ -67,7 +67,7 @@ See `STATUS.md` for live project state. The project follows a staged implementat
 1. **Foundation and shared types** (complete) — TypeScript interfaces, packet validation, routing utilities
 2. **First specialist extension (builder)** (complete) — proved sub-agent delegation pattern
 3. **Remaining specialists + orchestrator** (complete) — full delegation loop with selective context forwarding
-4. **Team routing and validation** (4a+4b complete, 4c+4d next) — I/O contracts, team router, state-machine teams
+4. **Team routing and validation** (4a–4d complete, 4e next) — I/O contracts, team router, state-machine teams, substrate hardening
 5. **Meta-teams and expansion** — teams that build other primitives, sequences
 6. **Slash commands and interactive workflows** — `/plan`, `/next`, `/specialist`
 

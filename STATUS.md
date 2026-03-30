@@ -101,9 +101,9 @@ All 3d tests are **integration tests with mocked subprocesses** (not live sub-ag
 
 **Testing approach:** Mock at `spawnSpecialistAgent` level (same pattern as `tests/orchestrator-delegate.test.ts`). Use `vi.doMock()` with `.mockResolvedValueOnce()` chaining per specialist to simulate the full chain. All 188 tests pass (173 existing + 15 new).
 
-### Stage 4 — Team Routing and Validation [COMPLETE]
+### Stage 4 — Team Routing and Validation [IN PROGRESS]
 
-**Note:** 4a + 4b are implemented together (Decision #24). 4c + 4d follow as a separate pass.
+**Note:** 4a + 4b implemented together (Decision #24). 4c + 4d followed as a separate pass. 4e (substrate hardening) added from design doc review (Decisions #26–29) — not yet started.
 
 #### 4a — I/O Contracts and Typed Deliverables [COMPLETE]
 - [x] Define `InputContract` and `OutputContract` types in `extensions/shared/types.ts`
