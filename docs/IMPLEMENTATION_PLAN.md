@@ -1318,20 +1318,37 @@ See Decisions #26, #27, #28 in `DECISION_LOG.md`. Design doc item 4.4 (observabi
 
 ### Phase A (4e.1): Tighten Existing Primitives
 
-These improvements tighten the current substrate without adding new objects.
+**Two workstreams.** Phase A has two deliverables that should be implemented in order:
 
-#### Structured Review Findings Contract
+1. Structured review findings contract (reviewer output becomes typed)
+2. Per-specialist model routing policy (specialists can declare model preferences)
 
-**What:** Replace loosely formatted reviewer prose with a typed, machine-checkable output structure.
+Workstream 1 is self-contained. Workstream 2 is self-contained. Neither depends on the other, but implementing them in order avoids merge conflicts in shared files.
+
+#### What this phase does NOT do
+
+- Does not change the reviewer's `inputContract` (only the `outputContract` changes)
+- Does not add a UI or CLI for viewing review findings (findings are in ResultPacket deliverables, queryable by future tooling)
+- Does not enforce model routing at the Pi platform level (model routing is advisory — if Pi doesn't support a `--model` flag, the resolved model is logged but the host default is used)
+- Does not add model routing to team-level delegation (only specialist-level)
+- Does not retroactively populate `preferredModel` on existing specialists (they use `undefined`, meaning host default)
+
+---
+
+#### Workstream 1: Structured Review Findings Contract
+
+**Approach: typed reviewer output.** The reviewer's `outputContract` is replaced with a structured format. The existing `buildOutputFormatBlock()` in `specialist-prompt.ts` already generates JSON output templates from `outputContract.fields`, so updating the contract automatically updates what the reviewer is asked to produce. A new `parseReviewOutput()` function extracts and validates the structured output from the sub-agent response. Synthesis is updated to consume verdicts and surface critical findings.
 
 **Types (added to `extensions/shared/types.ts`):**
 
 ```typescript
-type ReviewVerdict = 'approve' | 'request_changes' | 'comment' | 'blocked';
+// --- Structured Review Findings (Stage 4e) ---
 
-type FindingPriority = 'critical' | 'major' | 'minor' | 'nit';
+export type ReviewVerdict = "approve" | "request_changes" | "comment" | "blocked";
 
-interface ReviewFinding {
+export type FindingPriority = "critical" | "major" | "minor" | "nit";
+
+export interface ReviewFinding {
   id: string;
   priority: FindingPriority;
   category: string;
@@ -1342,66 +1359,515 @@ interface ReviewFinding {
   fileRefs?: string[];
 }
 
-interface StructuredReviewOutput {
+export interface StructuredReviewOutput {
   verdict: ReviewVerdict;
   findings: ReviewFinding[];
   summary: string;
 }
 ```
 
-**Changes:**
-- `extensions/shared/types.ts` — Add `ReviewVerdict`, `FindingPriority`, `ReviewFinding`, `StructuredReviewOutput` types
-- `extensions/specialists/reviewer/prompt.ts` — Update output template to require structured review format
-- `extensions/shared/result-parser.ts` — Add `parseReviewOutput()` that extracts and validates `StructuredReviewOutput` from sub-agent response
-- `extensions/orchestrator/synthesize.ts` — Update synthesis to consume structured findings (aggregate verdicts, surface critical/major findings in summary)
-- `extensions/shared/contracts.ts` — Update reviewer's output contract to declare `StructuredReviewOutput` shape
+All fields on `ReviewFinding` are required except `fileRefs`. The `id` is author-assigned by the reviewer sub-agent (e.g., `"F1"`, `"F2"`). The `category` is freeform (e.g., `"scope"`, `"correctness"`, `"style"`).
+
+**Verdict-to-status mapping.** The reviewer sub-agent still outputs a top-level `status` field (required by all specialists). The `verdict` is an additional field specific to the reviewer's structured output. The mapping:
+
+| verdict | status | Meaning |
+|---------|--------|---------|
+| `approve` | `success` | Review passed |
+| `request_changes` | `partial` | Actionable issues found, not blocking |
+| `comment` | `success` | Informational findings only, no action required |
+| `blocked` | `failure` | Cannot proceed, critical issues |
+
+The reviewer sub-agent is instructed to set `status` consistent with `verdict`. If they conflict, `status` takes precedence for routing (it's what the orchestrator and team router already use). `verdict` provides richer semantics for synthesis and downstream consumers.
+
+**Reviewer output contract update (`extensions/specialists/reviewer/prompt.ts`):**
+
+Replace the existing `outputContract` on `REVIEWER_PROMPT_CONFIG`:
+
+```typescript
+// BEFORE (current):
+outputContract: {
+  fields: [
+    { name: "findings", type: "string[]", required: true, description: "Review findings" },
+    { name: "approved", type: "boolean", required: true, description: "Whether the review passed" },
+    { name: "blockers", type: "string[]", required: true, description: "Blocking issues found" },
+  ],
+},
+
+// AFTER (4e):
+outputContract: {
+  fields: [
+    { name: "verdict", type: "string", required: true, description: "Review verdict: approve | request_changes | comment | blocked" },
+    { name: "findings", type: "object", required: true, description: "Array of ReviewFinding objects: [{id, priority, category, title, explanation, evidence, suggestedAction, fileRefs?}]" },
+    { name: "summary", type: "string", required: true, description: "Brief summary of review outcome" },
+  ],
+},
+```
+
+Note: `findings` uses `ContractFieldType = "object"` because the contract system doesn't have an `"object[]"` type. The `"object"` type passes `matchesType()` for any non-null object including arrays. The `description` field documents the expected shape. Runtime validation of individual `ReviewFinding` objects happens in `parseReviewOutput()`, not in the contract system.
+
+**The output template is auto-generated.** Because `buildOutputFormatBlock()` in `specialist-prompt.ts` reads `outputContract.fields` and calls `getFieldExample(type)`, updating the contract automatically changes the JSON template in the reviewer's system prompt. For `"object"` type, `getFieldExample()` returns `{}`. To produce a better example, add a special case for the reviewer in the system prompt construction — see below.
+
+**Reviewer system prompt enhancement.** Add a `outputFormatOverride?: string` field to `SpecialistPromptConfig`:
+
+```typescript
+// In extensions/shared/specialist-prompt.ts, add to SpecialistPromptConfig:
+export interface SpecialistPromptConfig {
+  // ... existing fields ...
+  outputFormatOverride?: string;  // NEW: if set, replaces the auto-generated output format block
+}
+```
+
+Then in `buildSpecialistSystemPrompt()`, check for `outputFormatOverride` before calling `buildOutputFormatBlock()`:
+
+```typescript
+// In buildSpecialistSystemPrompt():
+const outputBlock = config.outputFormatOverride
+  ? config.outputFormatOverride
+  : buildOutputFormatBlock(config);
+```
+
+Set `outputFormatOverride` on `REVIEWER_PROMPT_CONFIG` to provide a concrete example:
+
+```typescript
+outputFormatOverride: `Respond with a JSON block in this exact format:
+
+\`\`\`json
+{
+  "status": "success | partial | failure | escalation",
+  "summary": "Brief summary of review outcome",
+  "verdict": "approve | request_changes | comment | blocked",
+  "findings": [
+    {
+      "id": "F1",
+      "priority": "critical | major | minor | nit",
+      "category": "scope | correctness | style | security | performance | contract",
+      "title": "Short title of the finding",
+      "explanation": "What the issue is and why it matters",
+      "evidence": "Specific code, line, or artifact that demonstrates the issue",
+      "suggestedAction": "What should be done to address this",
+      "fileRefs": ["path/to/file.ts"]
+    }
+  ],
+  "modifiedFiles": [],
+  "escalation": { "reason": "...", "suggestedAction": "..." }
+}
+\`\`\`
+
+Set status consistent with verdict: approve/comment → "success", request_changes → "partial", blocked → "failure".
+The findings array must always be present (use [] if no findings).
+The escalation field is only required when status is "escalation".`,
+```
+
+**parseReviewOutput() function (`extensions/shared/result-parser.ts`):**
+
+Add a new exported function that extracts `StructuredReviewOutput` from a `ParsedSpecialistResult`. This runs *after* `parseSpecialistOutput()` — it's a second-pass parser for reviewer-specific structure, not a replacement for the generic parser.
+
+```typescript
+import type { StructuredReviewOutput, ReviewFinding, ReviewVerdict, FindingPriority } from "./types.js";
+
+const VALID_VERDICTS: readonly ReviewVerdict[] = ["approve", "request_changes", "comment", "blocked"];
+const VALID_PRIORITIES: readonly FindingPriority[] = ["critical", "major", "minor", "nit"];
+
+/**
+ * Extract structured review output from a parsed specialist result.
+ * Called after parseSpecialistOutput() for reviewer results only.
+ *
+ * @param parsedResult - The generic ParsedSpecialistResult from parseSpecialistOutput()
+ * @param rawJson - The raw JSON object extracted during initial parsing (if available)
+ * @returns StructuredReviewOutput if valid structured data found, undefined otherwise
+ */
+export function parseReviewOutput(
+  parsedResult: ParsedSpecialistResult,
+  rawJson?: Record<string, unknown>
+): StructuredReviewOutput | undefined
+```
+
+**Implementation logic:**
+
+1. If `rawJson` is provided and has `verdict` and `findings` fields, attempt structured extraction
+2. Validate `verdict` is one of `VALID_VERDICTS`; if not, return `undefined`
+3. Validate `findings` is an array; if not, return `undefined`
+4. For each finding in the array, validate required fields (`id`, `priority`, `category`, `title`, `explanation`, `evidence`, `suggestedAction`). Skip findings that are malformed (filter, don't reject the whole output)
+5. Validate each finding's `priority` is one of `VALID_PRIORITIES`; default to `"minor"` if invalid
+6. Return `{ verdict, findings: validFindings, summary: parsedResult.summary }`
+7. If no valid structured data found, return `undefined`
+
+**To make rawJson available:** Modify `parseSpecialistOutput()` to also return the raw parsed JSON object. Change the return type:
+
+```typescript
+// BEFORE:
+export function parseSpecialistOutput(finalText: string, sourceAgentId: string): ParsedSpecialistResult
+
+// AFTER:
+export interface ParseResult {
+  result: ParsedSpecialistResult;
+  rawJson?: Record<string, unknown>;  // The raw JSON object, if one was found
+}
+
+export function parseSpecialistOutput(finalText: string, sourceAgentId: string): ParseResult
+```
+
+**Update all callers of `parseSpecialistOutput()`** to destructure the new return type:
+
+```typescript
+// In delegate.ts, change:
+const parsedResult = parseSpecialistOutput(subAgentResult.finalText, agentId);
+// To:
+const { result: parsedResult, rawJson } = parseSpecialistOutput(subAgentResult.finalText, agentId);
+```
+
+There are two callers: `delegateToSpecialist()` in `delegate.ts` and `executeTeam()` in `teams/router.ts`. Both need this update.
+
+**Where parseReviewOutput() is called.** In `delegateToSpecialist()` in `delegate.ts`, after parsing:
+
+```typescript
+const { result: parsedResult, rawJson } = parseSpecialistOutput(subAgentResult.finalText, agentId);
+
+// If this is a reviewer result, attempt structured extraction
+let reviewOutput: StructuredReviewOutput | undefined;
+if (input.promptConfig.id === "specialist_reviewer" && rawJson) {
+  reviewOutput = parseReviewOutput(parsedResult, rawJson);
+}
+```
+
+The `reviewOutput` is stored in the `ResultPacket.context` field (which is currently unused on result packets — it's only on task packets). **Instead**, attach it to a new optional field on `DelegationOutput`:
+
+```typescript
+// In delegate.ts, add to DelegationOutput:
+export interface DelegationOutput {
+  resultPacket: ResultPacket;
+  success: boolean;
+  sessionArtifact?: TeamSessionArtifact;
+  reviewOutput?: StructuredReviewOutput;  // NEW: populated for reviewer results only
+}
+```
+
+**Synthesis update (`extensions/orchestrator/synthesize.ts`):**
+
+The orchestrator's `index.ts` calls `synthesizeResults()`. To pass structured review data through, update the synthesis interface:
+
+```typescript
+// BEFORE:
+export function synthesizeResults(results: ResultPacket[]): SynthesizedResult
+
+// AFTER:
+export interface SynthesisInput {
+  results: ResultPacket[];
+  reviewOutputs?: Map<string, StructuredReviewOutput>;  // keyed by sourceAgent
+}
+
+export function synthesizeResults(input: SynthesisInput): SynthesizedResult
+```
+
+**Synthesis logic changes:**
+
+1. After computing `overallStatus` (existing logic unchanged), check `reviewOutputs`
+2. If any review has `verdict === "blocked"`, append to summary: `"\n\n⚠ BLOCKED: {finding.title}"` for each critical finding
+3. If any review has critical or major findings, append to summary: `"\n\nReview findings ({N} critical, {M} major): {titles}"`
+4. Add a new field to `SynthesizedResult`:
+
+```typescript
+export interface SynthesizedResult {
+  overallStatus: PacketStatus;
+  summary: string;
+  specialistsInvoked: string[];
+  results: ResultPacket[];
+  reviewFindings?: StructuredReviewOutput;  // NEW: first reviewer's structured output, if available
+}
+```
+
+**Update the orchestrator's index.ts** to build the `reviewOutputs` map from `DelegationOutput[]` and pass it to `synthesizeResults()`.
+
+**Workstream 1 file changes:**
+
+| File | Action |
+|------|--------|
+| `extensions/shared/types.ts` | **MODIFY** — Add `ReviewVerdict`, `FindingPriority`, `ReviewFinding`, `StructuredReviewOutput` types |
+| `extensions/shared/specialist-prompt.ts` | **MODIFY** — Add `outputFormatOverride?: string` to `SpecialistPromptConfig`, use it in `buildSpecialistSystemPrompt()` |
+| `extensions/specialists/reviewer/prompt.ts` | **MODIFY** — Replace `outputContract` fields, add `outputFormatOverride` with concrete example |
+| `extensions/shared/result-parser.ts` | **MODIFY** — Change `parseSpecialistOutput()` return to `ParseResult`, add `parseReviewOutput()` |
+| `extensions/orchestrator/delegate.ts` | **MODIFY** — Destructure new `ParseResult`, call `parseReviewOutput()` for reviewer, add `reviewOutput` to `DelegationOutput` |
+| `extensions/teams/router.ts` | **MODIFY** — Destructure new `ParseResult` return type (no other changes) |
+| `extensions/orchestrator/synthesize.ts` | **MODIFY** — Change to `SynthesisInput`, add review finding surfacing, add `reviewFindings` to `SynthesizedResult` |
+| `extensions/orchestrator/index.ts` | **MODIFY** — Build `reviewOutputs` map, pass `SynthesisInput` to `synthesizeResults()` |
+| `tests/review-findings.test.ts` | **NEW** — See test spec below |
 
 **Tests (`tests/review-findings.test.ts`):**
-- Contract validation: `StructuredReviewOutput` satisfies reviewer output contract
-- Parser: extracts valid findings from well-formed sub-agent output
-- Parser: handles malformed/missing findings gracefully (falls back to unstructured)
-- Synthesis: multiple findings aggregated correctly, critical findings surfaced
-- Escalation: `blocked` verdict triggers appropriate orchestrator behavior
-- Edge cases: empty findings with `approve` verdict, all-nit findings
 
-#### Per-Specialist Model Routing Policy
+```typescript
+import { describe, it, expect } from "vitest";
+import { parseReviewOutput } from "../extensions/shared/result-parser.js";
+import { parseSpecialistOutput } from "../extensions/shared/result-parser.js";
+import { synthesizeResults } from "../extensions/orchestrator/synthesize.js";
+import type { StructuredReviewOutput, ReviewFinding } from "../extensions/shared/types.js";
+import { createResultPacket } from "../extensions/shared/packets.js";
 
-**What:** Allow each specialist to resolve its model through a 4-level precedence chain. This is a config/delegation concern — it does not alter packet contracts.
+describe("parseReviewOutput", () => {
+  // Test: valid structured output with all fields
+  // Test: valid output with empty findings array (approve verdict)
+  // Test: returns undefined when verdict is missing
+  // Test: returns undefined when verdict is invalid string
+  // Test: returns undefined when findings is not an array
+  // Test: filters out malformed findings (missing required fields), keeps valid ones
+  // Test: defaults invalid priority to "minor"
+  // Test: preserves optional fileRefs when present
+  // Test: returns undefined when rawJson is undefined
+});
 
-**Resolution chain (highest to lowest priority):**
-1. Explicit runtime override (passed in task packet or delegation call)
-2. Project config (from `pi.getConfig()` or equivalent)
-3. Specialist default (declared in specialist's prompt config)
-4. Host default (whatever Pi provides)
+describe("parseSpecialistOutput return type", () => {
+  // Test: returns { result, rawJson } when JSON is found
+  // Test: returns { result, rawJson: undefined } when no JSON found (fallback)
+});
+
+describe("synthesizeResults with review findings", () => {
+  // Test: review findings surfaced in summary when critical findings present
+  // Test: blocked verdict appends warning to summary
+  // Test: all-nit findings do not modify summary
+  // Test: reviewFindings populated on SynthesizedResult when reviewer present
+  // Test: synthesis works normally when no reviewOutputs provided (backward compat)
+});
+```
+
+---
+
+#### Workstream 2: Per-Specialist Model Routing Policy
+
+**Approach: resolution function + subprocess parameter.** A pure function `resolveModel()` implements the 4-level precedence chain. The resolved model is passed to `spawnSpecialistAgent()` via a new optional parameter. If a model is resolved, it's passed as `--model {modelId}` to the Pi CLI. If the Pi CLI doesn't support `--model`, the parameter is silently ignored and the resolution is logged for observability.
+
+**Pi CLI model flag status.** The Pi CLI documentation in `docs/PI_EXTENSION_API.md` does not document a `--model` flag. However, the Pi CLI is actively developed and model selection is a natural capability. The implementation adds `--model` support optimistically:
+- If Pi supports it: model routing works end-to-end
+- If Pi doesn't support it yet: the flag is passed but may be ignored by Pi. The `DelegationLogger` logs the resolved model for observability. No runtime error — Pi will use its default model.
+
+This is consistent with the existing project risk: "Sub-agent spawning pattern needs hands-on validation with Pi CLI."
 
 **Types (added to `extensions/shared/types.ts`):**
 
 ```typescript
-interface ModelRoutingPolicy {
+// --- Model Routing (Stage 4e) ---
+
+export interface ModelRoutingPolicy {
   specialistDefaults: Record<string, string>;  // specialistId → model identifier
 }
 
-interface ModelResolutionContext {
-  runtimeOverride?: string;
-  projectConfig?: Record<string, string>;
-  specialistDefault?: string;
-  // host default is implicit (what Pi provides when no model is specified)
+export interface ModelResolutionContext {
+  runtimeOverride?: string;       // From DelegationInput or task packet
+  projectConfig?: string;         // From project-level model config
+  specialistDefault?: string;     // From SpecialistPromptConfig.preferredModel
+  // Host default is implicit (Pi's own model selection when no --model flag)
 }
 ```
 
-**Changes:**
-- `extensions/shared/config.ts` — **NEW** — `resolveModel(context: ModelResolutionContext): string | undefined` implementing the precedence chain. Returns `undefined` when no override applies (use host default).
-- `extensions/shared/types.ts` — Add `ModelRoutingPolicy`, `ModelResolutionContext`
-- `extensions/specialists/*/prompt.ts` — Each specialist declares an optional `preferredModel` in its `SpecialistPromptConfig`
-- `extensions/orchestrator/delegate.ts` — Call `resolveModel()` before spawning sub-agent, pass resolved model to subprocess if non-default
+**resolveModel() function (`extensions/shared/config.ts` — NEW file):**
+
+```typescript
+import type { ModelResolutionContext } from "./types.js";
+
+/**
+ * Resolve which model a specialist should use, following a 4-level precedence chain.
+ * Returns undefined when no override applies (use host default).
+ *
+ * Precedence (highest to lowest):
+ * 1. runtimeOverride — explicit override passed in DelegationInput
+ * 2. projectConfig — project-level model assignment
+ * 3. specialistDefault — declared in specialist's SpecialistPromptConfig
+ * 4. (implicit) host default — Pi's own model selection
+ *
+ * @param context - ModelResolutionContext with optional values at each level
+ * @returns Model identifier string, or undefined to use host default
+ */
+export function resolveModel(context: ModelResolutionContext): string | undefined {
+  return context.runtimeOverride
+    ?? context.projectConfig
+    ?? context.specialistDefault
+    ?? undefined;
+}
+```
+
+The function is intentionally trivial — the value is in the typed interface and the integration points, not in complex logic.
+
+**SpecialistPromptConfig update (`extensions/shared/specialist-prompt.ts`):**
+
+```typescript
+export interface SpecialistPromptConfig {
+  // ... existing fields ...
+  outputFormatOverride?: string;  // From workstream 1
+  preferredModel?: string;        // NEW: specialist's default model preference
+}
+```
+
+Existing specialists (builder, planner, reviewer, tester) do NOT set `preferredModel` — they use `undefined`, meaning host default. Future specialists (Stage 5a) can set it if desired.
+
+**spawnSpecialistAgent() update (`extensions/shared/subprocess.ts`):**
+
+Add optional `model` parameter:
+
+```typescript
+// BEFORE:
+export function spawnSpecialistAgent(
+  systemPrompt: string,
+  taskPrompt: string,
+  signal?: AbortSignal,
+  timeoutMs: number = DEFAULT_TIMEOUT_MS
+): Promise<SubAgentResult>
+
+// AFTER:
+export function spawnSpecialistAgent(
+  systemPrompt: string,
+  taskPrompt: string,
+  signal?: AbortSignal,
+  timeoutMs: number = DEFAULT_TIMEOUT_MS,
+  model?: string
+): Promise<SubAgentResult>
+```
+
+In the implementation, conditionally add `--model` to the spawn args:
+
+```typescript
+const args = ["--print", "-s", systemPrompt, "-p", taskPrompt];
+if (model) {
+  args.push("--model", model);
+}
+const child = spawn("pi", args, { stdio: ["ignore", "pipe", "pipe"], signal: ... });
+```
+
+**DelegationInput update (`extensions/orchestrator/delegate.ts`):**
+
+```typescript
+export interface DelegationInput {
+  promptConfig: SpecialistPromptConfig;
+  taskPacket: TaskPacket;
+  signal?: AbortSignal;
+  logger?: DelegationLogger;
+  modelOverride?: string;    // NEW: runtime model override (highest precedence)
+  projectModelConfig?: string;  // NEW: project-level model for this specialist
+}
+```
+
+**Where resolveModel() is called** — in `delegateToSpecialist()`, after building prompts and before spawning:
+
+```typescript
+// In delegateToSpecialist(), after prompt building:
+const resolvedModel = resolveModel({
+  runtimeOverride: input.modelOverride,
+  projectConfig: input.projectModelConfig,
+  specialistDefault: input.promptConfig.preferredModel,
+});
+
+// Log the resolved model for observability
+if (resolvedModel && input.logger) {
+  input.logger.log({
+    timestamp: new Date().toISOString(),
+    level: "info",
+    event: "delegation_start",  // reuse existing event, model info in summary
+    sourceAgent: "orchestrator",
+    targetAgent: input.promptConfig.id,
+    taskId: input.taskPacket.id,
+    summary: `Model resolved: ${resolvedModel}`,
+  });
+}
+
+// Pass to subprocess
+const subAgentResult = await spawnSpecialistAgent(
+  systemPrompt,
+  taskPrompt,
+  input.signal,
+  DEFAULT_TIMEOUT_MS,
+  resolvedModel  // NEW parameter
+);
+```
+
+**How the orchestrator provides modelOverride and projectModelConfig.** The orchestrator's `index.ts` `execute()` function receives `params` from the tool call. Add optional `modelOverride` to the orchestrate tool's parameters. For `projectModelConfig`, the orchestrator can read from a config source in the future — for now, it's passed through from the tool params or left undefined.
+
+```typescript
+// In extensions/orchestrator/index.ts, update the tool parameter schema:
+parameters: {
+  // ... existing params ...
+  modelOverride: { type: "string", description: "Override model for all specialists in this delegation", optional: true },
+}
+```
+
+When building `DelegationInput` for each specialist, pass through:
+
+```typescript
+const delegationInput: DelegationInput = {
+  promptConfig: getPromptConfig(specialistId),
+  taskPacket,
+  signal,
+  logger,
+  modelOverride: params.modelOverride as string | undefined,
+  // projectModelConfig left undefined until a config source is wired up
+};
+```
+
+**Workstream 2 file changes:**
+
+| File | Action |
+|------|--------|
+| `extensions/shared/types.ts` | **MODIFY** — Add `ModelRoutingPolicy`, `ModelResolutionContext` |
+| `extensions/shared/config.ts` | **NEW** — `resolveModel()` function |
+| `extensions/shared/specialist-prompt.ts` | **MODIFY** — Add `preferredModel?: string` to `SpecialistPromptConfig` |
+| `extensions/shared/subprocess.ts` | **MODIFY** — Add `model?: string` parameter to `spawnSpecialistAgent()` |
+| `extensions/orchestrator/delegate.ts` | **MODIFY** — Add `modelOverride?`, `projectModelConfig?` to `DelegationInput`, call `resolveModel()`, pass model to subprocess |
+| `extensions/orchestrator/index.ts` | **MODIFY** — Add `modelOverride` to orchestrate tool params, pass through to delegation |
+| `tests/model-routing.test.ts` | **NEW** — See test spec below |
 
 **Tests (`tests/model-routing.test.ts`):**
-- Precedence: runtime override wins over all
-- Precedence: project config wins over specialist default
-- Precedence: specialist default wins over host default
-- Fallback: returns `undefined` when no overrides apply
-- Per-specialist: different specialists resolve different models from same config
-- Resumed session: model resolution is stateless (no session dependency)
+
+```typescript
+import { describe, it, expect } from "vitest";
+import { resolveModel } from "../extensions/shared/config.js";
+import type { ModelResolutionContext } from "../extensions/shared/types.js";
+
+describe("resolveModel", () => {
+  // Test: returns runtimeOverride when all levels provided
+  // Test: returns projectConfig when no runtimeOverride
+  // Test: returns specialistDefault when no runtimeOverride or projectConfig
+  // Test: returns undefined when no levels provided (use host default)
+  // Test: returns runtimeOverride even when it's an empty-ish value? No — only non-undefined values count
+  // Test: different specialists resolve different models from different defaults
+});
+```
+
+Six tests. Pure function, no mocking needed.
+
+**Additional integration test (add to `tests/orchestrator-delegate.test.ts`):**
+
+```typescript
+// Test: delegateToSpecialist passes resolved model to spawnSpecialistAgent
+// Test: delegateToSpecialist passes undefined model when no overrides (host default)
+// Test: modelOverride in DelegationInput takes precedence over promptConfig.preferredModel
+```
+
+---
+
+### Phase A (4e.1) exit criteria
+
+- `StructuredReviewOutput` types exist and are exported from `types.ts`
+- Reviewer's `outputContract` uses the new three-field structure (verdict, findings, summary)
+- Reviewer's system prompt includes concrete JSON example via `outputFormatOverride`
+- `parseReviewOutput()` extracts valid findings and returns `undefined` for malformed output
+- `parseSpecialistOutput()` returns `ParseResult` with `rawJson` (backward-compatible for all callers)
+- `synthesizeResults()` accepts `SynthesisInput` and surfaces critical/major findings in summary
+- `resolveModel()` implements 4-level precedence chain
+- `spawnSpecialistAgent()` accepts optional `model` parameter
+- `DelegationInput` accepts `modelOverride` and `projectModelConfig`
+- All new code has tests; all 280 existing tests still pass (no regressions)
+
+### Key files to read before implementing 4e.1
+
+A fresh agent implementing 4e.1 should read ONLY these files. No other exploration is needed — all design decisions are pre-resolved above.
+
+| File | Why |
+|------|-----|
+| `extensions/shared/types.ts` | Where new types are added (end of file) |
+| `extensions/shared/specialist-prompt.ts` | Where `SpecialistPromptConfig` is defined and `buildOutputFormatBlock()` generates templates |
+| `extensions/specialists/reviewer/prompt.ts` | Where `REVIEWER_PROMPT_CONFIG` is updated |
+| `extensions/shared/result-parser.ts` | Where `parseSpecialistOutput()` return type changes and `parseReviewOutput()` is added |
+| `extensions/orchestrator/delegate.ts` | Where model resolution and review output extraction hook in |
+| `extensions/orchestrator/synthesize.ts` | Where `synthesizeResults()` gains review-aware logic |
+| `extensions/orchestrator/index.ts` | Where orchestrate tool params and synthesis input are wired |
+| `extensions/shared/subprocess.ts` | Where `spawnSpecialistAgent()` gains `model` parameter |
+| `extensions/teams/router.ts` | Where `parseSpecialistOutput()` return type needs destructuring update |
 
 ### Phase B (4e.2): Execution-State Artifact
 
