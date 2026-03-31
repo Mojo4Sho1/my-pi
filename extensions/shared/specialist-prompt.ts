@@ -30,6 +30,10 @@ export interface SpecialistPromptConfig {
   inputContract?: InputContract;
   /** What this specialist guarantees in its structured output (Stage 4a) */
   outputContract?: OutputContract;
+  /** If set, replaces the auto-generated output format block in the system prompt */
+  outputFormatOverride?: string;
+  /** Specialist's default model preference (Stage 4e) */
+  preferredModel?: string;
 }
 
 /**
@@ -111,7 +115,7 @@ ${antiPatternLines}
 ## Output Format
 When you have completed your work (or cannot proceed), end your final message with a JSON block in this exact format:
 
-${buildOutputFormatBlock(config)}
+${config.outputFormatOverride || buildOutputFormatBlock(config)}
 
 The "escalation" field is only required when status is "escalation". Always include this JSON block as the last thing in your response.`;
 }

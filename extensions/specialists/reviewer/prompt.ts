@@ -45,11 +45,38 @@ export const REVIEWER_PROMPT_CONFIG: SpecialistPromptConfig = {
   },
   outputContract: {
     fields: [
-      { name: "findings", type: "string[]", required: true, description: "Review findings" },
-      { name: "approved", type: "boolean", required: true, description: "Whether the review passed" },
-      { name: "blockers", type: "string[]", required: true, description: "Blocking issues found" },
+      { name: "verdict", type: "string", required: true, description: "Review verdict: approve | request_changes | comment | blocked" },
+      { name: "findings", type: "object", required: true, description: "Array of ReviewFinding objects: [{id, priority, category, title, explanation, evidence, suggestedAction, fileRefs?}]" },
+      { name: "summary", type: "string", required: true, description: "Brief summary of review outcome" },
     ],
   },
+  outputFormatOverride: `Respond with a JSON block in this exact format:
+
+\`\`\`json
+{
+  "status": "success | partial | failure | escalation",
+  "summary": "Brief summary of review outcome",
+  "verdict": "approve | request_changes | comment | blocked",
+  "findings": [
+    {
+      "id": "F1",
+      "priority": "critical | major | minor | nit",
+      "category": "scope | correctness | style | security | performance | contract",
+      "title": "Short title of the finding",
+      "explanation": "What the issue is and why it matters",
+      "evidence": "Specific code, line, or artifact that demonstrates the issue",
+      "suggestedAction": "What should be done to address this",
+      "fileRefs": ["path/to/file.ts"]
+    }
+  ],
+  "modifiedFiles": [],
+  "escalation": { "reason": "...", "suggestedAction": "..." }
+}
+\`\`\`
+
+Set status consistent with verdict: approve/comment → "success", request_changes → "partial", blocked → "failure".
+The findings array must always be present (use [] if no findings).
+The escalation field is only required when status is "escalation".`,
 };
 
 /**

@@ -225,3 +225,15 @@ A typed execution-state tracker in `extensions/worklist/` maintaining structured
 Design doc item 4.4 (Delegation and Specialist Observability Layer) proposed: specialist selection logging, packet summaries, timestamps, status, escalation reasons, structured output summaries, and optional raw-result capture. All of these are already implemented in Stage 4d via `DelegationLogger`, `DelegationLogEntry`, `TeamSessionArtifact`, and related infrastructure.
 
 **Decision:** No additional observability work needed. Stage 4d satisfies the design doc's observability requirements.
+
+### 30. Worklist pre-resolved design: ephemeral + session artifact, pure functions, linear transitions (2026-03-31) [active]
+
+Three design decisions for Stage 4e.2 worklist extension, resolving ambiguities in the original spec:
+
+1. **Persistence model: in-memory + session artifact.** Worklist is in-memory during execution. When orchestration completes, the final worklist state is logged via `appendEntry("worklist_session", ...)` for post-run inspection. Not persisted to disk — inter-session handoff is a sequence-level concern (Stage 5d), not a worklist concern.
+
+2. **Tool surface: pure functions only.** The worklist does NOT register Pi tools. The orchestrator imports and calls worklist functions directly. This enforces the "not a routing authority" boundary — specialists and the host LLM cannot manipulate worklist state. If read-only external visibility is needed later, tools can be layered on top of the pure functions.
+
+3. **State transitions: linear + shortcuts (7 valid transitions).** `pending → in_progress, abandoned`; `in_progress → completed, blocked, abandoned`; `blocked → in_progress, abandoned`; `completed` and `abandoned` are terminal. Invalid transitions are rejected with an error string. This catches bugs where items skip states (e.g., `pending → completed` without going through `in_progress`).
+
+**Why:** These choices minimize complexity while preserving extensibility. The worklist is a substrate aid — it should be invisible to everything except the orchestrator, observable after the fact, and strict enough to catch errors.

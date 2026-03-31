@@ -183,6 +183,57 @@ export type FailureReason =
   | "escalation"
   | "abort";
 
+// --- Structured Review Findings (Stage 4e) ---
+
+export type ReviewVerdict = "approve" | "request_changes" | "comment" | "blocked";
+
+export type FindingPriority = "critical" | "major" | "minor" | "nit";
+
+export interface ReviewFinding {
+  /** Author-assigned by reviewer (e.g., "F1", "F2") */
+  id: string;
+  /** Severity of the finding */
+  priority: FindingPriority;
+  /** Freeform category: "scope", "correctness", "style", etc. */
+  category: string;
+  /** Short title of the finding */
+  title: string;
+  /** What the issue is and why it matters */
+  explanation: string;
+  /** Specific code, line, or artifact that demonstrates the issue */
+  evidence: string;
+  /** What should be done to address this */
+  suggestedAction: string;
+  /** Optional file references */
+  fileRefs?: string[];
+}
+
+export interface StructuredReviewOutput {
+  /** Review verdict */
+  verdict: ReviewVerdict;
+  /** Individual review findings */
+  findings: ReviewFinding[];
+  /** Brief summary of review outcome */
+  summary: string;
+}
+
+// --- Model Routing (Stage 4e) ---
+
+export interface ModelRoutingPolicy {
+  /** Map of specialist ID to model identifier */
+  specialistDefaults: Record<string, string>;
+}
+
+export interface ModelResolutionContext {
+  /** From DelegationInput or task packet (highest precedence) */
+  runtimeOverride?: string;
+  /** From project-level model config */
+  projectConfig?: string;
+  /** From SpecialistPromptConfig.preferredModel */
+  specialistDefault?: string;
+  // Host default is implicit (Pi's own model selection when no --model flag)
+}
+
 // --- Team Session Artifacts (Stage 4d) ---
 
 export interface StateTraceEntry {

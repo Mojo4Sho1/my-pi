@@ -142,7 +142,9 @@ describe("delegateToSpecialist", () => {
     expect(mockSpawn).toHaveBeenCalledWith(
       expect.any(String),
       expect.any(String),
-      controller.signal
+      controller.signal,
+      undefined,
+      undefined
     );
   });
 

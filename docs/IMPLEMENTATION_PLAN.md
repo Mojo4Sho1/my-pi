@@ -1871,109 +1871,390 @@ A fresh agent implementing 4e.1 should read ONLY these files. No other explorati
 
 ### Phase B (4e.2): Execution-State Artifact
 
-Adds a coding-scoped worklist extension once the surrounding contract and visibility story is stronger.
+Adds a coding-scoped worklist extension. The worklist is an execution-state aid, **not a routing authority**. Routing remains the orchestrator's responsibility.
 
-#### Coding-Scoped Worklist Extension
+#### What this phase does NOT do
 
-**What:** A separate extension package (`extensions/worklist/`) maintaining structured execution state for coding tasks. The worklist is an execution-state aid, **not a routing authority**. Routing remains the orchestrator's responsibility.
+- Does not register Pi tools — the worklist is internal to the orchestrator, exposed as pure functions. If external visibility is needed later, read-only Pi tools can be added on top.
+- Does not persist worklist to disk — worklist is in-memory during execution, then logged as a session artifact via `appendEntry()` for post-run inspection.
+- Does not allow specialists to access or manipulate worklist state — enforced by API design (no tool registration, no worklist in task packets).
+- Does not influence routing — the orchestrator reads worklist state for status awareness but uses `select.ts` for all routing decisions.
+- Does not handle non-coding tasks — scope is strictly coding tasks (no personal reminders, life tasks, or assistant-wide planning).
 
-**Scope boundary:** Coding tasks only. No general life tasks, personal reminders, or assistant-wide planning.
+---
 
-**State vocabulary:** `pending`, `in_progress`, `completed`, `blocked`, `abandoned`
+#### Worklist Types
 
-**Types (in `extensions/worklist/types.ts`):**
+**File: `extensions/worklist/types.ts` (NEW)**
 
 ```typescript
-type WorklistItemStatus = 'pending' | 'in_progress' | 'completed' | 'blocked' | 'abandoned';
+export type WorklistItemStatus = "pending" | "in_progress" | "completed" | "blocked" | "abandoned";
 
-type WorklistItemKind = 'discovery' | 'planning' | 'implementation' | 'validation' | 'review_gate' | 'blocker' | 'completion_criteria';
+export type WorklistItemKind =
+  | "discovery"
+  | "planning"
+  | "implementation"
+  | "validation"
+  | "review_gate"
+  | "blocker"
+  | "completion_criteria";
 
-interface WorklistItem {
+export interface WorklistItem {
+  /** Unique identifier (e.g., "wl_item_abc123") */
   id: string;
+  /** What category of work this represents */
   kind: WorklistItemKind;
+  /** Human-readable description of the work item */
   description: string;
+  /** Current status */
   status: WorklistItemStatus;
-  specialistStage?: string;   // which specialist this is attached to
-  blockReason?: string;       // if status is 'blocked'
-  metadata?: Record<string, unknown>;
+  /** Which specialist this is attached to (e.g., "specialist_builder") */
+  specialistId?: string;
+  /** Reason for blocking — required when status is "blocked", cleared on unblock */
+  blockReason?: string;
+  /** When this item was created */
+  createdAt: string;
+  /** When this item's status last changed */
+  updatedAt: string;
 }
 
-interface Worklist {
+export interface Worklist {
+  /** ID of the task this worklist belongs to */
   taskId: string;
+  /** Human-readable description of the overall task */
   description: string;
+  /** Ordered list of work items */
   items: WorklistItem[];
+  /** When this worklist was created */
   createdAt: string;
+  /** When this worklist was last modified */
   updatedAt: string;
+}
+
+export interface WorklistSummary {
+  /** Total item count */
+  totalItems: number;
+  /** Count of items in each status */
+  statusCounts: Record<WorklistItemStatus, number>;
+  /** Items currently blocked (id + reason) */
+  blockedItems: Array<{ id: string; description: string; blockReason: string }>;
+  /** Whether all items are in a terminal state (completed or abandoned) */
+  isComplete: boolean;
+  /** Whether any items are blocked */
+  hasBlockers: boolean;
 }
 ```
 
-**Operations (in `extensions/worklist/operations.ts`):**
-- `createWorklist(taskId, description): Worklist`
-- `appendItem(worklist, item): Worklist`
-- `updateItemStatus(worklist, itemId, status, reason?): Worklist`
-- `markBlocked(worklist, itemId, reason): Worklist`
-- `attachToSpecialist(worklist, itemId, specialistId): Worklist`
-- `getWorklistSummary(worklist): WorklistSummary` — machine-readable state overview
+**Notes:**
+- `metadata` field removed from the spec — it was undocumented and speculative. If a concrete use case arises, add it then.
+- `specialistStage` renamed to `specialistId` for consistency with existing codebase naming (e.g., `sourceAgent`, `targetAgent`).
+- `WorklistItem` gains `createdAt` and `updatedAt` timestamps for observability.
+- `WorklistSummary` is fully defined — `getWorklistSummary()` returns this type.
 
-**Extension entry point (`extensions/worklist/index.ts`):**
-- Registers worklist management tools via Pi extension API
-- Exposes worklist state to active session and downstream specialists when appropriate
+#### State Transition Rules
 
-**Tests (`tests/worklist.test.ts`):**
-- State transitions: valid transitions (pending → in_progress → completed, etc.)
-- State transitions: invalid transitions rejected
-- Blocker handling: marking blocked requires reason, unblocking clears reason
-- Specialist attachment: items linked to specialist stages
-- Summary: accurate status counts, blocked items surfaced
-- Serialization: worklist round-trips through JSON
+Valid transitions (7 total):
 
-#### Worklist/Orchestrator Interop Rules
+```
+pending      → in_progress, abandoned
+in_progress  → completed, blocked, abandoned
+blocked      → in_progress, abandoned
+completed    → (terminal — no transitions out)
+abandoned    → (terminal — no transitions out)
+```
 
-**What:** Explicit boundary rules preventing the worklist from becoming a second orchestrator.
+The `VALID_TRANSITIONS` map is defined in `operations.ts` and enforced by `updateItemStatus()`. Invalid transitions return an error string; valid transitions return the updated `Worklist`.
 
-**The orchestrator MAY:**
-- Initialize a worklist for a multi-step coding task
-- Annotate items with specialist lifecycle events (started, completed, failed)
-- Update item status based on specialist outcomes
-- Stop execution if the worklist reflects a blocking condition
+```typescript
+export const VALID_TRANSITIONS: Record<WorklistItemStatus, readonly WorklistItemStatus[]> = {
+  pending: ["in_progress", "abandoned"],
+  in_progress: ["completed", "blocked", "abandoned"],
+  blocked: ["in_progress", "abandoned"],
+  completed: [],
+  abandoned: [],
+};
+```
 
-**The orchestrator MAY NOT:**
-- Delegate based solely on worklist contents
-- Treat the worklist as authoritative routing
-- Allow specialists to invent new routing paths via worklist manipulation
+#### Operations
 
-**Implementation:** These rules are enforced by API design — the worklist exposes read/update operations but no routing or delegation primitives. The orchestrator reads worklist state for status awareness but uses its own selection logic (`select.ts`) for routing decisions.
+**File: `extensions/worklist/operations.ts` (NEW)**
 
-**Tests (`tests/worklist-interop.test.ts`):**
-- Orchestrator can initialize and update worklist items
-- Worklist state does not influence specialist selection
-- Specialists cannot modify routing through worklist manipulation
-- Blocked worklist items are surfaced in orchestrator synthesis
+All operations are **pure functions** that return a new `Worklist` (immutable pattern). They do not mutate the input. Error cases return `{ error: string }`.
 
-### Exit Criteria
+```typescript
+import type { Worklist, WorklistItem, WorklistItemStatus, WorklistItemKind, WorklistSummary } from "./types.js";
 
-- `StructuredReviewOutput` types exist with validation tests
-- Reviewer sub-agent output is machine-parseable with fallback for malformed output
-- Model routing resolves correctly through the 4-level precedence chain
-- Worklist extension manages typed items within its coding scope
-- Worklist/orchestrator boundary enforced: worklist informs status, not routing
-- All existing tests pass (no regressions)
+type WorklistResult = { worklist: Worklist } | { error: string };
+
+/**
+ * Create a new empty worklist for a task.
+ */
+export function createWorklist(taskId: string, description: string): Worklist;
+
+/**
+ * Append a new item to the worklist. Items start as "pending".
+ * Returns error if an item with the same ID already exists.
+ */
+export function appendItem(
+  worklist: Worklist,
+  item: { id: string; kind: WorklistItemKind; description: string }
+): WorklistResult;
+
+/**
+ * Update an item's status. Validates the transition against VALID_TRANSITIONS.
+ * When transitioning TO "blocked", reason is required.
+ * When transitioning FROM "blocked" to "in_progress", blockReason is cleared.
+ * Returns error if: item not found, invalid transition, or blocked without reason.
+ */
+export function updateItemStatus(
+  worklist: Worklist,
+  itemId: string,
+  newStatus: WorklistItemStatus,
+  reason?: string
+): WorklistResult;
+
+/**
+ * Convenience: mark an item as blocked with a reason.
+ * Equivalent to updateItemStatus(worklist, itemId, "blocked", reason).
+ */
+export function markBlocked(
+  worklist: Worklist,
+  itemId: string,
+  reason: string
+): WorklistResult;
+
+/**
+ * Attach a worklist item to a specialist (e.g., "specialist_builder").
+ * Returns error if item not found.
+ */
+export function attachToSpecialist(
+  worklist: Worklist,
+  itemId: string,
+  specialistId: string
+): WorklistResult;
+
+/**
+ * Generate a machine-readable summary of worklist state.
+ */
+export function getWorklistSummary(worklist: Worklist): WorklistSummary;
+```
+
+**ID generation for worklist items:** The caller provides the `id` field when calling `appendItem()`. The orchestrator generates IDs using a simple `wl_item_${Date.now()}_${random}` pattern (same style as session IDs in `router.ts`). This is NOT a responsibility of the worklist module — the worklist just stores whatever ID it receives.
+
+#### Extension Entry Point
+
+**File: `extensions/worklist/index.ts` (NEW)**
+
+The extension entry point does **NOT** register Pi tools. It exports the pure functions and types for the orchestrator to import directly:
+
+```typescript
+export { createWorklist, appendItem, updateItemStatus, markBlocked, attachToSpecialist, getWorklistSummary } from "./operations.js";
+export type { Worklist, WorklistItem, WorklistItemStatus, WorklistItemKind, WorklistSummary } from "./types.js";
+```
+
+This is a barrel export module — no Pi extension registration, no `pi.registerTool()` calls. The orchestrator imports from `extensions/worklist/index.js`.
+
+#### Orchestrator Integration
+
+**File: `extensions/orchestrator/index.ts` (MODIFY)**
+
+The orchestrator creates a worklist when running multi-specialist delegations and logs it as a session artifact when done. Changes are minimal:
+
+```typescript
+// At the start of the multi-specialist delegation loop:
+import { createWorklist, appendItem, updateItemStatus, getWorklistSummary } from "../worklist/index.js";
+import type { Worklist } from "../worklist/index.js";
+
+// Inside execute(), after specialist selection:
+let worklist = createWorklist(taskPacket.id, task);
+for (const specialistId of selection.specialists) {
+  const itemId = `wl_${specialistId}_${Date.now()}`;
+  const result = appendItem(worklist, {
+    id: itemId,
+    kind: specialistId === "planner" ? "planning"
+      : specialistId === "reviewer" ? "review_gate"
+      : specialistId === "tester" ? "validation"
+      : "implementation",
+    description: `${specialistId} phase`,
+  });
+  if ("worklist" in result) worklist = result.worklist;
+}
+
+// Inside the delegation loop, before each specialist:
+const statusResult = updateItemStatus(worklist, itemId, "in_progress");
+if ("worklist" in statusResult) worklist = statusResult.worklist;
+
+// After each specialist returns:
+const doneStatus = delegationOutput.resultPacket.status === "success" ? "completed"
+  : delegationOutput.resultPacket.status === "failure" ? "blocked"
+  : delegationOutput.resultPacket.status === "escalation" ? "blocked"
+  : "completed";
+const doneResult = updateItemStatus(worklist, itemId, doneStatus,
+  doneStatus === "blocked" ? delegationOutput.resultPacket.summary : undefined);
+if ("worklist" in doneResult) worklist = doneResult.worklist;
+
+// After the delegation loop, before returning:
+const worklistSummary = getWorklistSummary(worklist);
+pi.appendEntry("worklist_session", { worklist, summary: worklistSummary });
+```
+
+**Note:** The integration is intentionally thin — the orchestrator creates items, updates their status based on delegation outcomes, and logs the final state. The worklist does not influence routing decisions.
+
+#### Synthesis Integration
+
+**File: `extensions/orchestrator/synthesize.ts` (MODIFY)**
+
+Add optional `worklistSummary` to `SynthesisInput` and surface blocker info:
+
+```typescript
+// Add to SynthesisInput:
+export interface SynthesisInput {
+  results: ResultPacket[];
+  reviewOutputs?: Map<string, StructuredReviewOutput>;
+  worklistSummary?: WorklistSummary;  // NEW
+}
+
+// Add to SynthesizedResult:
+export interface SynthesizedResult {
+  // ... existing fields ...
+  worklistSummary?: WorklistSummary;  // NEW
+}
+
+// In synthesizeResults(), after review findings surfacing:
+if (input.worklistSummary) {
+  if (input.worklistSummary.hasBlockers) {
+    const blockerDescs = input.worklistSummary.blockedItems
+      .map(b => `${b.description}: ${b.blockReason}`).join("; ");
+    summary += `\n\nBlocked items: ${blockerDescs}`;
+  }
+}
+```
+
+---
+
+#### File Changes Summary
+
+| File | Action |
+|------|--------|
+| `extensions/worklist/types.ts` | **NEW** — `WorklistItemStatus`, `WorklistItemKind`, `WorklistItem`, `Worklist`, `WorklistSummary` |
+| `extensions/worklist/operations.ts` | **NEW** — `createWorklist`, `appendItem`, `updateItemStatus`, `markBlocked`, `attachToSpecialist`, `getWorklistSummary`, `VALID_TRANSITIONS` |
+| `extensions/worklist/index.ts` | **NEW** — Barrel export (no Pi tool registration) |
+| `extensions/orchestrator/index.ts` | **MODIFY** — Create worklist, update items during delegation loop, log session artifact |
+| `extensions/orchestrator/synthesize.ts` | **MODIFY** — Add `worklistSummary` to `SynthesisInput` and `SynthesizedResult`, surface blockers |
+| `tests/worklist.test.ts` | **NEW** — Worklist operations tests |
+| `tests/worklist-interop.test.ts` | **NEW** — Orchestrator integration tests |
+
+---
+
+#### Tests
+
+**File: `tests/worklist.test.ts` (NEW)**
+
+```typescript
+describe("createWorklist", () => {
+  // creates worklist with correct taskId and description
+  // creates worklist with empty items array
+  // sets createdAt and updatedAt timestamps
+});
+
+describe("appendItem", () => {
+  // appends item with pending status
+  // sets createdAt and updatedAt on item
+  // returns error if item ID already exists
+  // updates worklist updatedAt timestamp
+});
+
+describe("updateItemStatus — valid transitions", () => {
+  // pending → in_progress
+  // in_progress → completed
+  // in_progress → blocked (with reason)
+  // in_progress → abandoned
+  // blocked → in_progress (clears blockReason)
+  // blocked → abandoned
+  // pending → abandoned
+});
+
+describe("updateItemStatus — invalid transitions", () => {
+  // completed → any (returns error)
+  // abandoned → any (returns error)
+  // pending → completed (returns error — must go through in_progress)
+  // pending → blocked (returns error — must go through in_progress)
+  // blocked → completed (returns error — must go through in_progress)
+});
+
+describe("updateItemStatus — blocker rules", () => {
+  // transitioning to blocked without reason returns error
+  // transitioning to blocked with reason sets blockReason
+  // transitioning from blocked to in_progress clears blockReason
+});
+
+describe("markBlocked", () => {
+  // convenience wrapper: marks item as blocked with reason
+  // returns error if item not in_progress
+});
+
+describe("attachToSpecialist", () => {
+  // sets specialistId on item
+  // returns error if item not found
+});
+
+describe("getWorklistSummary", () => {
+  // returns correct totalItems count
+  // returns correct statusCounts for each status
+  // surfaces blocked items with id, description, and reason
+  // isComplete true when all items completed or abandoned
+  // isComplete false when any items pending/in_progress/blocked
+  // hasBlockers true when blocked items exist
+  // hasBlockers false when no blocked items
+  // handles empty worklist (0 items)
+});
+
+describe("serialization", () => {
+  // worklist round-trips through JSON.stringify/parse
+  // item timestamps preserved through serialization
+});
+```
+
+**File: `tests/worklist-interop.test.ts` (NEW)**
+
+These tests verify orchestrator integration. They mock `spawnSpecialistAgent` (same pattern as `tests/orchestrator-e2e.test.ts`) and verify worklist state after orchestration.
+
+```typescript
+describe("orchestrator worklist integration", () => {
+  // orchestrate() creates worklist items for each specialist
+  // successful specialist → item status "completed"
+  // failed specialist → item status "blocked" with reason
+  // worklist summary logged via appendEntry after orchestration
+  // worklist does not affect specialist selection (selection is same with/without worklist)
+  // blocked items surfaced in synthesized summary
+});
+```
+
+---
+
+### Phase B (4e.2) Exit Criteria
+
+- `Worklist`, `WorklistItem`, `WorklistSummary` types exist and are exported
+- `VALID_TRANSITIONS` enforces the 7-transition state machine
+- All 6 operations are pure functions returning `WorklistResult`
+- `getWorklistSummary()` returns correct counts and blocker info
+- Orchestrator creates worklist during multi-specialist runs and logs it via `appendEntry()`
+- Synthesis surfaces blocked worklist items in summary
+- No Pi tools registered (worklist is orchestrator-internal)
+- All existing 305 tests still pass (no regressions)
 
 ### Dependencies
 
-- Stage 4d complete (observability infrastructure, logging patterns) ✓
+- Stage 4e.1 complete (structured review findings, model routing) ✓
 
-### Key files to read before implementing
+### Key files to read before implementing 4e.2
 
 | File | Why |
 |------|-----|
-| `extensions/shared/types.ts` | Where new types are added |
-| `extensions/shared/contracts.ts` | Existing contract validation patterns to extend |
-| `extensions/shared/result-parser.ts` | Where review output parsing hooks in |
-| `extensions/specialists/reviewer/prompt.ts` | Reviewer prompt config to update |
-| `extensions/orchestrator/synthesize.ts` | Where structured findings feed into synthesis |
-| `extensions/orchestrator/delegate.ts` | Where model routing hooks into delegation |
-| `extensions/shared/logging.ts` | Existing logging patterns (4d) to follow |
+| `extensions/orchestrator/index.ts` | Where worklist is created and updated during delegation |
+| `extensions/orchestrator/synthesize.ts` | Where worklist summary feeds into synthesis |
+| `extensions/shared/logging.ts` | Existing `appendEntry()` patterns for session artifacts |
+| `tests/orchestrator-e2e.test.ts` | Mock patterns for orchestrator integration tests |
 
 ---
 

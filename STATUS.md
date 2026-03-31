@@ -1,6 +1,6 @@
 # STATUS.md
 
-Last updated: 2026-03-30
+Last updated: 2026-03-31
 
 ## Progress Checklist
 
@@ -146,13 +146,16 @@ All 3d tests are **integration tests with mocked subprocesses** (not live sub-ag
 - [x] `tests/session-artifact.test.ts` — 10 tests (happy path, state trace, specialist summaries, loops, escalation, failure, version, contracts, validation errors, logger events)
 - [x] All 280 tests pass (257 existing + 23 new), TypeScript compiles cleanly
 
-### Stage 4e — Substrate Hardening [NOT STARTED]
+### Stage 4e — Substrate Hardening [IN PROGRESS]
 
 Strengthen the existing specialist and orchestration substrate before expanding the specialist roster. See Decisions #26–29.
 
-#### 4e.1 — Tighten Existing Primitives
-- [ ] **Structured review findings contract** — `ReviewVerdict`, `ReviewFinding`, `StructuredReviewOutput` types; update reviewer prompt, result parser, orchestrator synthesis
-- [ ] **Per-specialist model routing policy** — 4-level resolution chain (runtime → project config → specialist default → host default); new `extensions/shared/config.ts`
+#### 4e.1 — Tighten Existing Primitives [COMPLETE]
+- [x] **Structured review findings contract** — `ReviewVerdict`, `ReviewFinding`, `StructuredReviewOutput` types; update reviewer prompt, result parser, orchestrator synthesis
+- [x] **Per-specialist model routing policy** — 4-level resolution chain (runtime → project config → specialist default → host default); new `extensions/shared/config.ts`
+- [x] `tests/review-findings.test.ts` — 17 tests (parseReviewOutput, ParseResult return type, synthesis with review findings)
+- [x] `tests/model-routing.test.ts` — 6 tests (4-level precedence chain, host default fallback)
+- [x] All 305 tests pass (280 existing + 25 new), TypeScript compiles cleanly
 
 #### 4e.2 — Execution-State Artifact
 - [ ] **Coding-scoped worklist extension** — `extensions/worklist/` with typed items, state vocabulary, CRUD operations

@@ -129,7 +129,7 @@ export function createSpecialistExtension(config: SpecialistExtensionConfig) {
         }
 
         // 5. Parse specialist output into structured result
-        const parsed = parseSpecialistOutput(subAgentResult.finalText, agentId);
+        const { result: parsed } = parseSpecialistOutput(subAgentResult.finalText, agentId);
 
         // 6. Create and validate the result packet
         const resultPacket = createResultPacket({

@@ -5,7 +5,7 @@
  * that maps to ResultPacket fields. Pure functions, no Pi API dependencies.
  */
 
-import type { PacketStatus } from "./types.js";
+import type { PacketStatus, StructuredReviewOutput, ReviewFinding, ReviewVerdict, FindingPriority } from "./types.js";
 
 export interface ParsedSpecialistResult {
   status: PacketStatus;
@@ -16,12 +16,20 @@ export interface ParsedSpecialistResult {
   sourceAgent: string;
 }
 
+export interface ParseResult {
+  result: ParsedSpecialistResult;
+  rawJson?: Record<string, unknown>;
+}
+
 const VALID_STATUSES: ReadonlySet<string> = new Set([
   "success",
   "partial",
   "failure",
   "escalation",
 ]);
+
+const VALID_VERDICTS: readonly ReviewVerdict[] = ["approve", "request_changes", "comment", "blocked"];
+const VALID_PRIORITIES: readonly FindingPriority[] = ["critical", "major", "minor", "nit"];
 
 /**
  * Extract a structured result from a specialist sub-agent's final text output.
@@ -33,14 +41,16 @@ const VALID_STATUSES: ReadonlySet<string> = new Set([
  * @param finalText - The sub-agent's final text output
  * @param sourceAgentId - The ID of the specialist that produced this output
  */
-export function parseSpecialistOutput(finalText: string, sourceAgentId: string): ParsedSpecialistResult {
+export function parseSpecialistOutput(finalText: string, sourceAgentId: string): ParseResult {
   if (!finalText || !finalText.trim()) {
     return {
-      status: "failure",
-      summary: "Specialist produced no output",
-      deliverables: [],
-      modifiedFiles: [],
-      sourceAgent: sourceAgentId,
+      result: {
+        status: "failure",
+        summary: "Specialist produced no output",
+        deliverables: [],
+        modifiedFiles: [],
+        sourceAgent: sourceAgentId,
+      },
     };
   }
 
@@ -73,15 +83,17 @@ export function parseSpecialistOutput(finalText: string, sourceAgentId: string):
 
   // Fallback: no structured output found
   return {
-    status: "partial",
-    summary: finalText.length > 500 ? finalText.slice(0, 500) + "..." : finalText,
-    deliverables: [],
-    modifiedFiles: [],
-    sourceAgent: sourceAgentId,
+    result: {
+      status: "partial",
+      summary: finalText.length > 500 ? finalText.slice(0, 500) + "..." : finalText,
+      deliverables: [],
+      modifiedFiles: [],
+      sourceAgent: sourceAgentId,
+    },
   };
 }
 
-function tryParseResult(jsonStr: string, sourceAgentId: string): ParsedSpecialistResult | null {
+function tryParseResult(jsonStr: string, sourceAgentId: string): ParseResult | null {
   try {
     const obj = JSON.parse(jsonStr);
     if (!obj || typeof obj !== "object") return null;
@@ -89,19 +101,86 @@ function tryParseResult(jsonStr: string, sourceAgentId: string): ParsedSpecialis
     if (typeof obj.summary !== "string") return null;
 
     return {
-      status: obj.status as PacketStatus,
-      summary: obj.summary,
-      deliverables: Array.isArray(obj.deliverables) ? obj.deliverables : [],
-      modifiedFiles: Array.isArray(obj.modifiedFiles) ? obj.modifiedFiles : [],
-      escalation: obj.escalation && typeof obj.escalation === "object"
-        ? {
-            reason: String(obj.escalation.reason || ""),
-            suggestedAction: String(obj.escalation.suggestedAction || ""),
-          }
-        : undefined,
-      sourceAgent: sourceAgentId,
+      result: {
+        status: obj.status as PacketStatus,
+        summary: obj.summary,
+        deliverables: Array.isArray(obj.deliverables) ? obj.deliverables : [],
+        modifiedFiles: Array.isArray(obj.modifiedFiles) ? obj.modifiedFiles : [],
+        escalation: obj.escalation && typeof obj.escalation === "object"
+          ? {
+              reason: String(obj.escalation.reason || ""),
+              suggestedAction: String(obj.escalation.suggestedAction || ""),
+            }
+          : undefined,
+        sourceAgent: sourceAgentId,
+      },
+      rawJson: obj,
     };
   } catch {
     return null;
   }
+}
+
+/**
+ * Extract structured review output from a parsed specialist result.
+ * Called after parseSpecialistOutput() for reviewer results only.
+ *
+ * @param parsedResult - The generic ParsedSpecialistResult from parseSpecialistOutput()
+ * @param rawJson - The raw JSON object extracted during initial parsing (if available)
+ * @returns StructuredReviewOutput if valid structured data found, undefined otherwise
+ */
+export function parseReviewOutput(
+  parsedResult: ParsedSpecialistResult,
+  rawJson?: Record<string, unknown>
+): StructuredReviewOutput | undefined {
+  if (!rawJson || !("verdict" in rawJson) || !("findings" in rawJson)) {
+    return undefined;
+  }
+
+  // Validate verdict
+  if (!VALID_VERDICTS.includes(rawJson.verdict as ReviewVerdict)) {
+    return undefined;
+  }
+
+  // Validate findings is array
+  if (!Array.isArray(rawJson.findings)) {
+    return undefined;
+  }
+
+  // Validate and filter findings
+  const validFindings: ReviewFinding[] = [];
+  for (const finding of rawJson.findings) {
+    if (
+      typeof finding === "object" &&
+      finding !== null &&
+      "id" in finding &&
+      "priority" in finding &&
+      "category" in finding &&
+      "title" in finding &&
+      "explanation" in finding &&
+      "evidence" in finding &&
+      "suggestedAction" in finding
+    ) {
+      const priority = VALID_PRIORITIES.includes(finding.priority as FindingPriority)
+        ? (finding.priority as FindingPriority)
+        : "minor";
+
+      validFindings.push({
+        id: String(finding.id),
+        priority,
+        category: String(finding.category),
+        title: String(finding.title),
+        explanation: String(finding.explanation),
+        evidence: String(finding.evidence),
+        suggestedAction: String(finding.suggestedAction),
+        fileRefs: Array.isArray(finding.fileRefs) ? finding.fileRefs.map(String) : undefined,
+      });
+    }
+  }
+
+  return {
+    verdict: rawJson.verdict as ReviewVerdict,
+    findings: validFindings,
+    summary: parsedResult.summary,
+  };
 }

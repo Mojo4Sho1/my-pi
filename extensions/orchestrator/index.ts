@@ -21,7 +21,7 @@ import { selectSpecialists, type DelegationHint } from "./select.js";
 import { delegateToSpecialist, delegateToTeam, getPromptConfig, buildContextForSpecialist } from "./delegate.js";
 import { synthesizeResults } from "./synthesize.js";
 import { createPiLogger } from "../shared/logging.js";
-import type { ResultPacket } from "../shared/types.js";
+import type { ResultPacket, StructuredReviewOutput } from "../shared/types.js";
 
 /** Specialists that produce plans/reviews but don't modify files */
 const READ_ONLY_SPECIALISTS = new Set(["planner", "reviewer"]);
@@ -40,6 +40,9 @@ const OrchestrateParams = Type.Object({
   ),
   teamHint: Type.Optional(
     Type.String({ description: "Team ID to delegate to (e.g. 'build-team'). Overrides specialist selection." })
+  ),
+  modelOverride: Type.Optional(
+    Type.String({ description: "Override model for all specialists in this delegation" })
   ),
 });
 
@@ -62,7 +65,7 @@ export default function orchestratorExtension(pi: ExtensionAPI) {
       onUpdate: AgentToolUpdateCallback | undefined,
       ctx: ExtensionContext
     ): Promise<AgentToolResult<unknown>> {
-      const { task, relevantFiles, delegationHint, teamHint } = params;
+      const { task, relevantFiles, delegationHint, teamHint, modelOverride } = params;
       const logger = createPiLogger(pi);
 
       // 0. Team delegation — bypasses specialist selection entirely
@@ -117,6 +120,7 @@ export default function orchestratorExtension(pi: ExtensionAPI) {
       // 2. Delegate to each specialist sequentially
       const collectedResults: ResultPacket[] = [];
       const priorResults: ResultPacket[] = [];
+      const reviewOutputs = new Map<string, StructuredReviewOutput>();
 
       for (const specialistId of selection.specialists) {
         const promptConfig = getPromptConfig(specialistId);
@@ -146,24 +150,33 @@ export default function orchestratorExtension(pi: ExtensionAPI) {
         }
 
         // Delegate
-        const { resultPacket, success } = await delegateToSpecialist({
+        const delegationOutput = await delegateToSpecialist({
           promptConfig,
           taskPacket,
           signal,
           logger,
+          modelOverride,
         });
 
-        collectedResults.push(resultPacket);
-        priorResults.push(resultPacket);
+        collectedResults.push(delegationOutput.resultPacket);
+        priorResults.push(delegationOutput.resultPacket);
+
+        // Collect review outputs
+        if (delegationOutput.reviewOutput) {
+          reviewOutputs.set(delegationOutput.resultPacket.sourceAgent, delegationOutput.reviewOutput);
+        }
 
         // Stop chain on failure or escalation
-        if (resultPacket.status === "failure" || resultPacket.status === "escalation") {
+        if (delegationOutput.resultPacket.status === "failure" || delegationOutput.resultPacket.status === "escalation") {
           break;
         }
       }
 
       // 3. Synthesize results
-      const synthesized = synthesizeResults(collectedResults);
+      const synthesized = synthesizeResults({
+        results: collectedResults,
+        reviewOutputs: reviewOutputs.size > 0 ? reviewOutputs : undefined,
+      });
 
       return {
         content: [

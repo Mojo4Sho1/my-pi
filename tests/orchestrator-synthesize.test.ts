@@ -16,7 +16,7 @@ function makeResult(overrides: Partial<ResultPacket> & { status: ResultPacket["s
 describe("synthesizeResults", () => {
   describe("empty results", () => {
     it("returns failure for empty input", () => {
-      const result = synthesizeResults([]);
+      const result = synthesizeResults({ results: [] });
       expect(result.overallStatus).toBe("failure");
       expect(result.specialistsInvoked).toEqual([]);
       expect(result.results).toEqual([]);
@@ -26,14 +26,14 @@ describe("synthesizeResults", () => {
   describe("single result", () => {
     it("passes through success status", () => {
       const packet = makeResult({ status: "success", sourceAgent: "specialist_builder" });
-      const result = synthesizeResults([packet]);
+      const result = synthesizeResults({ results: [packet] });
       expect(result.overallStatus).toBe("success");
       expect(result.summary).toBe(packet.summary);
     });
 
     it("passes through failure status", () => {
       const packet = makeResult({ status: "failure", sourceAgent: "specialist_builder" });
-      const result = synthesizeResults([packet]);
+      const result = synthesizeResults({ results: [packet] });
       expect(result.overallStatus).toBe("failure");
     });
 
@@ -43,13 +43,13 @@ describe("synthesizeResults", () => {
         sourceAgent: "specialist_builder",
         escalation: { reason: "out of scope", suggestedAction: "escalate to human" },
       });
-      const result = synthesizeResults([packet]);
+      const result = synthesizeResults({ results: [packet] });
       expect(result.overallStatus).toBe("escalation");
     });
 
     it("passes through partial status", () => {
       const packet = makeResult({ status: "partial", sourceAgent: "specialist_builder" });
-      const result = synthesizeResults([packet]);
+      const result = synthesizeResults({ results: [packet] });
       expect(result.overallStatus).toBe("partial");
     });
   });
@@ -60,7 +60,7 @@ describe("synthesizeResults", () => {
         makeResult({ status: "success", sourceAgent: "specialist_planner" }),
         makeResult({ status: "success", sourceAgent: "specialist_builder" }),
       ];
-      const result = synthesizeResults(results);
+      const result = synthesizeResults({ results });
       expect(result.overallStatus).toBe("success");
     });
 
@@ -69,7 +69,7 @@ describe("synthesizeResults", () => {
         makeResult({ status: "failure", sourceAgent: "specialist_planner" }),
         makeResult({ status: "failure", sourceAgent: "specialist_builder" }),
       ];
-      const result = synthesizeResults(results);
+      const result = synthesizeResults({ results });
       expect(result.overallStatus).toBe("failure");
     });
 
@@ -78,7 +78,7 @@ describe("synthesizeResults", () => {
         makeResult({ status: "success", sourceAgent: "specialist_planner" }),
         makeResult({ status: "failure", sourceAgent: "specialist_builder" }),
       ];
-      const result = synthesizeResults(results);
+      const result = synthesizeResults({ results });
       expect(result.overallStatus).toBe("partial");
     });
 
@@ -91,7 +91,7 @@ describe("synthesizeResults", () => {
           escalation: { reason: "blocked", suggestedAction: "ask human" },
         }),
       ];
-      const result = synthesizeResults(results);
+      const result = synthesizeResults({ results });
       expect(result.overallStatus).toBe("escalation");
     });
 
@@ -100,7 +100,7 @@ describe("synthesizeResults", () => {
         makeResult({ status: "success", sourceAgent: "specialist_planner" }),
         makeResult({ status: "partial", sourceAgent: "specialist_builder" }),
       ];
-      const result = synthesizeResults(results);
+      const result = synthesizeResults({ results });
       expect(result.overallStatus).toBe("partial");
     });
   });
@@ -112,7 +112,7 @@ describe("synthesizeResults", () => {
         makeResult({ status: "success", sourceAgent: "specialist_builder" }),
         makeResult({ status: "success", sourceAgent: "specialist_tester" }),
       ];
-      const result = synthesizeResults(results);
+      const result = synthesizeResults({ results });
       expect(result.specialistsInvoked).toEqual([
         "specialist_planner",
         "specialist_builder",
@@ -127,7 +127,7 @@ describe("synthesizeResults", () => {
         makeResult({ status: "success", sourceAgent: "specialist_planner", summary: "Plan created" }),
         makeResult({ status: "success", sourceAgent: "specialist_builder", summary: "Code written" }),
       ];
-      const result = synthesizeResults(results);
+      const result = synthesizeResults({ results });
       expect(result.summary).toContain("Plan created");
       expect(result.summary).toContain("Code written");
       expect(result.summary).toContain("[specialist_planner]");
@@ -141,7 +141,7 @@ describe("synthesizeResults", () => {
         makeResult({ status: "success", sourceAgent: "specialist_planner" }),
         makeResult({ status: "success", sourceAgent: "specialist_builder" }),
       ];
-      const synthesized = synthesizeResults(results);
+      const synthesized = synthesizeResults({ results });
       expect(synthesized.results).toHaveLength(2);
       expect(synthesized.results[0].sourceAgent).toBe("specialist_planner");
       expect(synthesized.results[1].sourceAgent).toBe("specialist_builder");

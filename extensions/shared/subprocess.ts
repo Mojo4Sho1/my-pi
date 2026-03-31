@@ -23,12 +23,14 @@ const DEFAULT_TIMEOUT_MS = 120_000; // 2 minutes
  * @param taskPrompt - The task to execute (-p flag)
  * @param signal - Optional AbortSignal for cancellation
  * @param timeoutMs - Timeout in milliseconds (default: 120s)
+ * @param model - Optional model identifier to pass via --model flag
  */
 export function spawnSpecialistAgent(
   systemPrompt: string,
   taskPrompt: string,
   signal?: AbortSignal,
-  timeoutMs: number = DEFAULT_TIMEOUT_MS
+  timeoutMs: number = DEFAULT_TIMEOUT_MS,
+  model?: string
 ): Promise<SubAgentResult> {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) {
@@ -38,9 +40,13 @@ export function spawnSpecialistAgent(
 
     let child: ChildProcess;
     try {
+      const args = ["--print", "-s", systemPrompt, "-p", taskPrompt];
+      if (model) {
+        args.push("--model", model);
+      }
       child = spawn(
         "pi",
-        ["--print", "-s", systemPrompt, "-p", taskPrompt],
+        args,
         {
           stdio: ["ignore", "pipe", "pipe"],
         }

@@ -5,7 +5,12 @@
  * into a single coherent summary with an overall status.
  */
 
-import type { ResultPacket, PacketStatus } from "../shared/types.js";
+import type { ResultPacket, PacketStatus, StructuredReviewOutput } from "../shared/types.js";
+
+export interface SynthesisInput {
+  results: ResultPacket[];
+  reviewOutputs?: Map<string, StructuredReviewOutput>;
+}
 
 export interface SynthesizedResult {
   /** Overall status derived from individual results */
@@ -16,6 +21,8 @@ export interface SynthesizedResult {
   specialistsInvoked: string[];
   /** Individual result packets in execution order */
   results: ResultPacket[];
+  /** Structured review findings from the first reviewer, if available */
+  reviewFindings?: StructuredReviewOutput;
 }
 
 /**
@@ -27,7 +34,9 @@ export interface SynthesizedResult {
  * - All failure → "failure"
  * - Mix → "partial"
  */
-export function synthesizeResults(results: ResultPacket[]): SynthesizedResult {
+export function synthesizeResults(input: SynthesisInput): SynthesizedResult {
+  const { results, reviewOutputs } = input;
+
   if (results.length === 0) {
     return {
       overallStatus: "failure",
@@ -39,40 +48,59 @@ export function synthesizeResults(results: ResultPacket[]): SynthesizedResult {
 
   const specialistsInvoked = results.map((r) => r.sourceAgent);
 
-  // Single result: pass through
-  if (results.length === 1) {
-    return {
-      overallStatus: results[0].status,
-      summary: results[0].summary,
-      specialistsInvoked,
-      results,
-    };
-  }
-
   // Determine overall status
-  const statuses = new Set(results.map((r) => r.status));
   let overallStatus: PacketStatus;
-
-  if (statuses.has("escalation")) {
-    overallStatus = "escalation";
-  } else if (statuses.size === 1 && statuses.has("success")) {
-    overallStatus = "success";
-  } else if (statuses.size === 1 && statuses.has("failure")) {
-    overallStatus = "failure";
+  if (results.length === 1) {
+    overallStatus = results[0].status;
   } else {
-    overallStatus = "partial";
+    const statuses = new Set(results.map((r) => r.status));
+    if (statuses.has("escalation")) {
+      overallStatus = "escalation";
+    } else if (statuses.size === 1 && statuses.has("success")) {
+      overallStatus = "success";
+    } else if (statuses.size === 1 && statuses.has("failure")) {
+      overallStatus = "failure";
+    } else {
+      overallStatus = "partial";
+    }
   }
 
   // Build combined summary
-  const summaryParts = results.map(
-    (r) => `[${r.sourceAgent}] ${r.summary}`
-  );
-  const summary = summaryParts.join("\n\n");
+  let summary: string;
+  if (results.length === 1) {
+    summary = results[0].summary;
+  } else {
+    summary = results.map((r) => `[${r.sourceAgent}] ${r.summary}`).join("\n\n");
+  }
+
+  // Check for review findings
+  let reviewFindings: StructuredReviewOutput | undefined;
+  if (reviewOutputs && reviewOutputs.size > 0) {
+    reviewFindings = Array.from(reviewOutputs.values())[0];
+  }
+
+  // Surface critical/major findings in summary
+  if (reviewFindings) {
+    const criticalFindings = reviewFindings.findings.filter(f => f.priority === "critical");
+    const majorFindings = reviewFindings.findings.filter(f => f.priority === "major");
+
+    if (reviewFindings.verdict === "blocked") {
+      for (const finding of criticalFindings) {
+        summary += `\n\nBLOCKED: ${finding.title}`;
+      }
+    }
+
+    if (criticalFindings.length > 0 || majorFindings.length > 0) {
+      const titles = [...criticalFindings, ...majorFindings].map(f => f.title).join("; ");
+      summary += `\n\nReview findings (${criticalFindings.length} critical, ${majorFindings.length} major): ${titles}`;
+    }
+  }
 
   return {
     overallStatus,
     summary,
     specialistsInvoked,
     results,
+    reviewFindings,
   };
 }

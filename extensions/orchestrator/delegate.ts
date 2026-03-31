@@ -9,7 +9,9 @@ import type { TaskPacket, ResultPacket, TeamDefinition } from "../shared/types.j
 import type { SpecialistPromptConfig } from "../shared/specialist-prompt.js";
 import { buildSpecialistSystemPrompt, buildSpecialistTaskPrompt } from "../shared/specialist-prompt.js";
 import { spawnSpecialistAgent } from "../shared/subprocess.js";
-import { parseSpecialistOutput } from "../shared/result-parser.js";
+import { parseSpecialistOutput, parseReviewOutput } from "../shared/result-parser.js";
+import type { StructuredReviewOutput } from "../shared/types.js";
+import { resolveModel } from "../shared/config.js";
 import { createResultPacket, validateResultPacket } from "../shared/packets.js";
 import { validateInputContract } from "../shared/contracts.js";
 import type { DelegationLogger } from "../shared/logging.js";
@@ -28,6 +30,10 @@ export interface DelegationInput {
   signal?: AbortSignal;
   /** Optional logger for delegation events */
   logger?: DelegationLogger;
+  /** Runtime model override (highest precedence in model resolution) */
+  modelOverride?: string;
+  /** Project-level model config for this specialist */
+  projectModelConfig?: string;
 }
 
 export interface DelegationOutput {
@@ -37,6 +43,8 @@ export interface DelegationOutput {
   success: boolean;
   /** Team session artifact (only present for team delegations) */
   sessionArtifact?: import("../shared/types.js").TeamSessionArtifact;
+  /** Structured review output (only present for reviewer results) */
+  reviewOutput?: StructuredReviewOutput;
 }
 
 const PROMPT_CONFIG_MAP: Record<SpecialistId, SpecialistPromptConfig> = {
@@ -111,10 +119,17 @@ export async function delegateToSpecialist(input: DelegationInput): Promise<Dele
     summary: taskPacket.objective,
   });
 
+  // 2.5 Resolve model
+  const resolvedModel = resolveModel({
+    runtimeOverride: input.modelOverride,
+    projectConfig: input.projectModelConfig,
+    specialistDefault: input.promptConfig.preferredModel,
+  });
+
   // 3. Spawn the specialist sub-agent
   let subAgentResult;
   try {
-    subAgentResult = await spawnSpecialistAgent(systemPrompt, taskPrompt, signal);
+    subAgentResult = await spawnSpecialistAgent(systemPrompt, taskPrompt, signal, undefined, resolvedModel);
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
     const failurePacket = createResultPacket({
@@ -164,7 +179,13 @@ export async function delegateToSpecialist(input: DelegationInput): Promise<Dele
   }
 
   // 5. Parse specialist output
-  const parsed = parseSpecialistOutput(subAgentResult.finalText, agentId);
+  const { result: parsed, rawJson } = parseSpecialistOutput(subAgentResult.finalText, agentId);
+
+  // 5.5 Extract structured review output for reviewer results
+  let reviewOutput: StructuredReviewOutput | undefined;
+  if (promptConfig.id === "specialist_reviewer" && rawJson) {
+    reviewOutput = parseReviewOutput(parsed, rawJson);
+  }
 
   // 6. Create and validate result packet
   const resultPacket = createResultPacket({
@@ -216,6 +237,7 @@ export async function delegateToSpecialist(input: DelegationInput): Promise<Dele
   return {
     resultPacket,
     success: parsed.status === "success",
+    reviewOutput,
   };
 }
 
