@@ -6,10 +6,12 @@
  */
 
 import type { ResultPacket, PacketStatus, StructuredReviewOutput } from "../shared/types.js";
+import type { WorklistSummary } from "../worklist/index.js";
 
 export interface SynthesisInput {
   results: ResultPacket[];
   reviewOutputs?: Map<string, StructuredReviewOutput>;
+  worklistSummary?: WorklistSummary;
 }
 
 export interface SynthesizedResult {
@@ -23,6 +25,8 @@ export interface SynthesizedResult {
   results: ResultPacket[];
   /** Structured review findings from the first reviewer, if available */
   reviewFindings?: StructuredReviewOutput;
+  /** Worklist summary, if a worklist was active during orchestration */
+  worklistSummary?: WorklistSummary;
 }
 
 /**
@@ -96,11 +100,21 @@ export function synthesizeResults(input: SynthesisInput): SynthesizedResult {
     }
   }
 
+  // Surface blocked worklist items in summary
+  if (input.worklistSummary) {
+    if (input.worklistSummary.hasBlockers) {
+      const blockerDescs = input.worklistSummary.blockedItems
+        .map(b => `${b.description}: ${b.blockReason}`).join("; ");
+      summary += `\n\nBlocked items: ${blockerDescs}`;
+    }
+  }
+
   return {
     overallStatus,
     summary,
     specialistsInvoked,
     results,
     reviewFindings,
+    worklistSummary: input.worklistSummary,
   };
 }

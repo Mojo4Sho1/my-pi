@@ -101,7 +101,7 @@ All 3d tests are **integration tests with mocked subprocesses** (not live sub-ag
 
 **Testing approach:** Mock at `spawnSpecialistAgent` level (same pattern as `tests/orchestrator-delegate.test.ts`). Use `vi.doMock()` with `.mockResolvedValueOnce()` chaining per specialist to simulate the full chain. All 188 tests pass (173 existing + 15 new).
 
-### Stage 4 — Team Routing and Validation [IN PROGRESS]
+### Stage 4 — Team Routing and Validation [COMPLETE]
 
 **Note:** 4a + 4b implemented together (Decision #24). 4c + 4d followed as a separate pass. 4e (substrate hardening) added from design doc review (Decisions #26–29) — not yet started.
 
@@ -146,7 +146,7 @@ All 3d tests are **integration tests with mocked subprocesses** (not live sub-ag
 - [x] `tests/session-artifact.test.ts` — 10 tests (happy path, state trace, specialist summaries, loops, escalation, failure, version, contracts, validation errors, logger events)
 - [x] All 280 tests pass (257 existing + 23 new), TypeScript compiles cleanly
 
-### Stage 4e — Substrate Hardening [IN PROGRESS]
+### Stage 4e — Substrate Hardening [COMPLETE]
 
 Strengthen the existing specialist and orchestration substrate before expanding the specialist roster. See Decisions #26–29.
 
@@ -157,9 +157,12 @@ Strengthen the existing specialist and orchestration substrate before expanding 
 - [x] `tests/model-routing.test.ts` — 6 tests (4-level precedence chain, host default fallback)
 - [x] All 305 tests pass (280 existing + 25 new), TypeScript compiles cleanly
 
-#### 4e.2 — Execution-State Artifact
-- [ ] **Coding-scoped worklist extension** — `extensions/worklist/` with typed items, state vocabulary, CRUD operations
-- [ ] **Worklist/orchestrator interop rules** — boundary enforcement: worklist informs status, not routing
+#### 4e.2 — Execution-State Artifact [COMPLETE]
+- [x] **Coding-scoped worklist extension** — `extensions/worklist/` with typed items, state vocabulary, CRUD operations
+- [x] **Worklist/orchestrator interop rules** — boundary enforcement: worklist informs status, not routing
+- [x] `tests/worklist.test.ts` — 39 tests (creation, items, transitions, blockers, summary, serialization)
+- [x] `tests/worklist-interop.test.ts` — 6 tests (orchestrator creates/updates worklist, logs session artifact, surfaces blockers)
+- [x] All 350 tests pass (305 existing + 45 new), TypeScript compiles cleanly
 
 ### Stage 5 — Meta-Teams and Self-Expansion [NOT STARTED]
 

@@ -21,6 +21,8 @@ import { selectSpecialists, type DelegationHint } from "./select.js";
 import { delegateToSpecialist, delegateToTeam, getPromptConfig, buildContextForSpecialist } from "./delegate.js";
 import { synthesizeResults } from "./synthesize.js";
 import { createPiLogger } from "../shared/logging.js";
+import { createWorklist, appendItem, updateItemStatus, getWorklistSummary } from "../worklist/index.js";
+import type { Worklist } from "../worklist/index.js";
 import type { ResultPacket, StructuredReviewOutput } from "../shared/types.js";
 
 /** Specialists that produce plans/reviews but don't modify files */
@@ -117,13 +119,46 @@ export default function orchestratorExtension(pi: ExtensionAPI) {
         };
       }
 
-      // 2. Delegate to each specialist sequentially
+      // 2. Create worklist for execution-state tracking
+      const firstTaskPacket = createTaskPacket({
+        objective: task,
+        allowedReadSet: relevantFiles,
+        allowedWriteSet: relevantFiles,
+        acceptanceCriteria: [],
+        targetAgent: "orchestrator",
+        sourceAgent: "orchestrator",
+      });
+      let worklist = createWorklist(firstTaskPacket.id, task);
+
+      // Pre-populate worklist items for each specialist
+      const itemIds = new Map<string, string>();
+      for (const specialistId of selection.specialists) {
+        const itemId = `wl_${specialistId}_${Date.now()}`;
+        const kind = specialistId === "planner" ? "planning" as const
+          : specialistId === "reviewer" ? "review_gate" as const
+          : specialistId === "tester" ? "validation" as const
+          : "implementation" as const;
+        const result = appendItem(worklist, {
+          id: itemId,
+          kind,
+          description: `${specialistId} phase`,
+        });
+        if ("worklist" in result) worklist = result.worklist;
+        itemIds.set(specialistId, itemId);
+      }
+
+      // 3. Delegate to each specialist sequentially
       const collectedResults: ResultPacket[] = [];
       const priorResults: ResultPacket[] = [];
       const reviewOutputs = new Map<string, StructuredReviewOutput>();
 
       for (const specialistId of selection.specialists) {
         const promptConfig = getPromptConfig(specialistId);
+        const itemId = itemIds.get(specialistId)!;
+
+        // Mark worklist item as in_progress
+        const startResult = updateItemStatus(worklist, itemId, "in_progress");
+        if ("worklist" in startResult) worklist = startResult.worklist;
 
         // Context narrowing: read-only specialists get empty write set
         const allowedWriteSet = READ_ONLY_SPECIALISTS.has(specialistId)
@@ -161,6 +196,15 @@ export default function orchestratorExtension(pi: ExtensionAPI) {
         collectedResults.push(delegationOutput.resultPacket);
         priorResults.push(delegationOutput.resultPacket);
 
+        // Update worklist item status based on delegation outcome
+        const doneStatus = delegationOutput.resultPacket.status === "success" ? "completed" as const
+          : delegationOutput.resultPacket.status === "failure" ? "blocked" as const
+          : delegationOutput.resultPacket.status === "escalation" ? "blocked" as const
+          : "completed" as const;
+        const doneResult = updateItemStatus(worklist, itemId, doneStatus,
+          doneStatus === "blocked" ? delegationOutput.resultPacket.summary : undefined);
+        if ("worklist" in doneResult) worklist = doneResult.worklist;
+
         // Collect review outputs
         if (delegationOutput.reviewOutput) {
           reviewOutputs.set(delegationOutput.resultPacket.sourceAgent, delegationOutput.reviewOutput);
@@ -172,10 +216,15 @@ export default function orchestratorExtension(pi: ExtensionAPI) {
         }
       }
 
-      // 3. Synthesize results
+      // 4. Log worklist session artifact
+      const worklistSummary = getWorklistSummary(worklist);
+      pi.appendEntry("worklist_session", { worklist, summary: worklistSummary });
+
+      // 5. Synthesize results
       const synthesized = synthesizeResults({
         results: collectedResults,
         reviewOutputs: reviewOutputs.size > 0 ? reviewOutputs : undefined,
+        worklistSummary,
       });
 
       return {
@@ -190,6 +239,7 @@ export default function orchestratorExtension(pi: ExtensionAPI) {
           specialistsInvoked: synthesized.specialistsInvoked,
           selectionReason: selection.reason,
           results: synthesized.results,
+          worklistSummary: synthesized.worklistSummary,
         },
       };
     },
