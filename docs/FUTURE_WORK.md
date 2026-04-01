@@ -119,3 +119,21 @@ Should be introduced as an **execution backend abstraction**, not as ad-hoc per-
 **Source:** `docs/archive/design/design_doc.md`, Section 5.2.
 
 **Revisit when:** Routing and contracts are solidified (through Stage 5a at minimum) and there's demand for stronger execution isolation at either the specialist or team level. The current architecture benefits more from stronger contracts, observability, and routing clarity than from infrastructure-heavy isolation layers.
+
+---
+
+## Executor Resumption Checkpoint
+
+A lightweight, overwrite-only checkpoint file that an active executor maintains during campaign segment execution. Provides a safety net for ungraceful exits (rate limits, disconnects, crashes) — if the session dies mid-segment, the next executor reads the checkpoint and resumes rather than restarting from scratch.
+
+**Location:** `.pi/checkpoint.md` at the project root (gitignored). The `.pi/` directory is model-agnostic — this is a my-pi orchestrator concern, not tied to any specific LLM provider. The `.pi/` directory also provides a natural home for other runtime artifacts if needed later.
+
+**Design properties:**
+- **Overwritten, never appended** — always reflects current execution state, never accumulates stale observations. Avoids the staleness and noise problems of persistent memory files.
+- **Deleted on successful segment completion** — if the file exists, the previous session exited ungracefully. The next executor treats this as a recovery scenario.
+- **Minimal content** — just enough to resume: current segment ID, completed steps, in-flight step, remaining steps, blockers encountered. Target 10–20 lines, not a knowledge base.
+- **Not a substitute for handoff packages** — handoff packages (Stage 5d) are the structured artifacts produced at clean campaign checkpoints. The resumption checkpoint is strictly a crash-recovery mechanism for mid-segment interruptions.
+
+**Why not a memory file:** A persistent memory file accumulates cross-session knowledge, which goes stale and creates a token tax. The checkpoint is ephemeral by design — it exists only during active execution and is cleaned up when no longer needed. Cross-cutting project knowledge belongs in repo artifacts (CLAUDE.md, code comments, decision log), not in ambient memory.
+
+**Revisit when:** First real multi-session campaign execution (sequence-level, Stage 5d+). The checkpoint mechanism needs to be tested against real ungraceful exits to determine optimal write frequency and content structure.

@@ -37,6 +37,7 @@ Agent definitions in `agents/` are the specs. TypeScript extensions in `extensio
 | `STATUS.md` | Current project state and queued work |
 | `DECISION_LOG.md` | Durable project decisions (single source of truth) |
 | `docs/IMPLEMENTATION_PLAN.md` | Staged build strategy (5 stages) |
+| `docs/HANDOFF_5A.md` | **Stage 5a execution guide** — read this first for 5a |
 | `docs/PI_EXTENSION_API.md` | Pi extension API reference (tool registration, sub-agents, lifecycle) |
 | `docs/PROJECT_FOUNDATION.md` | Project vision and architectural boundaries |
 | `docs/ORCHESTRATION_MODEL.md` | System vocabulary and hierarchy |
@@ -67,8 +68,9 @@ See `STATUS.md` for live project state. The project follows a staged implementat
 1. **Foundation and shared types** (complete) — TypeScript interfaces, packet validation, routing utilities
 2. **First specialist extension (builder)** (complete) — proved sub-agent delegation pattern
 3. **Remaining specialists + orchestrator** (complete) — full delegation loop with selective context forwarding
-4. **Team routing and validation** (4a–4d complete, 4e next) — I/O contracts, team router, state-machine teams, substrate hardening
-5. **Meta-teams and expansion** — teams that build other primitives, sequences
+4. **Team routing and validation** (complete) — I/O contracts, team router, state-machine teams, substrate hardening
+5. **Meta-teams and expansion** (5a next) — teams that build other primitives, sequences
+   - **For Stage 5a:** Read `docs/HANDOFF_5A.md` first — it has the complete execution guide with all code, templates, and registration changes. Skip plan mode.
 6. **Slash commands and interactive workflows** — `/plan`, `/next`, `/specialist`
 
 ## Development
