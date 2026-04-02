@@ -237,3 +237,62 @@ Three design decisions for Stage 4e.2 worklist extension, resolving ambiguities 
 3. **State transitions: linear + shortcuts (7 valid transitions).** `pending → in_progress, abandoned`; `in_progress → completed, blocked, abandoned`; `blocked → in_progress, abandoned`; `completed` and `abandoned` are terminal. Invalid transitions are rejected with an error string. This catches bugs where items skip states (e.g., `pending → completed` without going through `in_progress`).
 
 **Why:** These choices minimize complexity while preserving extensibility. The worklist is a substrate aid — it should be invisible to everything except the orchestrator, observable after the fact, and strict enough to catch errors.
+
+### 31. Semantic adequacy gates per specialist (2026-03-31) [active]
+
+Every specialist output is validated for minimum-bar content quality, not just type correctness. Lightweight structural predicates catch "well-typed but useless" outputs cheaply without requiring LLM-based grading.
+
+**Mechanism:** Each `SpecialistPromptConfig` gains an optional `adequacyChecks` field — an array of predicate functions. A new `validateAdequacy(config, result)` function runs these after result parsing. Failure produces `quality_failure` status (new addition to `FailureReason`).
+
+**Per-specialist predicates (initial set):**
+- Planner: at least 1 deliverable, at least 1 verification step in deliverables
+- Builder: non-empty deliverables when status=success, modifiedFiles present
+- Reviewer: findings non-empty when verdict=request_changes
+- Tester: evidence field present on each test result
+- New specialists (5a): defined per specialist as part of prompt config
+
+**Why:** Type-only validation (Decision #14) catches malformed structure but allows outputs that are structurally valid yet semantically empty — e.g., a planner returning zero deliverables, a reviewer returning request_changes with no findings. Adequacy gates close this gap at minimal cost.
+
+**What this is NOT:** Not LLM-based grading, not full semantic validation, not a replacement for critic/reviewer evaluation. It's a cheap structural floor that catches the most obvious inadequacy modes.
+
+**Implement as part of Stage 5a.**
+
+### 32. Critic as primitive classifier (2026-03-31) [active]
+
+The critic specialist's responsibilities are expanded from "scope evaluation, redundancy detection, reuse search" to also include **primitive type classification**. When evaluating any proposed creation, the critic must classify the subject as: specialist, team, sequence, seed, convention, or tool-capability.
+
+**Why:** Once the system can create primitives (Stage 5b+), distinguishing primitive types becomes critical. Without explicit classification, the system risks ontology sprawl — creating new specialists for things that should be team configurations, seeds, or project conventions. The critic is the natural home for this responsibility because it already performs "should this exist?" evaluation.
+
+**Implementation:** Add `classifiedAs` field to critic's structured output format. Add classification criteria to critic's working style directives and constraints. Redundancy evaluation must answer "is this a new primitive or a variant of [existing]?"
+
+**Classification categories:** specialist | team | sequence | seed | convention | tool-capability
+
+**Implement in Stage 5a critic spec.**
+
+### 33. Proposal artifact governance for creator teams (2026-03-31) [active]
+
+Creator teams (5b+) emit a **ProposalArtifact** (candidate definition + PrimitiveRegistryEntry + rationale) rather than directly producing active primitives. A validation gate separates creation from activation.
+
+**Flow:** create → propose → critic gate (classification, redundancy, scope) → boundary-auditor gate (permissions, context exposure, narrow-by-default) → activate (write definition + extension + register). Rejection routes findings back to the creator team for revision using existing loop mechanisms.
+
+**Why:** Direct activation from creator teams risks unvalidated primitives entering the system. The proposal stage creates a governance checkpoint that leverages the critic and boundary-auditor specialists already in the roster, and fits naturally into the team state machine as a new "propose" state before "implement."
+
+**Design in Stage 5b.**
+
+### 34. Typed deliverables (2026-03-31) [active]
+
+Replace `deliverables: string[]` with `deliverables: Deliverable[]` where `Deliverable` carries a `kind` field, enabling downstream consumers to distinguish artifact types without inspecting content.
+
+```typescript
+interface Deliverable {
+  kind: "code" | "plan" | "spec" | "test-report" | "review" | "schema" | "routing-def";
+  content: string;
+  label?: string;
+}
+```
+
+**Why:** Currently all deliverables are untyped strings. Downstream specialists, teams, and the orchestrator synthesizer must inspect content to understand what they're consuming. Typed deliverables make artifact classification machine-readable, which becomes important when creator teams produce multi-artifact outputs and when contract validation needs to reason about artifact types.
+
+**Breaking change** to `ResultPacket`. Requires migration of result-parser, synthesize, and all consumers.
+
+**Implement in Stage 5b** (coincides with creator team work, which is the first consumer that strongly needs typed deliverables).

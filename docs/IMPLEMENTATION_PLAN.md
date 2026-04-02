@@ -3154,6 +3154,138 @@ Add a new test file `tests/orchestrator-5a-integration.test.ts` with tests verif
 - Does not add new delegationHint values to the orchestrator tool params (auto-selection via keywords is sufficient)
 - Does not redesign the keyword matching (Stage 5g replaces it with LLM-based selection)
 
+### 5a addendum: Cross-cutting substrate enhancements (Decisions #31-32)
+
+The following enhancements are implemented alongside the 5 new specialists. They strengthen the substrate before creator teams (5b) introduce self-expansion.
+
+#### Semantic adequacy gates (Decision #31)
+
+Add lightweight structural predicates that validate specialist outputs beyond type correctness.
+
+**New module:** `extensions/shared/adequacy.ts` (or fold into `contracts.ts`)
+
+```typescript
+interface AdequacyCheck {
+  name: string;
+  predicate: (result: ResultPacket) => boolean;
+  failureMessage: string;
+}
+
+interface AdequacyResult {
+  adequate: boolean;
+  failures: string[];
+}
+
+function validateAdequacy(checks: AdequacyCheck[], result: ResultPacket): AdequacyResult;
+```
+
+**Integration point:** Called post-parse in `delegateToSpecialist()` (in `delegate.ts`). If `adequate === false`, the result status is overridden to `"failure"` with `failureReason: "quality_failure"`.
+
+**Type change:** Add `"quality_failure"` to the `FailureReason` union in `types.ts`.
+
+**Per-specialist predicates (defined on `SpecialistPromptConfig` via optional `adequacyChecks` field):**
+
+| Specialist | Predicate | Failure message |
+|-----------|-----------|----------------|
+| planner | `deliverables.length >= 1` | "Planner must produce at least one deliverable" |
+| planner | `deliverables.some(d => /verif|test|valid|confirm/i.test(d))` | "Planner output must include at least one verification step" |
+| builder | `status !== "success" \|\| deliverables.length >= 1` | "Builder must produce deliverables on success" |
+| builder | `status !== "success" \|\| modifiedFiles.length >= 1` | "Builder must report modified files on success" |
+| reviewer | `verdict !== "request_changes" \|\| findings.length >= 1` | "Reviewer must include findings when requesting changes" |
+| tester | Each test result has evidence field | "Tester results must include evidence" |
+| New 5a specialists | Defined per specialist as part of prompt config | — |
+
+**New files:**
+
+| File | Purpose |
+|------|---------|
+| `extensions/shared/adequacy.ts` | Adequacy validation module |
+| `tests/adequacy.test.ts` | Tests for adequacy predicates and integration |
+
+#### Expanded critic spec: primitive classification (Decision #32)
+
+The critic's output format gains a `classifiedAs` field. When evaluating any proposed creation, the critic must classify the subject.
+
+**Additions to critic prompt config:**
+- Output format override adds `classifiedAs` field: `"specialist" | "team" | "sequence" | "seed" | "convention" | "tool-capability"`
+- Working style directive addition: "When evaluating proposed creations, classify what the subject actually is before evaluating whether it should exist"
+- Constraint addition: "Redundancy evaluation must answer: is this a new primitive or a variant of an existing one?"
+- Adequacy check: `classifiedAs` field must be present in output when status is success
+
+**Additions to critic agent definition (`agents/specialists/critic.md`):**
+- Add "primitive type classification" to scope
+- Add "classify proposed creations by primitive type" to expected_outputs
+
+#### Structured tester output (evidence pattern)
+
+Extend the reviewer's structured findings pattern to the tester. Each test result should carry machine-consumable evidence.
+
+**Tester output format addition:**
+```json
+{
+  "testResults": [
+    {
+      "id": "T1",
+      "subject": "What was tested",
+      "method": "manual | automated | inspection",
+      "expectedCondition": "What should be true",
+      "actualResult": "What was observed",
+      "passed": true
+    }
+  ]
+}
+```
+
+**Additions to tester prompt config:**
+- `outputFormatOverride` with the testResults structure above
+- Adequacy check: each testResult must have subject, method, and passed fields
+
+#### PrimitiveRegistryEntry type definition
+
+Define the schema that all primitives must eventually satisfy. Creator teams (5b+) must emit registry-compatible entries.
+
+```typescript
+interface PrimitiveRegistryEntry {
+  id: string;
+  version: string;
+  kind: "specialist" | "team" | "sequence" | "seed";
+  purpose: string;
+  inputContract: ContractField[];
+  outputContract: ContractField[];
+  selectionHints: string[];
+  status: "active" | "proposed" | "deprecated";
+}
+```
+
+**Implementation:** Type definition only in `types.ts`. Manually populate for all 9 specialists after 5a completes. No runtime registry service (that's Stage 5g). Creator teams (5b+) must emit a `PrimitiveRegistryEntry` as part of their output.
+
+**New file:** None — add to `extensions/shared/types.ts`
+
+#### Live subprocess hardening test pass
+
+Validate operational robustness of the subprocess pattern with adversarial test cases.
+
+**New file:** `tests/subprocess-hardening.test.ts`
+
+**Test cases:**
+1. Timeout behavior: verify SIGTERM → SIGKILL sequence fires correctly
+2. Malformed JSON recovery: partial/corrupted JSON events → graceful fallback
+3. Abort mid-stream: abort signal during active output → clean termination
+4. Empty output: subprocess exits 0 with no stdout → handled without crash
+5. Multiple sequential delegations: verify cleanup between runs
+6. Large output: oversized response → no buffer overflow or truncation
+
+**Approach:** Use a test harness subprocess (a simple script that simulates various failure modes) rather than mocking. These tests validate the actual I/O and process management behavior that mocked tests cannot cover.
+
+#### Updated file manifest (5a addendum)
+
+| File | Purpose |
+|------|---------|
+| `extensions/shared/adequacy.ts` | Adequacy validation module |
+| `extensions/shared/types.ts` | Add `quality_failure` to FailureReason, add PrimitiveRegistryEntry |
+| `tests/adequacy.test.ts` | Adequacy predicate tests |
+| `tests/subprocess-hardening.test.ts` | Live subprocess adversarial tests |
+
 #### Key files to read before implementing
 
 | File | Why |
@@ -3166,6 +3298,8 @@ Add a new test file `tests/orchestrator-5a-integration.test.ts` with tests verif
 | `extensions/orchestrator/delegate.ts` | Where to register configs and context forwarding |
 | `extensions/orchestrator/index.ts` | Where to mark new specialists as read-only |
 | `extensions/shared/contracts.ts` | Where to add field extraction mappings |
+| `extensions/shared/result-parser.ts` | Where adequacy gates integrate |
+| `extensions/specialists/reviewer/prompt.ts` | Exemplar for structured output format (evidence pattern) |
 
 ---
 
@@ -3185,7 +3319,7 @@ All 9 specialists available. Typical creation workflow uses a subset:
 2. **Spec-writer** — writes the agent definition, working style, constraints, boundary framing
 3. **Schema-designer** — writes the I/O contracts, packet types, validation constraints
 4. **Routing-designer** — (if the new specialist participates in teams) designs routing integration
-5. **Critic** — evaluates: is this specialist warranted? Does it overlap? Is the scope right? Reuse search.
+5. **Critic** — evaluates: is this specialist warranted? Does it overlap? Is the scope right? Reuse search. **Classifies** the proposed primitive (Decision #32).
 6. **Boundary-auditor** — checks for excess context exposure, permission violations
 7. **Builder** — implements the TypeScript extension, prompt config, factory integration
 8. **Reviewer** — pass/fail on the deliverable against the spec
@@ -3193,21 +3327,67 @@ All 9 specialists available. Typical creation workflow uses a subset:
 
 Not every creation needs every specialist — the planner decides which are relevant.
 
+### Proposal artifact governance (Decision #33)
+
+Creator teams emit a **ProposalArtifact** rather than directly producing active primitives. The proposal goes through a validation gate before activation.
+
+**ProposalArtifact type:**
+```typescript
+interface ProposalArtifact {
+  candidateDefinition: string;    // Agent definition markdown
+  registryEntry: PrimitiveRegistryEntry;
+  rationale: string;
+  criticClassification: string;   // From critic's classifiedAs field
+}
+```
+
+**State machine addition:** A "propose" state is inserted between the builder's output and activation. The state machine becomes:
+
+`plan → spec → schema → [routing] → critique → audit → implement → **propose** → validate → activate`
+
+- **propose** — builder output packaged as ProposalArtifact
+- **validate** — critic (re-checks classification and redundancy on final artifact) + boundary-auditor (re-checks permissions on implementation)
+- **activate** — write definition files, register in orchestrator, update registry
+
+Rejection at the validate stage routes findings back to the appropriate earlier stage (spec-writer for spec issues, builder for implementation issues) via existing loop mechanisms.
+
+### Typed deliverables (Decision #34)
+
+Stage 5b introduces the `Deliverable` type to replace `deliverables: string[]`:
+
+```typescript
+interface Deliverable {
+  kind: "code" | "plan" | "spec" | "test-report" | "review" | "schema" | "routing-def";
+  content: string;
+  label?: string;
+}
+```
+
+**Breaking change** to `ResultPacket`. Migration plan:
+1. Add `Deliverable` type to `types.ts`
+2. Update `ResultPacket.deliverables` from `string[]` to `Deliverable[]`
+3. Update `result-parser.ts` to produce typed deliverables
+4. Update `synthesize.ts` to handle typed deliverables
+5. Update all test fixtures
+
 ### Key deliverables
 
 - Specialist-creator team definition (state machine, member roster, I/O contracts)
-- Governed creation: new specialists validated against existing ones for overlap (critic), boundary compliance (boundary-auditor), schema (4c) before activation
+- Proposal artifact governance: new specialists validated against existing ones for overlap (critic), boundary compliance (boundary-auditor), schema (4c) before activation
+- Typed deliverables migration
 - At least one specialist successfully created by the team as proof
 
 ### Exit criteria
 
 - Creator team can produce a working specialist end-to-end
-- Output includes: agent definition `.md`, TypeScript extension, prompt config, tests
+- Output includes: ProposalArtifact with agent definition `.md`, TypeScript extension, prompt config, tests
 - New specialists are validated (no redundancy, passes schema checks, boundary-compliant)
+- Proposal → validation → activation flow works end-to-end
+- Typed deliverables used throughout the pipeline
 
 ### Dependencies
 
-- Stage 5a complete (spec-writer and critic available)
+- Stage 5a complete (spec-writer, critic with classification, adequacy gates)
 - Stage 4b complete (team infrastructure)
 - Stage 4c complete (schema validation for new primitives)
 - Stage 4e complete (model routing, worklist for tracking multi-step creation workflows)
@@ -3329,10 +3509,13 @@ Likely the same as specialist-creator: planner + spec-writer + builder + critic 
 
 Replace hardcoded specialist selection with dynamic, capability-aware routing.
 
+**Migration path:** See `docs/FUTURE_WORK.md` "Specialist Selection Migration Path" for the phased approach. Contract-aware pruning should be step 1, LLM tiebreaker step 2. The `PrimitiveRegistryEntry` schema (defined in 5a) provides the data model for discovery.
+
 ### Key deliverables
 
-- Discovery service: index available specialists, teams, and sequences at load time, expose via query
-- LLM-based specialist selection: replace keyword heuristics in `select.ts` with capability analysis
+- Discovery service: index available specialists, teams, and sequences at load time, using `PrimitiveRegistryEntry` as the registry data model
+- Contract-aware selection pruning: filter candidates by input contract compatibility before heuristic/LLM evaluation
+- LLM-based specialist selection: replace keyword heuristics in `select.ts` with capability analysis (after contract pruning)
 - Runtime tool management: `getActiveTools()`/`setActiveTools()` to scope available tools per task context (disable irrelevant specialists based on task type)
 
 ### Exit criteria

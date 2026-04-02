@@ -166,27 +166,36 @@ Strengthen the existing specialist and orchestration substrate before expanding 
 
 ### Stage 5 — Meta-Teams and Self-Expansion [NOT STARTED]
 
-#### 5a — Bootstrap Specialists
-Five new specialists must be manually built before the specialist-creator team can function. See Decision #20.
+#### 5a — Bootstrap Specialists + Substrate Enhancements
+Five new specialists must be manually built before the specialist-creator team can function. See Decision #20. Cross-cutting substrate enhancements (Decisions #31-32) are implemented alongside.
 
-Each follows the existing factory pattern (`createSpecialistExtension`): agent definition markdown, TypeScript extension, prompt config, tests.
+Each specialist follows the existing factory pattern (`createSpecialistExtension`): agent definition markdown, TypeScript extension, prompt config, tests.
 
+**Specialists:**
 - [ ] **Spec-writer** — prose definitions, agent boundaries, working style design, "what this does NOT do"
 - [ ] **Schema-designer** — TypeScript types, packet shapes, I/O contracts, invariants, failure modes, output templates, validation constraints
 - [ ] **Routing-designer** — state machines, transition completeness, escalation paths, unreachable state detection
-- [ ] **Critic** — scope evaluation, redundancy detection, reuse search, "should this exist?"
+- [ ] **Critic** — scope evaluation, redundancy detection, reuse search, "should this exist?", **primitive type classification** (Decision #32)
 - [ ] **Boundary-auditor** — access control, minimal-context enforcement, permission review, control philosophy compliance
 - [ ] Register all five in orchestrator's selection and delegation infrastructure
 - [ ] Update `select.ts` keyword matching and `delegate.ts` config map
 - [ ] Update `buildContextForSpecialist()` if any new specialist needs specific prior-result fields
 
+**Substrate enhancements:**
+- [ ] **Semantic adequacy gates** (Decision #31) — per-specialist structural predicates, `quality_failure` status, `validateAdequacy()` module
+- [ ] **Structured tester output** — evidence pattern (subject, method, expected, actual, passed) matching reviewer's finding structure
+- [ ] **PrimitiveRegistryEntry type** — schema for registry entries, populated manually for all 9 specialists
+- [ ] **Live subprocess hardening** — adversarial integration tests for timeout, malformed output, abort, cleanup
+
 #### 5b — Specialist-Creator Team
-The first meta-team. Its output is a fully working new specialist: agent definition markdown, TypeScript extension, prompt config, and tests. See Decision #16.
+The first meta-team. Its output is a fully working new specialist: agent definition markdown, TypeScript extension, prompt config, and tests. See Decisions #16, #33, #34.
 
-Full 9-specialist roster available. Typical creation workflow uses a subset:
+Full 9-specialist roster available. Typical creation workflow uses a subset.
 
-- [ ] Define specialist-creator team state machine. Typical flow: plan (planner) → write spec (spec-writer) → design schemas (schema-designer) → evaluate need/overlap (critic) → audit boundaries (boundary-auditor) → implement (builder) → review (reviewer) → test (tester)
-- [ ] Governed creation workflow: candidate proposed → critic + boundary-auditor evaluate → spec-writer + schema-designer produce artifacts → builder implements → validated against schema (4c) → activated
+- [ ] Define specialist-creator team state machine with **proposal governance** (Decision #33): plan → spec → schema → [routing] → critique → audit → implement → **propose** → validate → activate
+- [ ] Implement **ProposalArtifact** type: candidate definition + PrimitiveRegistryEntry + rationale
+- [ ] Implement **typed deliverables** (Decision #34): `Deliverable` type with kind field, migrate ResultPacket
+- [ ] Governed creation: critic classifies primitive type, boundary-auditor validates, proposal validated before activation
 - [ ] Prove with at least one specialist successfully created by the team
 
 #### 5c — Team-Creator Team

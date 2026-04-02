@@ -8,10 +8,12 @@
 
 ## What Stage 5a Delivers
 
-Five new specialists that complete the 9-specialist roster: **spec-writer**, **schema-designer**, **routing-designer**, **critic**, **boundary-auditor**. Each follows the identical factory pattern as existing specialists. No new infrastructure needed.
+Five new specialists that complete the 9-specialist roster: **spec-writer**, **schema-designer**, **routing-designer**, **critic**, **boundary-auditor**. Each follows the identical factory pattern as existing specialists.
+
+**Additionally:** Cross-cutting substrate enhancements (Decisions #31-32): semantic adequacy gates, critic primitive classification, structured tester output, PrimitiveRegistryEntry type, live subprocess hardening tests. See the "Substrate Enhancements" section at the end of this document.
 
 **Current state:** 350 tests passing, Stage 4 complete, 4 specialists operational.
-**Target state:** ~421 tests passing, all 9 specialists operational.
+**Target state:** ~450+ tests passing, all 9 specialists operational, adequacy gates active, subprocess hardening validated.
 
 ---
 
@@ -842,8 +844,142 @@ make test        # Must pass — expect ~421 tests (350 existing + ~71 new)
 
 ---
 
+---
+
+## Substrate Enhancements (Decisions #31-32)
+
+These are implemented alongside the 5 new specialists. See `docs/IMPLEMENTATION_PLAN.md` Stage 5a addendum for full specs.
+
+### Semantic Adequacy Gates (Decision #31)
+
+**What:** Per-specialist structural predicates that catch "well-typed but useless" outputs.
+
+**New module:** `extensions/shared/adequacy.ts`
+
+```typescript
+interface AdequacyCheck {
+  name: string;
+  predicate: (result: ResultPacket) => boolean;
+  failureMessage: string;
+}
+
+interface AdequacyResult {
+  adequate: boolean;
+  failures: string[];
+}
+
+function validateAdequacy(checks: AdequacyCheck[], result: ResultPacket): AdequacyResult;
+```
+
+**Type change:** Add `"quality_failure"` to `FailureReason` union in `extensions/shared/types.ts`.
+
+**Integration:** Called post-parse in `delegateToSpecialist()` (`extensions/orchestrator/delegate.ts`). If inadequate, override status to `"failure"` with `failureReason: "quality_failure"`.
+
+**SpecialistPromptConfig change:** Add optional `adequacyChecks: AdequacyCheck[]` field.
+
+**Predicate examples:**
+- Planner: `deliverables.length >= 1`, at least one deliverable matches `/verif|test|valid|confirm/i`
+- Builder: non-empty deliverables and modifiedFiles when status=success
+- Reviewer: findings non-empty when verdict=request_changes
+- Tester: each testResult has evidence
+- New specialists: define per specialist as part of prompt config
+
+**Tests:** `tests/adequacy.test.ts` — test each predicate, test integration with delegation lifecycle.
+
+### Expanded Critic Spec (Decision #32)
+
+**What:** Critic output gains `classifiedAs` field for primitive type classification.
+
+**Changes to `extensions/specialists/critic/prompt.ts`:**
+- Add to `outputFormatOverride`:
+  ```json
+  "classifiedAs": "specialist | team | sequence | seed | convention | tool-capability"
+  ```
+- Add to working style reasoning: "When evaluating proposed creations, classify what the subject actually is before evaluating whether it should exist."
+- Add constraint: "Redundancy evaluation must answer: is this a new primitive or a variant of an existing one?"
+- Add adequacy check: `classifiedAs` must be present when status=success
+
+**Changes to `agents/specialists/critic.md`:**
+- Add "primitive type classification" to scope
+- Add "classify proposed creations by primitive type" to expected_outputs
+
+### Structured Tester Output
+
+**What:** Extend the reviewer's evidence pattern to the tester.
+
+**Changes to `extensions/specialists/tester/prompt.ts`:**
+- Add `outputFormatOverride` with testResults structure:
+  ```json
+  {
+    "testResults": [
+      {
+        "id": "T1",
+        "subject": "What was tested",
+        "method": "manual | automated | inspection",
+        "expectedCondition": "What should be true",
+        "actualResult": "What was observed",
+        "passed": true
+      }
+    ]
+  }
+  ```
+- Add adequacy check: each testResult must have subject, method, and passed fields
+
+**Changes to `extensions/shared/result-parser.ts`:**
+- Add `parseTestOutput()` function (parallel to `parseReviewOutput()`)
+- Extract testResults from JSON output, validate structure
+
+**Tests:** Add to `tests/tester.test.ts` and create `tests/test-findings.test.ts` (parallel to `tests/review-findings.test.ts`).
+
+### PrimitiveRegistryEntry Type
+
+**What:** Define the schema that all primitives must satisfy for future registry use.
+
+**Add to `extensions/shared/types.ts`:**
+```typescript
+export interface PrimitiveRegistryEntry {
+  id: string;
+  version: string;
+  kind: "specialist" | "team" | "sequence" | "seed";
+  purpose: string;
+  inputContract: ContractField[];
+  outputContract: ContractField[];
+  selectionHints: string[];
+  status: "active" | "proposed" | "deprecated";
+}
+```
+
+**After all 9 specialists are operational:** Create `extensions/shared/registry-entries.ts` with manual entries for all 9 specialists. This is a data file, not a runtime service — the service comes in Stage 5g.
+
+### Live Subprocess Hardening Tests
+
+**What:** Adversarial integration tests that validate real subprocess I/O behavior.
+
+**New file:** `tests/subprocess-hardening.test.ts`
+
+**Approach:** Create a small test harness script (`tests/fixtures/mock-subprocess.sh` or `.ts`) that can simulate various failure modes based on arguments:
+- `--timeout` — sleep forever (test timeout handling)
+- `--malformed-json` — emit partial/corrupted JSON
+- `--crash` — exit non-zero mid-output
+- `--empty` — exit 0 with no output
+- `--large-output` — emit oversized response
+
+**Test cases:**
+1. Timeout: verify SIGTERM fires at configured timeout, SIGKILL follows after 5s
+2. Malformed JSON: corrupted events → graceful fallback to partial status
+3. Abort mid-stream: send abort signal during active output → clean termination
+4. Empty output: subprocess exits 0 with no stdout → no crash, empty result
+5. Sequential delegations: run two delegations back-to-back → no state leakage
+6. Large output: oversized response → handled without crash
+
+**Note:** These tests may need longer timeouts in vitest config. Mark them with a `hardening` tag for selective execution.
+
+---
+
 ## What This Stage Does NOT Do
 
 - Does not add the new specialists to any team definitions (that's 5b+)
 - Does not add new `delegationHint` values to the orchestrator tool params (auto-selection via keywords is sufficient)
 - Does not redesign keyword matching (Stage 5g replaces it with LLM-based selection)
+- Does not implement ProposalArtifact or typed deliverables (that's 5b)
+- Does not build a runtime registry service (that's 5g)

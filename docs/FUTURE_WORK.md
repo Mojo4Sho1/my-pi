@@ -137,3 +137,53 @@ A lightweight, overwrite-only checkpoint file that an active executor maintains 
 **Why not a memory file:** A persistent memory file accumulates cross-session knowledge, which goes stale and creates a token tax. The checkpoint is ephemeral by design — it exists only during active execution and is cleaned up when no longer needed. Cross-cutting project knowledge belongs in repo artifacts (CLAUDE.md, code comments, decision log), not in ambient memory.
 
 **Revisit when:** First real multi-session campaign execution (sequence-level, Stage 5d+). The checkpoint mechanism needs to be tested against real ungraceful exits to determine optimal write frequency and content structure.
+
+---
+
+## Fan-Out Merge Contracts
+
+When fan-out states (Decision #21, currently type-stubbed) are implemented, parallel branches create contract merge ambiguity that must be explicitly designed for.
+
+**Design requirements:**
+- **Branch result normalization** — how are outputs from parallel branches combined into a single result for the next state?
+- **Merge contracts** — what is the merge rule when two branches both produce outputs satisfying the next stage's input contract?
+- **Conflict semantics** — who resolves conflicts when branches produce overlapping modifications (e.g., both modify the same file)?
+- **Partial failure** — if one branch fails and another succeeds, is the result partial, escalation, or recoverable? What determines this?
+- **Determinism guarantees** — does branch execution order affect the merged result? If so, is that acceptable?
+- **Branch-level observability** — session artifacts must track per-branch execution independently, not just the merged outcome
+
+**Key risk:** Parallelism is an attractive source of hidden nondeterminism. Without explicit merge contracts, fan-out becomes difficult to debug and reason about.
+
+**Revisit when:** Fan-out implementation moves from type stub to active development. These requirements should be resolved in a dedicated design pass before implementation begins.
+
+---
+
+## Full Artifact Taxonomy
+
+If the typed deliverables approach (Decision #34: `Deliverable` with `kind` field) proves insufficient as the system scales, a more comprehensive artifact classification system may be needed.
+
+**Proposed four-tier classification:**
+- **Control artifacts** — packets, state traces, worklists, checkpoint files
+- **Design artifacts** — specs, schemas, routing definitions, team definitions
+- **Execution artifacts** — diffs, test reports, review findings, build outputs
+- **Registry artifacts** — agent definitions, team definitions, sequence definitions, seed definitions
+
+**Value:** A shared ontology for contract design — contracts could name artifact classes and their invariants, not just individual fields. Creator teams would target a known artifact taxonomy, reducing classification ambiguity.
+
+**Revisit when:** `Deliverable.kind` list grows beyond ~10 values, or when classification becomes ambiguous (e.g., a deliverable is both "spec" and "schema").
+
+---
+
+## Specialist Selection Migration Path
+
+The current keyword-heuristic approach to specialist selection (`select.ts`) is crude but inspectable. The migration to LLM-based selection should be gradual, preserving debuggability at each phase.
+
+**Planned migration phases:**
+1. **Phase 1 (current):** Keyword heuristic + explicit delegation hints. Crude but fully deterministic and inspectable.
+2. **Phase 2 (5g step 1):** Contract-aware pruning — filter candidate specialists by input contract compatibility with available context. Eliminates structurally incompatible candidates before any heuristic or LLM evaluation.
+3. **Phase 3 (5g step 2):** LLM tiebreaker — invoke LLM selection only when ambiguity remains after contract pruning. The LLM evaluates a small candidate set, not the full roster.
+4. **Phase 4 (future):** Full LLM selection with explanation channel — the selector answers "which candidates are admissible?", "which are best matched?", and "why was this route selected?"
+
+**Key principle:** Preserve inspectability at each phase. Heuristics are crude but debuggable; LLM selection is flexible but opaque. The migration path should layer LLM intelligence on top of deterministic pruning, not replace it.
+
+**Revisit when:** Stage 5g begins. Contract-aware pruning should be the first implementation step, not LLM replacement.
