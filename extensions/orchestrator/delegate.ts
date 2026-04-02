@@ -10,6 +10,7 @@ import type { SpecialistPromptConfig } from "../shared/specialist-prompt.js";
 import { buildSpecialistSystemPrompt, buildSpecialistTaskPrompt } from "../shared/specialist-prompt.js";
 import { spawnSpecialistAgent } from "../shared/subprocess.js";
 import { parseSpecialistOutput, parseReviewOutput } from "../shared/result-parser.js";
+import { validateAdequacy } from "../shared/adequacy.js";
 import type { StructuredReviewOutput } from "../shared/types.js";
 import { resolveModel } from "../shared/config.js";
 import { createResultPacket, validateResultPacket } from "../shared/packets.js";
@@ -19,6 +20,11 @@ import { BUILDER_PROMPT_CONFIG } from "../specialists/builder/prompt.js";
 import { PLANNER_PROMPT_CONFIG } from "../specialists/planner/prompt.js";
 import { REVIEWER_PROMPT_CONFIG } from "../specialists/reviewer/prompt.js";
 import { TESTER_PROMPT_CONFIG } from "../specialists/tester/prompt.js";
+import { SPEC_WRITER_PROMPT_CONFIG } from "../specialists/spec-writer/prompt.js";
+import { SCHEMA_DESIGNER_PROMPT_CONFIG } from "../specialists/schema-designer/prompt.js";
+import { ROUTING_DESIGNER_PROMPT_CONFIG } from "../specialists/routing-designer/prompt.js";
+import { CRITIC_PROMPT_CONFIG } from "../specialists/critic/prompt.js";
+import { BOUNDARY_AUDITOR_PROMPT_CONFIG } from "../specialists/boundary-auditor/prompt.js";
 import type { SpecialistId } from "./select.js";
 
 export interface DelegationInput {
@@ -52,6 +58,11 @@ const PROMPT_CONFIG_MAP: Record<SpecialistId, SpecialistPromptConfig> = {
   planner: PLANNER_PROMPT_CONFIG,
   reviewer: REVIEWER_PROMPT_CONFIG,
   tester: TESTER_PROMPT_CONFIG,
+  "spec-writer": SPEC_WRITER_PROMPT_CONFIG,
+  "schema-designer": SCHEMA_DESIGNER_PROMPT_CONFIG,
+  "routing-designer": ROUTING_DESIGNER_PROMPT_CONFIG,
+  "critic": CRITIC_PROMPT_CONFIG,
+  "boundary-auditor": BOUNDARY_AUDITOR_PROMPT_CONFIG,
 };
 
 /**
@@ -181,6 +192,34 @@ export async function delegateToSpecialist(input: DelegationInput): Promise<Dele
   // 5. Parse specialist output
   const { result: parsed, rawJson } = parseSpecialistOutput(subAgentResult.finalText, agentId);
 
+  // 5.25 Semantic adequacy gate
+  if (promptConfig.adequacyChecks && promptConfig.adequacyChecks.length > 0 && parsed.status === "success") {
+    // Build a temporary result packet for adequacy checking
+    const tempResult = createResultPacket({
+      taskId: taskPacket.id,
+      status: parsed.status,
+      summary: parsed.summary,
+      deliverables: parsed.deliverables,
+      modifiedFiles: parsed.modifiedFiles,
+      sourceAgent: agentId,
+    });
+    const adequacyResult = validateAdequacy(promptConfig.adequacyChecks, tempResult);
+    if (!adequacyResult.adequate) {
+      parsed.status = "failure";
+      parsed.summary = `Quality failure: ${adequacyResult.failures.join("; ")}`;
+      logger?.log({
+        timestamp: new Date().toISOString(),
+        level: "warn",
+        event: "adequacy_failure",
+        sourceAgent: taskPacket.sourceAgent,
+        targetAgent: agentId,
+        taskId: taskPacket.id,
+        summary: parsed.summary,
+        failureReason: "quality_failure",
+      });
+    }
+  }
+
   // 5.5 Extract structured review output for reviewer results
   let reviewOutput: StructuredReviewOutput | undefined;
   if (promptConfig.id === "specialist_reviewer" && rawJson) {
@@ -270,6 +309,45 @@ export function buildContextForSpecialist(
       return {
         modifiedFiles: builderResult.modifiedFiles,
         implementationSummary: builderResult.summary,
+      };
+    }
+
+    case "spec-writer":
+      return undefined;
+
+    case "schema-designer": {
+      const specResult = priorResults.find(r => r.sourceAgent === "specialist_spec-writer");
+      if (!specResult) return undefined;
+      return {
+        specSummary: specResult.summary,
+        specDeliverables: specResult.deliverables,
+      };
+    }
+
+    case "routing-designer": {
+      const schemaResult = priorResults.find(r => r.sourceAgent === "specialist_schema-designer");
+      if (!schemaResult) return undefined;
+      return {
+        schemaSummary: schemaResult.summary,
+        schemaDeliverables: schemaResult.deliverables,
+      };
+    }
+
+    case "critic": {
+      const allSummaries = priorResults.map(r => `[${r.sourceAgent}] ${r.summary}`);
+      if (allSummaries.length === 0) return undefined;
+      return {
+        priorSummaries: allSummaries,
+        priorDeliverables: priorResults.flatMap(r => r.deliverables),
+      };
+    }
+
+    case "boundary-auditor": {
+      const allSummaries = priorResults.map(r => `[${r.sourceAgent}] ${r.summary}`);
+      if (allSummaries.length === 0) return undefined;
+      return {
+        priorSummaries: allSummaries,
+        priorDeliverables: priorResults.flatMap(r => r.deliverables),
       };
     }
   }

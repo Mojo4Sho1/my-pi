@@ -1,6 +1,6 @@
 # Stage 5a Handoff: Bootstrap 5 New Specialists
 
-**Read this document FIRST before starting Stage 5a.** It contains everything you need to implement without re-exploring the codebase. The authoritative spec is `docs/IMPLEMENTATION_PLAN.md` (lines 2271-3169) — this document distills it into an execution guide.
+**Read this document FIRST before starting Stage 5a.** It contains everything you need to implement without re-exploring the codebase. The authoritative spec is `docs/IMPLEMENTATION_PLAN.md` (Stage 5a section, starting around line 2276) — this document distills it into an execution guide.
 
 **Do NOT use plan mode.** The design is fully pre-resolved (Decision #20 in `DECISION_LOG.md`). Execute directly.
 
@@ -795,11 +795,11 @@ const READ_ONLY_SPECIALISTS = new Set([
 ## Prompt Configs (exact TypeScript)
 
 All 5 prompt configs are specified verbatim in `docs/IMPLEMENTATION_PLAN.md`:
-- **Spec-writer:** lines 2597-2648
-- **Schema-designer:** lines 2671-2729
-- **Routing-designer:** lines 2759-2817
-- **Critic:** lines 2846-2904
-- **Boundary-auditor:** lines 2932-2990
+- **Spec-writer:** lines 2614-2657
+- **Schema-designer:** lines 2690-2747
+- **Routing-designer:** lines 2778-2834
+- **Critic:** lines 2865-2921
+- **Boundary-auditor:** lines 2952-3008
 
 Copy them directly. Do not modify.
 

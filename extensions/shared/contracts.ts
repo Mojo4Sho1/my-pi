@@ -202,6 +202,18 @@ function extractFieldFromResult(
       return result.deliverables;
     case "changeDescription":
       return result.summary;
+    case "specSummary":
+      return result.summary;
+    case "specDeliverables":
+      return result.deliverables;
+    case "schemaSummary":
+      return result.summary;
+    case "schemaDeliverables":
+      return result.deliverables;
+    case "priorSummaries":
+      return undefined; // Built from multiple results, not extracted from one
+    case "priorDeliverables":
+      return undefined; // Same — handled by buildContextForSpecialist directly
     default:
       return undefined;
   }

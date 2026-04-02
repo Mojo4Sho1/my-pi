@@ -5,7 +5,9 @@
  * Uses keyword heuristics to select which specialist(s) should handle a task.
  */
 
-export type SpecialistId = "planner" | "reviewer" | "builder" | "tester";
+export type SpecialistId =
+  | "planner" | "reviewer" | "builder" | "tester"
+  | "spec-writer" | "schema-designer" | "routing-designer" | "critic" | "boundary-auditor";
 export type TeamId = "build-team";
 export type DelegationHint = SpecialistId | "auto";
 
@@ -17,13 +19,28 @@ export interface SelectionResult {
 }
 
 /** Workflow order for multi-specialist delegation */
-const WORKFLOW_ORDER: SpecialistId[] = ["planner", "reviewer", "builder", "tester"];
+const WORKFLOW_ORDER: SpecialistId[] = [
+  "planner",
+  "spec-writer",
+  "schema-designer",
+  "routing-designer",
+  "critic",
+  "boundary-auditor",
+  "reviewer",
+  "builder",
+  "tester",
+];
 
 const SPECIALIST_KEYWORDS: Record<SpecialistId, RegExp> = {
   planner: /\b(plan|design|strateg\w*|breakdown|decompos\w*|architect\w*)\b/i,
   reviewer: /\b(review\w*|check|evaluat\w*|audit\w*|inspect\w*|assess\w*)\b/i,
   builder: /\b(implement\w*|build|fix|creat\w*|add|updat\w*|refactor\w*|code|write|develop\w*|chang\w*|modif\w*)\b/i,
   tester: /\b(test\w*|validat\w*|verif\w*|assert\w*|confirm\w*|ensure)\b/i,
+  "spec-writer": /\b(spec\w*|defin\w*|boundar\w*|scope\s+doc|agent\s+def|working\s+style|non.?goal)\b/i,
+  "schema-designer": /\b(schema|type\s+def|contract|packet\s+shape|i.?o\s+contract|typebox|interface\s+design|validation\s+constraint)\b/i,
+  "routing-designer": /\b(state\s+machine|routing|transition|escalation\s+path|unreachable|team\s+definition|workflow\s+design)\b/i,
+  "critic": /\b(critic\w*|evaluat\w*\s+design|redundan\w*|simplif\w*|over.?engineer|reuse|unnecessary|proportional)\b/i,
+  "boundary-auditor": /\b(boundary|access\s+control|permission|minimal.?context|narrow.?by.?default|excess\s+context|control\s+philosophy)\b/i,
 };
 
 const VALID_SPECIALISTS = new Set<string>(WORKFLOW_ORDER);

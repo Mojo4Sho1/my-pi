@@ -6,7 +6,7 @@
  * assemble the prompts in a consistent format.
  */
 
-import type { TaskPacket, InputContract, OutputContract } from "./types.js";
+import type { TaskPacket, InputContract, OutputContract, ResultPacket } from "./types.js";
 
 export interface SpecialistPromptConfig {
   /** Specialist agent ID (e.g. "specialist_builder") */
@@ -34,6 +34,14 @@ export interface SpecialistPromptConfig {
   outputFormatOverride?: string;
   /** Specialist's default model preference (Stage 4e) */
   preferredModel?: string;
+  /** Semantic adequacy checks — structural predicates beyond type correctness (Stage 5a) */
+  adequacyChecks?: AdequacyCheck[];
+}
+
+export interface AdequacyCheck {
+  name: string;
+  predicate: (result: ResultPacket) => boolean;
+  failureMessage: string;
 }
 
 /**

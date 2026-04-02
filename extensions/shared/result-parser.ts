@@ -5,7 +5,7 @@
  * that maps to ResultPacket fields. Pure functions, no Pi API dependencies.
  */
 
-import type { PacketStatus, StructuredReviewOutput, ReviewFinding, ReviewVerdict, FindingPriority } from "./types.js";
+import type { PacketStatus, StructuredReviewOutput, ReviewFinding, ReviewVerdict, FindingPriority, StructuredTestOutput, TestResult, TestMethod } from "./types.js";
 
 export interface ParsedSpecialistResult {
   status: PacketStatus;
@@ -30,6 +30,7 @@ const VALID_STATUSES: ReadonlySet<string> = new Set([
 
 const VALID_VERDICTS: readonly ReviewVerdict[] = ["approve", "request_changes", "comment", "blocked"];
 const VALID_PRIORITIES: readonly FindingPriority[] = ["critical", "major", "minor", "nit"];
+const VALID_TEST_METHODS: readonly TestMethod[] = ["manual", "automated", "inspection"];
 
 /**
  * Extract a structured result from a specialist sub-agent's final text output.
@@ -181,6 +182,59 @@ export function parseReviewOutput(
   return {
     verdict: rawJson.verdict as ReviewVerdict,
     findings: validFindings,
+    summary: parsedResult.summary,
+  };
+}
+
+/**
+ * Extract structured test output from a parsed specialist result.
+ * Called after parseSpecialistOutput() for tester results only.
+ *
+ * @param parsedResult - The generic ParsedSpecialistResult from parseSpecialistOutput()
+ * @param rawJson - The raw JSON object extracted during initial parsing (if available)
+ * @returns StructuredTestOutput if valid structured data found, undefined otherwise
+ */
+export function parseTestOutput(
+  parsedResult: ParsedSpecialistResult,
+  rawJson?: Record<string, unknown>
+): StructuredTestOutput | undefined {
+  if (!rawJson || !("testResults" in rawJson)) {
+    return undefined;
+  }
+
+  if (!Array.isArray(rawJson.testResults)) {
+    return undefined;
+  }
+
+  const validResults: TestResult[] = [];
+  for (const result of rawJson.testResults) {
+    if (
+      typeof result === "object" &&
+      result !== null &&
+      "id" in result &&
+      "subject" in result &&
+      "method" in result &&
+      "expectedCondition" in result &&
+      "actualResult" in result &&
+      "passed" in result
+    ) {
+      const method = VALID_TEST_METHODS.includes(result.method as TestMethod)
+        ? (result.method as TestMethod)
+        : "manual";
+
+      validResults.push({
+        id: String(result.id),
+        subject: String(result.subject),
+        method,
+        expectedCondition: String(result.expectedCondition),
+        actualResult: String(result.actualResult),
+        passed: Boolean(result.passed),
+      });
+    }
+  }
+
+  return {
+    testResults: validResults,
     summary: parsedResult.summary,
   };
 }

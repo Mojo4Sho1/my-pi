@@ -1,6 +1,6 @@
 # STATUS.md
 
-Last updated: 2026-04-02
+Last updated: 2026-04-02 (Stage 5a complete)
 
 ## Progress Checklist
 
@@ -166,26 +166,27 @@ Strengthen the existing specialist and orchestration substrate before expanding 
 
 ### Stage 5 — Meta-Teams and Self-Expansion [NOT STARTED]
 
-#### 5a — Bootstrap Specialists + Substrate Enhancements
-Five new specialists must be manually built before the specialist-creator team can function. See Decision #20. Cross-cutting substrate enhancements (Decisions #31-32) are implemented alongside.
+#### 5a — Bootstrap Specialists + Substrate Enhancements [COMPLETE]
+Five new specialists manually built. Cross-cutting substrate enhancements (Decisions #31-32) implemented alongside.
 
 Each specialist follows the existing factory pattern (`createSpecialistExtension`): agent definition markdown, TypeScript extension, prompt config, tests.
 
 **Specialists:**
-- [ ] **Spec-writer** — prose definitions, agent boundaries, working style design, "what this does NOT do"
-- [ ] **Schema-designer** — TypeScript types, packet shapes, I/O contracts, invariants, failure modes, output templates, validation constraints
-- [ ] **Routing-designer** — state machines, transition completeness, escalation paths, unreachable state detection
-- [ ] **Critic** — scope evaluation, redundancy detection, reuse search, "should this exist?", **primitive type classification** (Decision #32)
-- [ ] **Boundary-auditor** — access control, minimal-context enforcement, permission review, control philosophy compliance
-- [ ] Register all five in orchestrator's selection and delegation infrastructure
-- [ ] Update `select.ts` keyword matching and `delegate.ts` config map
-- [ ] Update `buildContextForSpecialist()` if any new specialist needs specific prior-result fields
+- [x] **Spec-writer** — prose definitions, agent boundaries, working style design, "what this does NOT do"
+- [x] **Schema-designer** — TypeScript types, packet shapes, I/O contracts, invariants, failure modes, output templates, validation constraints
+- [x] **Routing-designer** — state machines, transition completeness, escalation paths, unreachable state detection
+- [x] **Critic** — scope evaluation, redundancy detection, reuse search, "should this exist?", **primitive type classification** (Decision #32)
+- [x] **Boundary-auditor** — access control, minimal-context enforcement, permission review, control philosophy compliance
+- [x] Register all five in orchestrator's selection and delegation infrastructure
+- [x] Update `select.ts` keyword matching and `delegate.ts` config map
+- [x] Update `buildContextForSpecialist()` for new specialists' prior-result field needs
 
 **Substrate enhancements:**
-- [ ] **Semantic adequacy gates** (Decision #31) — per-specialist structural predicates, `quality_failure` status, `validateAdequacy()` module
-- [ ] **Structured tester output** — evidence pattern (subject, method, expected, actual, passed) matching reviewer's finding structure
-- [ ] **PrimitiveRegistryEntry type** — schema for registry entries, populated manually for all 9 specialists
-- [ ] **Live subprocess hardening** — adversarial integration tests for timeout, malformed output, abort, cleanup
+- [x] **Semantic adequacy gates** (Decision #31) — per-specialist structural predicates, `quality_failure` status, `validateAdequacy()` module
+- [x] **Structured tester output** — evidence pattern (subject, method, expected, actual, passed) matching reviewer's finding structure
+- [x] **PrimitiveRegistryEntry type** — schema for registry entries, populated manually for all 9 specialists
+- [x] **Live subprocess hardening** — adversarial integration tests for timeout, malformed output, abort, cleanup
+- [x] All 465 tests pass (350 existing + 115 new), TypeScript compiles cleanly
 
 #### 5a.1 — Token Tracking Substrate
 Add token usage tracking to specialist invocations and team session artifacts. See Decision #36.

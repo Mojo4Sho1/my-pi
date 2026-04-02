@@ -26,7 +26,10 @@ import type { Worklist } from "../worklist/index.js";
 import type { ResultPacket, StructuredReviewOutput } from "../shared/types.js";
 
 /** Specialists that produce plans/reviews but don't modify files */
-const READ_ONLY_SPECIALISTS = new Set(["planner", "reviewer"]);
+const READ_ONLY_SPECIALISTS = new Set([
+  "planner", "reviewer",
+  "spec-writer", "schema-designer", "routing-designer", "critic", "boundary-auditor",
+]);
 
 const OrchestrateParams = Type.Object({
   task: Type.String({ description: "What needs to be done" }),

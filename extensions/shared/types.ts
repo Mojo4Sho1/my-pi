@@ -181,7 +181,8 @@ export type FailureReason =
   | "missing_artifact"
   | "validation_failure"
   | "escalation"
-  | "abort";
+  | "abort"
+  | "quality_failure";
 
 // --- Structured Review Findings (Stage 4e) ---
 
@@ -214,6 +215,32 @@ export interface StructuredReviewOutput {
   /** Individual review findings */
   findings: ReviewFinding[];
   /** Brief summary of review outcome */
+  summary: string;
+}
+
+// --- Structured Test Output (Stage 5a) ---
+
+export type TestMethod = "manual" | "automated" | "inspection";
+
+export interface TestResult {
+  /** Author-assigned by tester (e.g., "T1", "T2") */
+  id: string;
+  /** What was tested */
+  subject: string;
+  /** How it was tested */
+  method: TestMethod;
+  /** What should be true */
+  expectedCondition: string;
+  /** What was observed */
+  actualResult: string;
+  /** Whether the test passed */
+  passed: boolean;
+}
+
+export interface StructuredTestOutput {
+  /** Individual test results */
+  testResults: TestResult[];
+  /** Brief summary of test outcome */
   summary: string;
 }
 
@@ -304,4 +331,17 @@ export interface TeamSessionArtifact {
     totalDurationMs: number;
     revisionCount: number;
   };
+}
+
+// --- Primitive Registry (Stage 5a) ---
+
+export interface PrimitiveRegistryEntry {
+  id: string;
+  version: string;
+  kind: "specialist" | "team" | "sequence" | "seed";
+  purpose: string;
+  inputContract: ContractField[];
+  outputContract: ContractField[];
+  selectionHints: string[];
+  status: "active" | "proposed" | "deprecated";
 }

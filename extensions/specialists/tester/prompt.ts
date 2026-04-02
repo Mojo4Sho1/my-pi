@@ -50,6 +50,27 @@ export const TESTER_PROMPT_CONFIG: SpecialistPromptConfig = {
       { name: "failures", type: "string[]", required: true, description: "Failed checks" },
     ],
   },
+  outputFormatOverride: `\`\`\`json
+{
+  "status": "success | partial | failure | escalation",
+  "summary": "Brief summary of validation results",
+  "passed": true | false,
+  "evidence": ["..."],
+  "failures": ["..."],
+  "testResults": [
+    {
+      "id": "T1",
+      "subject": "What was tested",
+      "method": "manual | automated | inspection",
+      "expectedCondition": "What should be true",
+      "actualResult": "What was observed",
+      "passed": true
+    }
+  ],
+  "modifiedFiles": [],
+  "escalation": { "reason": "...", "suggestedAction": "..." }
+}
+\`\`\``,
 };
 
 /**

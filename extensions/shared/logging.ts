@@ -14,6 +14,7 @@ export type DelegationEvent =
   | "delegation_complete"
   | "delegation_error"
   | "preflight_fail"
+  | "adequacy_failure"
   | "team_start"
   | "team_state_transition"
   | "team_complete"
