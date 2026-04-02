@@ -189,14 +189,43 @@ Each specialist follows the existing factory pattern (`createSpecialistExtension
 - [x] All 465 tests pass (350 existing + 115 new), TypeScript compiles cleanly
 
 #### 5a.1 — Token Tracking Substrate
-Add token usage tracking to specialist invocations and team session artifacts. See Decision #36.
+Add token usage tracking and threshold semantics to specialist invocations and team session artifacts. See Decisions #36, #37.
 
 - [ ] `TokenUsage` type (inputTokens, outputTokens, totalTokens)
+- [ ] `TokenThresholds` type (warn, split, deny levels)
+- [ ] `ThresholdResult` type and `checkThresholds()` utility
 - [ ] Add `tokenUsage?` to `SpecialistInvocationSummary`
 - [ ] Add `totalTokenUsage?` to `TeamSessionArtifact.metrics`
 - [ ] Capture token counts from sub-agent subprocess JSON events
 - [ ] Token rollup/aggregation utilities (`extensions/shared/tokens.ts`)
-- [ ] Tests for token tracking and rollup correctness
+- [ ] Threshold integration into delegation path (warn logs, split/deny influence behavior)
+- [ ] Tests for token tracking, rollup correctness, and threshold checking
+
+#### 5a.1b — Hook Substrate
+Clean lifecycle mechanism for interception and observation at runtime execution points. See Decision #38.
+
+- [ ] `HookEvent`, `HookFailure`, `PolicyResult` types
+- [ ] `HookRegistry` — local in-process registration and dispatch
+- [ ] Policy hooks (authoritative gates: allow/deny with structured reasons)
+- [ ] Observer hooks (non-authoritative listeners: logging, metrics, projections)
+- [ ] Event surface: `onSessionStart`, `beforeDelegation`, `afterDelegation`, `beforeSubprocessSpawn`, `afterSubprocessExit`, `onAdequacyFailure`, `onPolicyViolation`, `onArtifactWritten`, `onCommandInvoked`, `onSessionEnd`, `onTeamStart`, `beforeStateTransition`, `afterStateTransition`
+- [ ] Typed event payloads per event (session metadata, packet metadata, token totals, policy envelope)
+- [ ] Hook error isolation (failing hooks produce `HookFailure` artifacts, do not crash execution)
+- [ ] Integration: emit events from delegate.ts, subprocess.ts, router.ts
+- [ ] Tests for registration, dispatch, policy decisions, error isolation
+
+#### 5a.1c — Deterministic Sandboxing and Path Protection
+Runtime enforcement of the architectural authority model. See Decision #38.
+
+- [ ] `PolicyEnvelope` type (allowedWritePaths, allowedReadRoots, allowShell, allowNetwork, allowProcessSpawn, allowedCommands, forbiddenGlobs)
+- [ ] `PolicyViolation` type (timestamp, attempted action, target, expected policy, violation type, enforcement result)
+- [ ] `SpawnRecord` type (timestamp, specialist, policy envelope, outcome)
+- [ ] Hardened launcher: enhance `subprocess.ts` with policy validation before spawn
+- [ ] Path validation: check write targets against allowedWritePaths and forbiddenGlobs
+- [ ] Default authority model: 7 read-only specialists, 2 narrow-write by explicit grant (builder, tester)
+- [ ] `buildDefaultEnvelope()` per specialist authority class
+- [ ] Integration with hook substrate: violations fire `onPolicyViolation` events
+- [ ] Tests for envelope validation, path checks, violation generation, default authority model
 
 #### 5a.2 — Dashboard Substrate + Persistent Widget
 Build projection layer and ship persistent widget for session observability. See Decision #36.
@@ -299,30 +328,9 @@ Enable specialists to improve over time through governed, typed, versioned exper
 - [ ] Local scope only, manual lesson creation and approval
 - [ ] Measurement: reduced repeated mistakes, improved output consistency, fewer correction loops
 
-### Stage 7 — Slash Commands and Interactive Workflows [NOT STARTED]
+### Stage 7 — Command Surface [NOT STARTED]
 
-See Decision #17.
-
-#### 7a — `/plan` Command
-Interactive planning session. User describes goals, agent helps refine them, then orchestrator executes using available primitives.
-
-- [ ] Register `/plan` via `pi.registerCommand()`
-- [ ] Interactive planning flow: gather requirements → select primitives → build execution plan → confirm with user → orchestrate
-- [ ] Plan output stored in repo (e.g., `plans/` directory or structured format) for resumability
-
-#### 7b — `/next` Command
-Resume an existing plan. Orchestrator reads the current plan state from the repo and executes the next set of tasks.
-
-- [ ] Register `/next` via `pi.registerCommand()`
-- [ ] Plan discovery: find active plan in repo, determine what's been completed, identify next steps
-- [ ] Orchestrate next steps using available primitives
-- [ ] Update plan state after execution (mark completed, note failures/escalations)
-
-#### 7c — `/specialist` Command
-Interactive session to discuss adding a new specialist. Evaluates need, checks for redundancy, then delegates to the specialist-creator team (5b) if approved.
-
-- [ ] Register `/specialist` via `pi.registerCommand()`
-- [ ] Discussion flow: what gap does this specialist fill? → check existing specialists for overlap → propose spec → user approval → delegate to creator team
+Command surface emerges from real usage. `/dashboard` (5a.4) is the only committed command. Future commands must satisfy the 5 governance criteria from Decision #17 (amended 2026-04-02). This stage will be populated with specific sub-stages as usage patterns emerge from real operation of the system.
 
 ## Other Queued Work
 

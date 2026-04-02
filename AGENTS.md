@@ -4,7 +4,7 @@
 
 This repository is the source of truth for a portable, modular, coding-focused Pi package that implements extension-powered orchestration.
 
-It provides TypeScript extensions that enable an orchestrator to delegate work to specialized sub-agents (planner, reviewer, builder, tester), with packet-based I/O and state-machine routing.
+It provides TypeScript extensions that enable an orchestrator to delegate work to specialized sub-agents through packet-based I/O and state-machine routing. The current specialist roster lives in `docs/ORCHESTRATION_MODEL.md` and `STATUS.md`.
 
 ## Core principles
 

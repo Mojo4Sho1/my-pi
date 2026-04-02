@@ -88,15 +88,25 @@ Meta-teams (specialist-creator, team-creator, sequence-creator) output complete,
 
 **Ordering:** Bootstrap specialists and substrate enhancements land in Stage 5a, then specialist-creator (5b), team-creator (5c), sequence definition/execution (5d), and sequence-creator (5e). Each layer builds on and validates the one below it.
 
-### 17. Slash commands are `/plan`, `/next`, and `/specialist` — not per-specialist (2026-03-26) [active]
+### 17. Command surface emerges from real usage — not per-specialist (2026-03-26, amended 2026-04-02) [active]
 
-The system will NOT register per-specialist slash commands (`/build`, `/review`, `/test`, `/plan-specialist`). Instead, three higher-level commands:
+The system will NOT register per-specialist slash commands (`/build`, `/review`, `/test`, `/plan-specialist`).
 
-- **`/plan`** — Interactive planning session. User discusses goals with the agent, then the orchestrator selects and invokes the appropriate primitives to execute. This is the primary entry point for new work.
-- **`/next`** — Resume an existing plan/campaign from the repo. Orchestrator reads plan state, determines next steps, and executes using available primitives. This is the entry point for continuing work across sessions.
-- **`/specialist`** — Interactive discussion about whether a new specialist is needed. Evaluates the gap, checks for redundancy against existing specialists, and delegates to the specialist-creator team (5b) if approved.
+**`/dashboard`** is the only committed command. It provides a read-only structured view over current session execution artifacts.
 
-**Why:** Per-specialist commands assume the user knows which specialist to invoke. The orchestrator's job is to make that selection. `/plan` and `/next` let the orchestrator do its job. `/specialist` is the user-facing entry to the self-expansion capability.
+Future commands should emerge from repeated user workflows rather than speculative design. The system should resist premature commitment to a command vocabulary before it is in active use.
+
+**Command governance criteria.** Any future command must satisfy all five:
+
+1. It exposes a repeated orchestration pattern that users intentionally invoke
+2. It does not bypass contracts, policy enforcement, or artifact generation
+3. It does not duplicate a lower-level tool surface without adding orchestration value
+4. It projects or initiates behavior through the same substrate as normal execution
+5. It remains understandable as a top-level user affordance
+
+**Why:** Per-specialist commands assume the user knows which specialist to invoke. The orchestrator's job is to make that selection. The command surface should stay minimal until real usage patterns demonstrate which commands solve genuine orchestration needs. Premature command vocabulary creates UX sprawl and hidden control surfaces.
+
+**Amended 2026-04-02:** Original decision committed to `/plan`, `/next`, `/specialist`. These were removed as premature — the system is not yet in active use. The command surface will be determined by real usage patterns once the system is operational. The five governance criteria were added from the runtime additions design review.
 
 ### 18. Expand specialist set with spec-writer and critic (2026-03-26) [superseded by #20]
 
@@ -336,3 +346,32 @@ The system needs operator-facing observability for session health, execution flo
 **Why:** The system currently has rich execution artifacts (team sessions, state traces, worklist, delegation logs) but no operator-facing way to observe them during or after a run. Token usage — one of the primary operational concerns — has zero tracking infrastructure. Adding observability before heavy team usage ensures the data is captured from the start.
 
 **Source:** `docs/archive/design/dashboard.md`
+
+### 37. No compaction as a control strategy (2026-04-02) [active]
+
+Token telemetry exists to maintain healthy bounded execution. It does not exist to justify ever-larger context accumulation or to rescue oversized invocations through summarization.
+
+**Core rule:** If an invocation approaches unsafe context size, the correct response is to split the task, reduce the packet, or spawn a fresh bounded agent. The system does not compress oversized conversational state to keep an invocation alive.
+
+**Token thresholds enforce this:**
+- **Warn** — surface warning in widget/dashboard, execution continues normally
+- **Split** — orchestrator should prefer spawning a fresh bounded invocation or reducing packet scope
+- **Deny** — runtime blocks further delegation under the current packet shape
+
+**Why:** Compaction creates hidden information loss, makes execution harder to reason about, and undermines the bounded-context execution model. Fresh-context invocations are reproducible and inspectable; compacted contexts are neither. This strengthens Decision #25 (fresh-context execution is a first-class principle).
+
+**Source:** `docs/archive/design/runtime_additions.md`
+
+### 38. Deterministic guardrails outrank learned permissioning (2026-04-02) [active]
+
+The system prefers explicit runtime policies, visible boundaries, and hard enforcement over learned approval systems or LLM-based permission classifiers. Access boundaries must be inspectable, reproducible, and artifacted.
+
+**Implications:**
+- Runtime authority is packet-derived, not specialist-self-declared
+- Policy envelopes are typed, visible in traces, and deterministically evaluated
+- Policy violations produce structured artifacts, not silent degradation
+- No learned or probabilistic permission classification in the governance path
+
+**Why:** Learned permissioning creates opaque, non-reproducible security boundaries. In a system with bounded delegation and explicit contracts, deterministic enforcement is both feasible and preferable. The system already thinks in terms of narrow specialists and bounded authority — runtime enforcement should match that architectural intent.
+
+**Source:** `docs/archive/design/runtime_additions.md`

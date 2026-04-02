@@ -6,7 +6,21 @@ Defines the system vocabulary and control hierarchy for this repository. All age
 
 ---
 
-## First-Class Objects
+## Control Doctrine
+
+The orchestrator is the broad-context control authority. Everything else exists to execute, constrain, validate, or explain work under that control model.
+
+The primitive build order remains:
+
+1. Specialists
+2. Teams
+3. Sequences
+
+Higher layers compose lower ones. Supporting artifacts such as contracts, packets, worklists, logs, templates, and seeds inform or govern execution, but they do not replace the primitive hierarchy.
+
+---
+
+## Primitive Execution Objects
 
 ### Orchestrator
 
@@ -24,9 +38,17 @@ The orchestrator is the only actor that holds broad context by default. It remai
 
 The primitive execution unit. A specialist owns one narrow class of work and requires only bounded context.
 
-Current specialists: **planner**, **reviewer**, **builder**, **tester**.
+The current implemented roster has nine specialists:
 
-Possible future specialists: debugger, scout, profiler, evaluator, documentation maintainer.
+- **planner** — sequencing, decomposition, dependency-aware execution planning
+- **builder** — implementation and code changes
+- **reviewer** — contract and acceptance review
+- **tester** — validation and execution evidence
+- **spec-writer** — prose definitions, boundaries, working style, non-goals
+- **schema-designer** — TypeScript types, packet shapes, I/O contracts, invariants
+- **routing-designer** — state machines, transitions, escalation paths, routing completeness
+- **critic** — scope evaluation, redundancy detection, reuse search, primitive classification
+- **boundary-auditor** — access control, minimal-context enforcement, control-philosophy compliance
 
 A specialist definition describes: purpose, scope, expected inputs/outputs, allowed actions, context boundaries, escalation conditions, and validation responsibility. See `agents/AGENT_DEFINITION_CONTRACT.md`.
 
@@ -39,6 +61,8 @@ A reusable grouping of specialists for a recurring class of work. A team defines
 Examples: planning team, build team, QA team, debugging team.
 
 A team definition describes: purpose, member specialists, collaboration order, expected deliverable and handback format, activation conditions, and when not to use the team.
+
+Teams are state-machine-driven, not conversational swarms. They are opaque to the orchestrator at runtime: the orchestrator sends a team-level task packet in and receives a team-level result packet out.
 
 The orchestrator may call a specialist directly instead of a team when the task is too small to justify the team structure.
 
@@ -69,15 +93,75 @@ Seeds inform orchestration and setup. They do not execute work. Seeds may be imp
 
 ---
 
+## Supporting Artifacts and Runtime Surfaces
+
+### Contracts
+
+Normative machine-readable definitions of what an object requires, guarantees, or permits.
+
+Examples: specialist input/output contracts, routing validity rules, validation constraints, proposal governance checks.
+
+Contracts govern execution. They are not execution actors.
+
+### Packets
+
+The bounded transfer objects used to hand work and results between execution units.
+
+Task packets define what should be done and with what bounded context. Result packets define what happened, what was produced, and whether execution succeeded, failed, or escalated.
+
+Packets carry execution state between actors. They are first-class and authoritative over free-form narration.
+
+### Execution Artifacts
+
+Structured records emitted during or after execution for observability, validation, and recovery.
+
+Examples: delegation logs, worklist summaries, review/test outputs, team session artifacts, token summaries, future expertise injection reports.
+
+Artifacts support inspection and projection. They do not independently route work.
+
+### Templates
+
+Reusable construction aids for creating valid specialists, teams, sequences, seeds, or supporting files. Templates help produce consistent artifacts but are not themselves governance rules.
+
+### Registry Entries
+
+Typed index records describing active primitives and their metadata. Registry entries support discovery and governed activation; they are not substitutes for the primitives they describe.
+
+### Platform Adapters
+
+Host-runtime implementations of project-native concepts. In this repository, Pi extensions are adapters that realize orchestrator, specialists, routing, observability, and command surfaces.
+
+Adapters implement the architecture. They do not redefine it.
+
+### Command Surface
+
+User-facing commands are entry points or inspectors layered on top of orchestration. They are not a separate primitive class and they must not become hidden routing authorities.
+
+The current doctrine is intentionally narrow:
+
+- `/dashboard` is the only committed command on the roadmap
+- future commands must emerge from repeated real usage
+- commands must go through the same contracts, policy, and artifact substrate as ordinary execution
+
+### Hooks, Policy, and Observability Surfaces
+
+Runtime hooks, policy envelopes, widgets, dashboards, and related observer surfaces are substrate layers, not execution primitives.
+
+Their role is to observe, constrain, and project execution without becoming a second orchestrator. They may block unsafe actions when policy says so, but they do not invent alternate routing logic outside explicit orchestration contracts.
+
+---
+
 ## Object Hierarchy
 
 | Layer | Contains | Solves |
 |---|---|---|
 | **Control** | Orchestrator | Decision-making and state ownership |
-| **Execution-pattern** | Sequences | Staged workflow structure |
-| **Collaboration** | Teams | Multi-specialist coordination |
+| **Execution-pattern** | Sequences | Staged workflow structure over time |
+| **Collaboration** | Teams | Multi-specialist coordination via state machines |
 | **Worker** | Specialists | Bounded task execution |
-| **Context** | Seeds, specs, templates, generated artifacts | Informing and constraining work |
+| **Governance/Data** | Contracts, packets, artifacts, registry entries | Validation, transfer, observability, activation |
+| **Context** | Seeds, templates, specs, generated artifacts | Bootstrapping and constraining work |
+| **Adapter/UI** | Platform adapters, hooks, widget, `/dashboard` | Host-runtime enforcement and projection |
 
 Each layer solves a different problem. Higher layers compose lower layers.
 
@@ -93,9 +177,13 @@ Each layer solves a different problem. Higher layers compose lower layers.
 
 **Orchestrator → Seed:** When bootstrapping a new repo, onboarding a fork, initializing a known project type, or entering a specialized domain.
 
+**Orchestrator → Command surface:** Commands are user affordances that enter or inspect orchestration. They do not bypass it.
+
 **Team ↔ Specialist:** A team composes specialists. A specialist may belong to multiple teams.
 
 **Sequence → Team / Specialist:** A sequence may invoke teams, specialists, or both.
+
+**Hooks / policy / dashboard → Execution artifacts:** These surfaces observe or project authoritative execution records. They do not become alternate sources of truth.
 
 ---
 
@@ -109,6 +197,26 @@ The orchestrator chooses among four primary modes (which may be combined):
 4. **Sequence** — staged execution with checkpoints, parallel branches, or synthesis.
 
 Example combination: invoke a planning sequence → call a build team → call a QA specialist directly → synthesize all outputs.
+
+---
+
+## Current Realization
+
+The current codebase has implemented:
+
+- the 9-specialist roster
+- orchestrator delegation to specialists and teams
+- team routing with contracts, revision loops, and session artifacts
+- worklist-based execution-state tracking
+
+The following remain roadmap items rather than current runtime capabilities:
+
+- sequence execution
+- seed-creator workflows
+- `/dashboard` command and widget surfaces
+- reflective expertise overlays
+
+This document defines the vocabulary for both current and near-roadmap objects; live completion state belongs in `STATUS.md`.
 
 ---
 
@@ -128,6 +236,8 @@ Example combination: invoke a planning sequence → call a build team → call a
 
 ## Implementation Notes
 
-- **Routing and access control** will be enforced by TypeScript extensions, not document prose. Actor definitions carry routing properties (`routing_class`, `context_scope`, `default_read_set`) that extensions read at runtime.
-- **Context boundaries** (broad vs. narrow access, packet-based delegation, structured return values, scope-expansion restrictions) are enforced by the orchestrator extension in code.
+- **Routing and access control** are enforced by TypeScript extensions, not by prose alone.
+- **Context boundaries** (broad vs. narrow access, packet-based delegation, structured return values, scope-expansion restrictions) are enforced by the orchestrator and runtime substrate in code.
+- **Artifacts are authoritative for observability.** Widget and dashboard surfaces should project from structured records, not reconstruct truth from transcript text.
+- **Reflective expertise is additive, not mutative.** Future expertise overlays extend specialist invocations through governed typed overlays; they do not rewrite specialist identity or change the primitive hierarchy.
 - **Live project state** is tracked in `STATUS.md`, not in this document.

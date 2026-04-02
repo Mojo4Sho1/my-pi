@@ -45,7 +45,7 @@ The campaign supervisor is intentionally segment-scoped (not campaign-global) an
 
 **Source:** `docs/archive/design/SEGMENT_SUPERVISION_AND_EPISODIC_EXECUTION.md`, "Campaign Supervisor" and "Execution Model" sections.
 
-**Revisit when:** Sequences (Stage 5d) are proven and there's demand for multi-segment autonomous execution beyond what `/plan` and `/next` commands provide.
+**Revisit when:** Sequences (Stage 5d) are proven and there's demand for multi-segment autonomous execution beyond the current minimal command surface and manual orchestrator entry points.
 
 ---
 
@@ -140,9 +140,31 @@ A lightweight, overwrite-only checkpoint file that an active executor maintains 
 
 ---
 
-## Fan-Out Merge Contracts
+## Bounded Parallelism and Fan-Out Merge Contracts
 
-When fan-out states (Decision #21, currently type-stubbed) are implemented, parallel branches create contract merge ambiguity that must be explicitly designed for.
+When fan-out states (Decision #21, currently type-stubbed) are implemented, the system needs both a scheduler for bounded parallel execution and explicit merge contracts for branch results.
+
+### Execution Scheduler
+
+**Concurrency classes:**
+- **Parallel-safe** — work must be: read-only, bounded, independently meaningful, joinable through an explicit contract. Typical examples: critique branches, boundary audits, design reviews, parallel analysis over the same artifact.
+- **Exclusive** — work that includes: file mutation, stateful build steps, test runs that mutate workspace state, any work with ambiguous side effects.
+
+**Fan-out rules:**
+1. Only parallel-safe branches may fan out
+2. Each fan-out site defines an explicit join contract
+3. No recursive fan-out in the first version
+4. Branch-local tokens and violations remain visible
+5. Branch failures are typed
+6. Sibling abort behavior is explicit
+
+**Sibling abort policy** — two branch group modes:
+- `fail-fast` — a hard failure or escalation in one branch aborts still-running siblings
+- `best-effort` — runtime gathers as many branches as possible and marks partial failure in the join record
+
+**Non-goals for initial scheduler:** background teammate execution, recursive branch trees, hidden multi-agent swarms, dynamic branch creation from arbitrary branch outputs.
+
+### Merge Contracts
 
 **Design requirements:**
 - **Branch result normalization** — how are outputs from parallel branches combined into a single result for the next state?
@@ -152,9 +174,23 @@ When fan-out states (Decision #21, currently type-stubbed) are implemented, para
 - **Determinism guarantees** — does branch execution order affect the merged result? If so, is that acceptable?
 - **Branch-level observability** — session artifacts must track per-branch execution independently, not just the merged outcome
 
-**Key risk:** Parallelism is an attractive source of hidden nondeterminism. Without explicit merge contracts, fan-out becomes difficult to debug and reason about.
+**Join modes** — every fan-out must define how it rejoins:
+- **Synthesis join** — combine branch outputs into a unified result
+- **Arbitration join** — select the best branch output by some criterion
+- **Consensus join** — branches must agree; disagreement triggers escalation
+- **Best-effort aggregation** — gather available results, mark partial failure
 
-**Revisit when:** Fan-out implementation moves from type stub to active development. These requirements should be resolved in a dedicated design pass before implementation begins.
+The runtime should require the join mode to be explicit rather than inferred.
+
+### Branch-Level Token Tracking
+
+Per-branch token rollups (`BranchTokenSummary`) should be available once the token substrate (5a.1) and parallelism are both in place. Branch-level policy violations should also be independently tracked.
+
+**Key risk:** Parallelism is an attractive source of hidden nondeterminism. Without explicit merge contracts and bounded scheduling, fan-out becomes difficult to debug and reason about.
+
+**Source:** `docs/archive/design/runtime_additions.md`, Section 4 (Bounded Parallelism and Execution Scheduling).
+
+**Revisit when:** Fan-out implementation moves from type stub to active development. The scheduler design, concurrency classes, and merge contracts should be resolved in a dedicated design pass before implementation begins. Prerequisite: system has been validated on real tasks (post-5a.3).
 
 ---
 

@@ -37,7 +37,9 @@ Live execution state belongs in `STATUS.md`. This document defines the sequence 
    - 4e: Substrate hardening (structured review findings, model routing, worklist)
 5. Meta-teams and self-expansion
    - 5a: Bootstrap specialists (spec-writer, schema-designer, routing-designer, critic, boundary-auditor)
-   - 5a.1: Token tracking substrate
+   - 5a.1: Token tracking substrate (with threshold semantics)
+   - 5a.1b: Hook substrate
+   - 5a.1c: Deterministic sandboxing and path protection
    - 5a.2: Dashboard substrate + persistent widget
    - 5a.3: Build-team validation on real tasks
    - 5a.4: `/dashboard` command (detailed inspector)
@@ -53,10 +55,7 @@ Live execution state belongs in `STATUS.md`. This document defines the sequence 
    - 6b: Context loader and runtime injection
    - 6c: Governance pipeline
    - 6d: Local expertise pilot
-7. Slash commands and interactive workflows
-   - 7a: `/plan` command
-   - 7b: `/next` command
-   - 7c: `/specialist` command
+7. Command surface (commands emerge from real usage; see Decision #17)
 
 ---
 
@@ -3316,9 +3315,9 @@ Validate operational robustness of the subprocess pattern with adversarial test 
 
 ### Purpose
 
-Add token usage tracking to the specialist invocation and team execution infrastructure. Token usage is currently invisible — there are no fields for it anywhere in the system. This substrate enhancement benefits all observability (dashboard, session artifacts, future cost analysis) and should be in place before heavy team usage begins.
+Add token usage tracking to the specialist invocation and team execution infrastructure, including threshold semantics for operational safety. Token usage is currently invisible — there are no fields for it anywhere in the system. This substrate enhancement benefits all observability (dashboard, session artifacts, future cost analysis) and should be in place before heavy team usage begins.
 
-See Decision #36.
+See Decisions #36, #37.
 
 ### Key deliverables
 
@@ -3332,19 +3331,44 @@ interface TokenUsage {
 }
 ```
 
+**New type: `TokenThresholds`**
+
+```typescript
+interface TokenThresholds {
+  warn: number;   // Surface warning in widget/dashboard, execution continues
+  split: number;  // Orchestrator should prefer fresh bounded invocation or reduced packet scope
+  deny: number;   // Runtime blocks further delegation under current packet shape
+}
+```
+
+**New type: `ThresholdResult`**
+
+```typescript
+type ThresholdLevel = "ok" | "warn" | "split" | "deny";
+
+interface ThresholdResult {
+  level: ThresholdLevel;
+  currentUsage: number;
+  threshold: number;       // The threshold that was hit (or the next one)
+  message?: string;
+}
+```
+
 **Modifications:**
 
 1. **`SpecialistInvocationSummary`** — add optional `tokenUsage?: TokenUsage` field
 2. **`TeamSessionArtifact.metrics`** — add `totalTokenUsage?: TokenUsage` rollup field
 3. **`extensions/shared/subprocess.ts`** — capture token usage from sub-agent JSON events (Pi's `--print` mode emits usage stats)
 4. **Token rollup utility** — aggregate `TokenUsage` across invocations, states, teams
+5. **Threshold check utility** — `checkThresholds(usage: TokenUsage, thresholds: TokenThresholds): ThresholdResult`
+6. **Threshold integration** — delegation path checks thresholds before spawning; warn emits event, split/deny influence orchestrator behavior
 
 **New files:**
 
 | File | Purpose |
 |------|---------|
-| `extensions/shared/tokens.ts` | `TokenUsage` type, rollup/aggregation utilities |
-| `tests/tokens.test.ts` | Rollup correctness, percentage calculation, partial data handling |
+| `extensions/shared/tokens.ts` | `TokenUsage`, `TokenThresholds`, `ThresholdResult` types, rollup/aggregation utilities, `checkThresholds()` |
+| `tests/tokens.test.ts` | Rollup correctness, percentage calculation, partial data handling, threshold checking |
 
 **Modified files:**
 
@@ -3353,6 +3377,7 @@ interface TokenUsage {
 | `extensions/shared/types.ts` | Add `TokenUsage`, update `SpecialistInvocationSummary`, update `TeamSessionArtifact.metrics` |
 | `extensions/shared/subprocess.ts` | Extract token usage from sub-agent JSON events |
 | `extensions/teams/router.ts` | Propagate token usage into session artifact metrics |
+| `extensions/orchestrator/delegate.ts` | Check thresholds before delegation |
 
 ### Exit criteria
 
@@ -3360,11 +3385,210 @@ interface TokenUsage {
 - Invocation summaries include token counts
 - Team session artifacts include rollup totals
 - Rollup utility correctly aggregates across hierarchy levels
-- Tests pass for all token tracking paths including absent/partial data
+- Threshold check correctly classifies usage against warn/split/deny levels
+- Delegation path respects threshold results (warn logs, split/deny influence behavior)
+- Tests pass for all token tracking paths including absent/partial data and threshold edge cases
 
 ### Dependencies
 
 - Stage 5a complete (expanded specialist roster)
+
+---
+
+## Stage 5a.1b — Hook Substrate
+
+### Purpose
+
+Provide a clean lifecycle mechanism for interception and observation at runtime execution points. Hooks allow policy enforcement, instrumentation, and review without scattering those concerns across orchestration and delegation code. The hook substrate provides the event model that the widget, dashboard, sandboxing, and future features consume.
+
+See Decision #38.
+
+### Design
+
+Three hook classes (Phase 1 implements policy and observer only):
+
+- **Policy hooks** — authoritative gates. May allow/deny execution, attach structured reasons. Must be deterministic. May NOT call models, reroute execution, or mutate orchestration state.
+- **Observer hooks** — non-authoritative listeners. May log events, emit artifacts, update projections, collect metrics. May NOT veto execution or rewrite packets.
+- **Review hooks** (Phase 2, deferred) — the only hooks that may trigger specialist activity, through explicit packetized invocations visible in traces.
+
+### Key deliverables
+
+**Event surface:**
+
+- `onSessionStart` / `onSessionEnd`
+- `onTeamStart`
+- `beforeStateTransition` / `afterStateTransition`
+- `beforeDelegation` / `afterDelegation`
+- `beforeSubprocessSpawn` / `afterSubprocessExit`
+- `onAdequacyFailure`
+- `onPolicyViolation`
+- `onArtifactWritten`
+- `onCommandInvoked`
+
+**New types:**
+
+```typescript
+interface HookEvent<T = unknown> {
+  eventName: string;
+  timestamp: string;
+  sessionId: string;
+  payload: T;
+}
+
+interface HookFailure {
+  hookId: string;
+  eventName: string;
+  error: string;
+  timestamp: string;
+}
+
+type PolicyResult =
+  | { allowed: true }
+  | { allowed: false; reason: string; annotations?: Record<string, unknown> };
+```
+
+**Hook registration and dispatch:**
+
+- `HookRegistry` — local in-process registration (no HTTP, no dynamic code loading)
+- Typed event payloads per event (session metadata, packet metadata, token totals, policy envelope, etc.)
+- Hook error isolation — a failing hook does not crash execution; failures are typed and visible
+
+**Governance rules:**
+
+1. Hooks do not silently reroute execution
+2. Hooks do not gain broad context by default
+3. Policy hooks are deterministic
+4. Observer hooks are side-effect-limited to approved artifact or telemetry outputs
+5. Hook failures are typed and visible
+
+**New files:**
+
+| File | Purpose |
+|------|---------|
+| `extensions/shared/hooks.ts` | `HookRegistry`, event types, dispatch, hook class definitions |
+| `tests/hooks.test.ts` | Registration, dispatch, policy allow/deny, observer side effects, error isolation |
+
+**Modified files:**
+
+| File | Change |
+|------|--------|
+| `extensions/shared/types.ts` | Add `HookEvent`, `HookFailure`, `PolicyResult` types |
+| `extensions/orchestrator/delegate.ts` | Emit `beforeDelegation` / `afterDelegation` events |
+| `extensions/shared/subprocess.ts` | Emit `beforeSubprocessSpawn` / `afterSubprocessExit` events |
+| `extensions/teams/router.ts` | Emit `onTeamStart`, `beforeStateTransition` / `afterStateTransition` events |
+
+### Exit criteria
+
+- Hook registry supports policy and observer hook registration
+- All listed events fire at appropriate execution points
+- Policy hooks can block execution with structured reasons
+- Observer hooks receive events without blocking execution
+- Hook failures are isolated and produce `HookFailure` artifacts
+- Tests cover registration, dispatch, policy decisions, error isolation
+
+### Dependencies
+
+- Stage 5a.1 complete (token tracking — hooks may observe token events)
+
+---
+
+## Stage 5a.1c — Deterministic Sandboxing and Path Protection
+
+### Purpose
+
+Convert the existing architectural authority model (read-only specialists, bounded write sets) into deterministic runtime enforcement. The system already thinks in terms of narrow specialists and bounded authority — this stage adds hard enforcement at the subprocess launcher level.
+
+See Decision #38.
+
+### Design
+
+Every delegation carries a **policy envelope** validated before subprocess spawn. The existing `subprocess.ts` becomes a hardened launcher that checks policy before execution and emits structured violations when boundaries are crossed.
+
+### Key deliverables
+
+**New type: `PolicyEnvelope`**
+
+```typescript
+interface PolicyEnvelope {
+  allowedWritePaths: string[];
+  allowedReadRoots: string[];
+  allowShell: boolean;
+  allowNetwork: boolean;
+  allowProcessSpawn: boolean;
+  allowedCommands?: string[];
+  forbiddenGlobs?: string[];
+}
+```
+
+**New type: `PolicyViolation`**
+
+```typescript
+interface PolicyViolation {
+  timestamp: string;
+  sessionId: string;
+  invocationId: string;
+  attemptedAction: string;
+  targetPath?: string;
+  targetCommand?: string;
+  expectedPolicy: Partial<PolicyEnvelope>;
+  violationType: "write_denied" | "read_denied" | "shell_denied" | "network_denied" | "spawn_denied" | "command_denied" | "glob_forbidden";
+  enforcementResult: "blocked" | "logged";
+}
+```
+
+**Default authority model:**
+
+- **Read-only by default (7 specialists):** planner, reviewer, critic, spec-writer, schema-designer, routing-designer, boundary-auditor
+- **Narrow-write by explicit grant (2 specialists):** builder, tester — only when the packet explicitly grants write paths
+
+**Hardened launcher:**
+
+- Enhance `subprocess.ts` to accept and validate `PolicyEnvelope` before spawn
+- Path validation: check write targets against `allowedWritePaths` and `forbiddenGlobs`
+- Emit `onPolicyViolation` hook events on boundary violations
+- Record `SpawnRecord` artifacts for traceability
+
+**New type: `SpawnRecord`**
+
+```typescript
+interface SpawnRecord {
+  timestamp: string;
+  sessionId: string;
+  specialistId: string;
+  policyEnvelope: PolicyEnvelope;
+  outcome: "spawned" | "blocked";
+  blockReason?: string;
+}
+```
+
+**New files:**
+
+| File | Purpose |
+|------|---------|
+| `extensions/shared/sandbox.ts` | `PolicyEnvelope` type, policy validation, `validatePathAccess()`, `buildDefaultEnvelope()` |
+| `tests/sandbox.test.ts` | Envelope validation, path checks, violation generation, default authority model |
+
+**Modified files:**
+
+| File | Change |
+|------|--------|
+| `extensions/shared/types.ts` | Add `PolicyEnvelope`, `PolicyViolation`, `SpawnRecord` types |
+| `extensions/shared/subprocess.ts` | Accept and enforce `PolicyEnvelope`, emit hook events on violations |
+| `extensions/orchestrator/delegate.ts` | Build and attach `PolicyEnvelope` to delegation based on specialist authority class |
+
+### Exit criteria
+
+- Every delegation carries a `PolicyEnvelope`
+- Subprocess launcher validates policy before spawn
+- Policy violations produce typed `PolicyViolation` records
+- Violations fire `onPolicyViolation` hook events
+- Read-only specialists cannot gain write access without explicit packet grant
+- `SpawnRecord` artifacts capture every subprocess launch
+- Tests cover allow/deny paths, all violation types, default authority model
+
+### Dependencies
+
+- Stage 5a.1b complete (hook substrate — violations fire hook events)
 
 ---
 
@@ -3900,83 +4124,33 @@ Validate the full expertise overlay mechanism end-to-end with one pilot speciali
 
 ---
 
-# Stage 7 — Slash Commands and Interactive Workflows
+# Stage 7 — Command Surface
 
 ## Purpose
 
-Provide user-facing entry points for orchestrated work. These commands operate at a higher level than individual specialists — the orchestrator decides which primitives to invoke.
+Provide user-facing entry points for orchestrated work beyond `/dashboard` (which ships in 5a.4). The command surface should emerge from real usage patterns, not speculative design.
 
-See Decision #17 in `DECISION_LOG.md`.
+See Decision #17 (amended 2026-04-02) in `DECISION_LOG.md`.
 
----
+## Current state
 
-## Stage 7a — `/plan` Command
+`/dashboard` is the only committed command. It is implemented in Stage 5a.4.
 
-### Purpose
+## Future commands
 
-Interactive planning session where the user describes goals, the agent helps refine them, and then the orchestrator executes using available primitives.
+Additional commands will be added when repeated user workflows demonstrate a genuine orchestration need. Any future command must satisfy all five governance criteria from Decision #17:
 
-### Key deliverables
+1. It exposes a repeated orchestration pattern that users intentionally invoke
+2. It does not bypass contracts, policy enforcement, or artifact generation
+3. It does not duplicate a lower-level tool surface without adding orchestration value
+4. It projects or initiates behavior through the same substrate as normal execution
+5. It remains understandable as a top-level user affordance
 
-- Register `/plan` via `pi.registerCommand()`
-- Interactive planning flow: gather requirements → select primitives → build execution plan → confirm with user → orchestrate
-- Plan output stored in repo (e.g., `plans/` directory or structured format) for resumability via `/next`
-
-### Exit criteria
-
-- User can invoke `/plan`, discuss goals interactively, and trigger orchestrated execution
-- Plan state is persisted in the repo
+This stage will be populated with specific sub-stages as usage patterns emerge from real operation of the system.
 
 ### Dependencies
 
-- Stage 4d complete (observability for tracking execution)
-- Orchestrator functional (Stage 3d+)
-
----
-
-## Stage 7b — `/next` Command
-
-### Purpose
-
-Resume an existing plan. The orchestrator reads plan state from the repo and executes the next set of tasks.
-
-### Key deliverables
-
-- Register `/next` via `pi.registerCommand()`
-- Plan discovery: find active plan in repo, determine what's been completed, identify next steps
-- Orchestrate next steps using available primitives
-- Update plan state after execution (mark completed, note failures/escalations)
-
-### Exit criteria
-
-- User can invoke `/next` to continue a previously created plan
-- Plan state is updated after execution
-
-### Dependencies
-
-- Stage 7a complete (plans must exist to resume)
-
----
-
-## Stage 7c — `/specialist` Command
-
-### Purpose
-
-Interactive session to discuss whether a new specialist is needed. Evaluates the gap, checks for redundancy, and delegates to the specialist-creator team if approved.
-
-### Key deliverables
-
-- Register `/specialist` via `pi.registerCommand()`
-- Discussion flow: what gap does this specialist fill? → check existing specialists for overlap → propose spec → user approval → delegate to creator team (5b)
-
-### Exit criteria
-
-- User can invoke `/specialist` to discuss and optionally create a new specialist
-- Redundancy checks prevent overlapping specialists
-
-### Dependencies
-
-- Stage 5b complete (specialist-creator team)
+- System in active use (post-5a.3 validation at minimum)
 
 ---
 
@@ -4013,8 +4187,7 @@ Stage 1 (types)
           → Stage 5g (discovery)
           → Stage 5h (escalation)
           → Stage 6a (expertise types) → 6b (context loader) → 6c (governance) → 6d (local pilot)
-            → Stage 7a (/plan) → 7b (/next)
-            → Stage 7c (/specialist) [depends on 5b]
+            → Stage 7 (command surface, as justified by real usage)
 ```
 
 Stages within the same level can be parallelized where dependencies allow. Do not skip stages.
