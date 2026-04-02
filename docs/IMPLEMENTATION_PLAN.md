@@ -37,6 +37,10 @@ Live execution state belongs in `STATUS.md`. This document defines the sequence 
    - 4e: Substrate hardening (structured review findings, model routing, worklist)
 5. Meta-teams and self-expansion
    - 5a: Bootstrap specialists (spec-writer, schema-designer, routing-designer, critic, boundary-auditor)
+   - 5a.1: Token tracking substrate
+   - 5a.2: Dashboard substrate + persistent widget
+   - 5a.3: Build-team validation on real tasks
+   - 5a.4: `/dashboard` command (detailed inspector)
    - 5b: Specialist-creator team (first meta-team)
    - 5c: Team-creator team
    - 5d: Sequence definition and execution
@@ -44,10 +48,15 @@ Live execution state belongs in `STATUS.md`. This document defines the sequence 
    - 5f: Seed-creator team
    - 5g: Dynamic selection and discovery
    - 5h: Escalation and retry
-6. Slash commands and interactive workflows
-   - 6a: `/plan` command
-   - 6b: `/next` command
-   - 6c: `/specialist` command
+6. Reflective expertise layer
+   - 6a: Expertise types and registry
+   - 6b: Context loader and runtime injection
+   - 6c: Governance pipeline
+   - 6d: Local expertise pilot
+7. Slash commands and interactive workflows
+   - 7a: `/plan` command
+   - 7b: `/next` command
+   - 7c: `/specialist` command
 
 ---
 
@@ -3303,6 +3312,226 @@ Validate operational robustness of the subprocess pattern with adversarial test 
 
 ---
 
+## Stage 5a.1 — Token Tracking Substrate
+
+### Purpose
+
+Add token usage tracking to the specialist invocation and team execution infrastructure. Token usage is currently invisible — there are no fields for it anywhere in the system. This substrate enhancement benefits all observability (dashboard, session artifacts, future cost analysis) and should be in place before heavy team usage begins.
+
+See Decision #36.
+
+### Key deliverables
+
+**New type: `TokenUsage`**
+
+```typescript
+interface TokenUsage {
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+}
+```
+
+**Modifications:**
+
+1. **`SpecialistInvocationSummary`** — add optional `tokenUsage?: TokenUsage` field
+2. **`TeamSessionArtifact.metrics`** — add `totalTokenUsage?: TokenUsage` rollup field
+3. **`extensions/shared/subprocess.ts`** — capture token usage from sub-agent JSON events (Pi's `--print` mode emits usage stats)
+4. **Token rollup utility** — aggregate `TokenUsage` across invocations, states, teams
+
+**New files:**
+
+| File | Purpose |
+|------|---------|
+| `extensions/shared/tokens.ts` | `TokenUsage` type, rollup/aggregation utilities |
+| `tests/tokens.test.ts` | Rollup correctness, percentage calculation, partial data handling |
+
+**Modified files:**
+
+| File | Change |
+|------|--------|
+| `extensions/shared/types.ts` | Add `TokenUsage`, update `SpecialistInvocationSummary`, update `TeamSessionArtifact.metrics` |
+| `extensions/shared/subprocess.ts` | Extract token usage from sub-agent JSON events |
+| `extensions/teams/router.ts` | Propagate token usage into session artifact metrics |
+
+### Exit criteria
+
+- Token usage captured from subprocess output when available
+- Invocation summaries include token counts
+- Team session artifacts include rollup totals
+- Rollup utility correctly aggregates across hierarchy levels
+- Tests pass for all token tracking paths including absent/partial data
+
+### Dependencies
+
+- Stage 5a complete (expanded specialist roster)
+
+---
+
+## Stage 5a.2 — Dashboard Substrate and Persistent Widget
+
+### Purpose
+
+Build the projection layer that derives dashboard-ready state from execution artifacts, and ship the first visible observability surface: a persistent widget showing session health at a glance.
+
+See Decision #36.
+
+### Key deliverables
+
+**Dashboard types:**
+
+```typescript
+interface WidgetState {
+  sessionStatus: "idle" | "running" | "completed" | "failed" | "escalated";
+  activePath: ActivePrimitivePath | null;
+  worklistProgress: WorklistProgressView | null;
+  hasBlockers: boolean;
+  hasEscalation: boolean;
+  elapsedMs: number;
+  totalTokens: number;
+}
+
+interface ActivePrimitivePath {
+  team?: string;
+  state?: string;
+  agent?: string;
+}
+
+interface WorklistProgressView {
+  total: number;
+  completed: number;
+  remaining: number;
+  blocked: number;
+}
+```
+
+**Projection layer** — derive widget-ready state from:
+- `TeamSessionArtifact` (active path, status, metrics, token usage)
+- `WorklistSummary` (progress counts, blockers)
+- `DelegationLogEntry[]` (delegation events, failures)
+- Token rollup data (from 5a.1)
+
+**Persistent widget** — register via Pi's `ctx.ui.setWidget()`:
+- Session status indicator
+- Stacked active path (team → state → agent, only levels that exist)
+- Worklist progress (total / completed / remaining / blocked)
+- Blocker/escalation indicator
+- Elapsed time bubble
+- Total token count bubble
+
+**New files:**
+
+| File | Purpose |
+|------|---------|
+| `extensions/dashboard/types.ts` | `WidgetState`, `ActivePrimitivePath`, `WorklistProgressView`, view model types |
+| `extensions/dashboard/projections.ts` | Derive widget state from execution artifacts |
+| `extensions/dashboard/widget.ts` | Widget rendering and `setWidget` integration |
+| `extensions/dashboard/index.ts` | Extension entry point, lifecycle hooks |
+| `tests/dashboard-projections.test.ts` | Projection correctness tests |
+| `tests/dashboard-widget.test.ts` | Widget state formatting tests |
+
+### Exit criteria
+
+- Widget displays session health at a glance during team execution
+- Widget updates as execution progresses (state transitions, worklist changes, token accumulation)
+- Widget is compact, stable, and current-session only
+- Projections are tested with synthetic artifact data
+- Widget degrades gracefully when data is partial or missing
+
+### Dependencies
+
+- Stage 5a.1 complete (token tracking)
+- Stage 4e.2 complete (worklist)
+- Stage 4d complete (session artifacts, logging)
+
+---
+
+## Stage 5a.3 — Build-Team Validation on Real Tasks
+
+### Purpose
+
+Validate the full orchestration stack by running the existing build-team on actual implementation tasks. This is the first real-world stress test of routing, contracts, delegation, session artifacts, token tracking, and the dashboard widget together.
+
+See Decision #36.
+
+### Approach
+
+This is not a code-delivery stage — it's an **operational validation pass**. The deliverables are observations, bug fixes, and substrate iterations.
+
+1. Select 2–3 bounded implementation tasks suitable for build-team execution
+2. Run the build-team end-to-end on each task using the orchestrator
+3. Observe dashboard widget behavior during execution
+4. Review session artifacts, token data, and delegation logs after each run
+5. Identify and fix substrate issues (contract gaps, routing edge cases, context forwarding problems, token tracking gaps)
+6. Iterate until a clean end-to-end run produces useful observability data
+
+### Exit criteria
+
+- Build-team has completed at least one real implementation task end-to-end
+- Token tracking data is being captured and displayed in the widget
+- Session artifacts are complete and informative
+- Any substrate bugs discovered have been fixed
+- Confidence that the routing/contracts/delegation stack works in practice (not just tests)
+
+### Dependencies
+
+- Stage 5a.2 complete (dashboard widget for observation)
+- Stage 5a complete (full specialist roster available)
+
+---
+
+## Stage 5a.4 — `/dashboard` Command (Detailed Inspector)
+
+### Purpose
+
+Ship a near-full-screen, read-only session inspector opened via `/dashboard`. This provides deeper diagnosis than the persistent widget, with structured panels for different observability concerns.
+
+See Decision #36.
+
+### Key deliverables
+
+**Register `/dashboard`** via `pi.registerCommand()`.
+
+**Five panels:**
+
+1. **Overview** — session status, active team/state/specialist, top-line work progress, failure/escalation state, token total, terminal outcome when completed
+2. **Tokens** — hierarchical tree with rollups (session → team → state → specialist → invocation), percentages of parent and session total
+3. **Execution Path** — structured textual path through the team run: entered state, assigned specialist, result status, transition target, timestamps, iteration counts
+4. **Worklist** — full item summary, counts by state, active/completed/blocked/remaining items
+5. **Failures / Escalations** — compact failure summary, most recent failure, source stage/specialist, failure category, root cause summary when derivable
+
+**Layout:** Overview-led, with tokens as highly prominent. Modular enough to adjust after real use.
+
+**New/modified files:**
+
+| File | Purpose |
+|------|---------|
+| `extensions/dashboard/types.ts` | Add panel view model types (`TokenTreeNode`, `ExecutionPathStep`, `FailureSummaryView`, etc.) |
+| `extensions/dashboard/projections.ts` | Add panel projection functions |
+| `extensions/dashboard/command.ts` | `/dashboard` command registration and rendering |
+| `extensions/dashboard/panels/overview.ts` | Overview panel rendering |
+| `extensions/dashboard/panels/tokens.ts` | Token tree panel rendering |
+| `extensions/dashboard/panels/execution-path.ts` | Execution path panel rendering |
+| `extensions/dashboard/panels/worklist.ts` | Worklist panel rendering |
+| `extensions/dashboard/panels/failures.ts` | Failures/escalations panel rendering |
+| `tests/dashboard-panels.test.ts` | Panel view model and rendering tests |
+| `tests/dashboard-command.test.ts` | Command registration and loading tests |
+
+### Exit criteria
+
+- `/dashboard` opens a structured, readable inspector for the current session
+- Token spend is attributable hierarchically
+- Execution path is legible with state, specialist, status, and transition info
+- Work progress and failure state are easy to inspect
+- Graceful handling of missing optional data (e.g., no worklist, no failures)
+
+### Dependencies
+
+- Stage 5a.2 complete (dashboard substrate, projection layer)
+- Stage 5a.3 informative (validation insights improve panel design)
+
+---
+
 ## Stage 5b — Specialist-Creator Team
 
 ### Purpose
@@ -3551,7 +3780,127 @@ Handle escalation as a workflow event, not just a terminal status.
 
 ---
 
-# Stage 6 — Slash Commands and Interactive Workflows
+# Stage 6 — Reflective Expertise Layer
+
+## Purpose
+
+Enable specialists to improve over time through governed, typed, versioned expertise overlays — without mutating base specialist identity. See Decision #35 in `DECISION_LOG.md`.
+
+This stage is intentionally sketched at the same level as Stage 5. Details should be informed by real experience from earlier stages, particularly team execution artifacts (4d) and the expanded specialist roster (5a).
+
+---
+
+## Stage 6a — Expertise Types and Registry
+
+### Purpose
+
+Define the core data model for specialist expertise and implement versioned storage with inspection and rollback.
+
+### Key deliverables
+
+- `ExpertiseProfile` type — specialist-specific, scoped (local/global), versioned collection of approved knowledge overlays
+- `ExpertiseEntry` type — individual expertise item with category, statement, rationale, applicability tags, exclusions, priority (advisory/strong/critical), confidence, and source lesson references
+- `ExpertisePatch` type — proposed additive or subtractive modification to an expertise profile, with rationale, conflict detection, and review status
+- Versioned registry storage with diff inspection and rollback capability
+- Conflict detection: contradictory entries, redundant entries, entries that weaken specialist boundaries
+- Human-readable markdown projections alongside typed authoritative layer
+
+### Exit criteria
+
+- Can create an expertise profile for a specialist with typed entries
+- Can propose, review, and apply patches with version tracking
+- Profiles are inspectable in both typed and markdown forms
+- Conflict detection catches contradictory or redundant entries
+
+### Dependencies
+
+- Stage 5a complete (expanded specialist roster provides the subjects for expertise profiles)
+
+---
+
+## Stage 6b — Context Loader and Runtime Injection
+
+### Purpose
+
+Select relevant expertise overlays at invocation time and inject them into specialist context within bounded token budgets.
+
+### Key deliverables
+
+- Expertise selection by task type, tags, packet metadata, local/global scope, and token budget
+- Selection priority ordering: critical boundary rules > task-relevant local expertise > task-relevant global expertise > anti-pattern reminders > quality rules > lower-priority heuristics
+- Integration with existing `specialist-prompt.ts` composition pipeline — expertise overlay as a new layer between task context and process constraints
+- `ExpertiseInjectionReport` artifact: specialist, profile versions used, selected entry IDs, omitted entry IDs, selection rationale, token budget used, source lesson IDs
+
+### Exit criteria
+
+- A specialist invocation can include selected expertise overlays from its active profile
+- Injected content is bounded by token budget and explainable via injection report
+- Invocation logs record which expertise entries were used and why
+- Base specialist identity is unchanged — overlay is additive only
+
+### Dependencies
+
+- Stage 6a complete (expertise registry must exist)
+- Stage 4d (observability infrastructure for injection reports)
+
+---
+
+## Stage 6c — Governance Pipeline
+
+### Purpose
+
+Ensure no expertise change activates without proper validation, review, and versioning.
+
+### Key deliverables
+
+- Lesson and patch lifecycle states: `proposed` → `under_review` → `approved` → `applied` → `deprecated` / `rejected`
+- Review approval gates: required before a lesson becomes global, a patch modifies active expertise, a boundary rule changes specialist behavior, or an old entry is removed
+- Evidence validation: every expertise entry must trace to source lessons/artifacts
+- Scope validation: local lessons checked for repo-specific language before global promotion
+- Version stamping: active expertise version recorded in invocation metadata
+
+### Exit criteria
+
+- Patches cannot activate without passing through the governance pipeline
+- Applied patches are fully attributable (who proposed, who approved, what evidence, what changed)
+- Deprecated or rejected entries are preserved in version history
+- Local/global scope boundaries are enforced
+
+### Dependencies
+
+- Stage 6a complete (registry and patch model)
+
+---
+
+## Stage 6d — Local Expertise Pilot
+
+### Purpose
+
+Validate the full expertise overlay mechanism end-to-end with one pilot specialist using local scope only.
+
+### Key deliverables
+
+- Apply 6a-6c to one pilot specialist (likely reviewer — review behavior is observable, quality rules are expressible, failures are identifiable)
+- Local scope only — no global expertise in initial pilot
+- Manual lesson creation and approval — no automated lesson extraction
+- Measurement framework: track reduced repeated mistakes, improved output consistency, fewer correction loops, improved review acceptance rates
+
+### Exit criteria
+
+- One specialist runs with selected local expertise overlays that demonstrably affect its behavior
+- Overlays improve specialist output quality without bloating context
+- The governance pipeline is exercised end-to-end (create lesson → propose patch → review → apply → inject)
+- Injection reports provide clear observability into what was injected and why
+- No regression in specialist base behavior when expertise is empty or disabled
+
+### Dependencies
+
+- Stages 6a, 6b, 6c complete
+- Sufficient execution history with the pilot specialist to create meaningful initial expertise entries
+
+---
+
+# Stage 7 — Slash Commands and Interactive Workflows
 
 ## Purpose
 
@@ -3561,7 +3910,7 @@ See Decision #17 in `DECISION_LOG.md`.
 
 ---
 
-## Stage 6a — `/plan` Command
+## Stage 7a — `/plan` Command
 
 ### Purpose
 
@@ -3585,7 +3934,7 @@ Interactive planning session where the user describes goals, the agent helps ref
 
 ---
 
-## Stage 6b — `/next` Command
+## Stage 7b — `/next` Command
 
 ### Purpose
 
@@ -3605,11 +3954,11 @@ Resume an existing plan. The orchestrator reads plan state from the repo and exe
 
 ### Dependencies
 
-- Stage 6a complete (plans must exist to resume)
+- Stage 7a complete (plans must exist to resume)
 
 ---
 
-## Stage 6c — `/specialist` Command
+## Stage 7c — `/specialist` Command
 
 ### Purpose
 
@@ -3633,7 +3982,7 @@ Interactive session to discuss whether a new specialist is needed. Evaluates the
 
 ## Notes
 
-Stages 5–6 are intentionally sketched at a higher level than Stages 1–4. Their details should be informed by real experience from earlier stages. Do not over-design before the lower layers are proven.
+Stages 5–7 are intentionally sketched at a higher level than Stages 1–4. Their details should be informed by real experience from earlier stages. Do not over-design before the lower layers are proven.
 
 ---
 
@@ -3654,13 +4003,18 @@ Stage 1 (types)
       → Stage 4a (I/O contracts) → 4b (teams) → 4c (validation) → 4d (observability)
         → Stage 4e (substrate hardening: review findings, model routing, worklist)
           → Stage 5a (bootstrap: spec-writer, schema-designer, routing-designer, critic, boundary-auditor)
-            → Stage 5b (specialist-creator team) → 5c (team-creator team)
+            → Stage 5a.1 (token tracking substrate)
+              → Stage 5a.2 (dashboard substrate + persistent widget)
+                → Stage 5a.3 (build-team validation on real tasks)
+                → Stage 5a.4 (/dashboard command)
+              → Stage 5b (specialist-creator team) → 5c (team-creator team)
           → Stage 5d (sequences) → 5e (sequence-creator team)
           → Stage 5f (seed-creator team) [depends on 5b]
           → Stage 5g (discovery)
           → Stage 5h (escalation)
-            → Stage 6a (/plan) → 6b (/next)
-            → Stage 6c (/specialist) [depends on 5b]
+          → Stage 6a (expertise types) → 6b (context loader) → 6c (governance) → 6d (local pilot)
+            → Stage 7a (/plan) → 7b (/next)
+            → Stage 7c (/specialist) [depends on 5b]
 ```
 
 Stages within the same level can be parallelized where dependencies allow. Do not skip stages.

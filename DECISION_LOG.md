@@ -86,7 +86,7 @@ Meta-teams (specialist-creator, team-creator, sequence-creator) output complete,
 
 **Bootstrapping constraint:** The specialist-creator team may require specialists that don't exist yet (e.g., a spec-writer or scaffolder). These prerequisite specialists must be built manually before the creator team can function. After bootstrap, the creator team can sustain itself.
 
-**Ordering:** Specialist-creator first (Stage 5a), then team-creator (5b), then sequence-creator (5d). Each validates the layer below.
+**Ordering:** Bootstrap specialists and substrate enhancements land in Stage 5a, then specialist-creator (5b), team-creator (5c), sequence definition/execution (5d), and sequence-creator (5e). Each layer builds on and validates the one below it.
 
 ### 17. Slash commands are `/plan`, `/next`, and `/specialist` — not per-specialist (2026-03-26) [active]
 
@@ -94,7 +94,7 @@ The system will NOT register per-specialist slash commands (`/build`, `/review`,
 
 - **`/plan`** — Interactive planning session. User discusses goals with the agent, then the orchestrator selects and invokes the appropriate primitives to execute. This is the primary entry point for new work.
 - **`/next`** — Resume an existing plan/campaign from the repo. Orchestrator reads plan state, determines next steps, and executes using available primitives. This is the entry point for continuing work across sessions.
-- **`/specialist`** — Interactive discussion about whether a new specialist is needed. Evaluates the gap, checks for redundancy against existing specialists, and delegates to the specialist-creator team (5a) if approved.
+- **`/specialist`** — Interactive discussion about whether a new specialist is needed. Evaluates the gap, checks for redundancy against existing specialists, and delegates to the specialist-creator team (5b) if approved.
 
 **Why:** Per-specialist commands assume the user knows which specialist to invoke. The orchestrator's job is to make that selection. `/plan` and `/next` let the orchestrator do its job. `/specialist` is the user-facing entry to the self-expansion capability.
 
@@ -296,3 +296,43 @@ interface Deliverable {
 **Breaking change** to `ResultPacket`. Requires migration of result-parser, synthesize, and all consumers.
 
 **Implement in Stage 5b** (coincides with creator team work, which is the first consumer that strongly needs typed deliverables).
+
+### 35. Governed expertise overlays for specialist improvement (2026-04-02) [active]
+
+Specialists improve over time through **typed, versioned, inspectable expertise overlays** — never through base prompt mutation. This is the architectural principle for the Reflective Expertise Layer (Stage 6).
+
+**Core principles:**
+
+1. **Stable identity, adaptive expertise.** A specialist's core identity (working style, contracts, constraints) remains stable. Improvement happens exclusively through expertise overlays injected at invocation time.
+2. **Typed before prose.** Expertise is stored as typed structures (`ExpertiseProfile`, `ExpertiseEntry`, `ExpertisePatch`) with human-readable markdown projections. The typed form is authoritative; markdown supports review.
+3. **Governed activation.** No expertise change activates without: evidence validation, scope validation, conflict detection, review approval, and versioning. The system proposes changes; it does not silently activate them.
+4. **Local/global scope separation.** Project-local lessons never auto-promote to global. Global promotion requires repeated evidence, repo-independent phrasing, and stricter governance checks.
+5. **Bounded injection.** The context loader injects only task-relevant expertise within a token budget — never full profile dumps. Priority: critical boundary rules > task-relevant local > task-relevant global > anti-patterns > quality rules > heuristics.
+6. **Evidence before belief.** Every expertise entry traces back to lessons, which trace back to artifacts. No freeform learning.
+7. **Role guidance, not self-narration.** Overlays read as concise operational guidance ("Prefer explicit review of artifact consistency before signoff") not autobiographical memory ("I learned from past mistakes that...").
+
+**Why:** Specialists currently start fresh every invocation with no pathway for cumulative improvement based on project experience. Naive prompt rewriting creates drift, bloat, hidden behavior changes, and poor reversibility. Governed overlays preserve the strengths of bounded specialists while enabling disciplined improvement.
+
+**Integration:** Extends the existing `specialist-prompt.ts` composition pipeline with a new expertise overlay layer, between task context and process constraints. The `ExpertiseInjectionReport` artifact extends the Stage 4d observability model.
+
+**Source:** `docs/archive/design/expertise_layer.md`
+
+**Implement in Stage 6.**
+
+### 36. Dashboard design: artifact-backed observability with staged delivery (2026-04-02) [active]
+
+The system needs operator-facing observability for session health, execution flow, and token usage. The dashboard is a **read-only, artifact-backed, single-session** extension that consumes existing execution artifacts (`TeamSessionArtifact`, `WorklistSummary`, delegation logs) plus new token tracking data.
+
+**Key decisions:**
+
+1. **Token tracking is substrate, not dashboard.** Token usage tracking (`SpecialistInvocationSummary`, `TeamSessionArtifact.metrics`) is a cross-cutting substrate enhancement that benefits observability broadly, not just the dashboard UI. Implemented as Stage 5a.1.
+2. **Persistent widget ships before `/dashboard` command.** Pi supports persistent widgets via `ctx.ui.setWidget()`. The compact widget (status, active path, worklist progress, blocker indicator, elapsed time, token count) ships first. The detailed `/dashboard` inspector follows.
+3. **Projection layer separates artifacts from presentation.** Dashboard-ready view models are derived from execution artifacts through a projection module — no transcript scraping or ad-hoc reconstruction.
+4. **Build-team validation on real tasks precedes meta-team construction.** Before building the specialist-creator team (5b), run the existing build-team on actual implementation tasks to validate routing, contracts, delegation, session artifacts, and token tracking in practice.
+5. **Dashboard phases 3–6 from the design document are deferred.** Layout iteration, focus mode, visual enrichment, and session navigation are indexed in `FUTURE_WORK.md` with revisit triggers.
+
+**Staging:** 5a.1 (token tracking) → 5a.2 (dashboard substrate + widget) → 5a.3 (build-team validation) → 5a.4 (`/dashboard` command) → 5b (specialist-creator team, informed by validation results).
+
+**Why:** The system currently has rich execution artifacts (team sessions, state traces, worklist, delegation logs) but no operator-facing way to observe them during or after a run. Token usage — one of the primary operational concerns — has zero tracking infrastructure. Adding observability before heavy team usage ensures the data is captured from the start.
+
+**Source:** `docs/archive/design/dashboard.md`

@@ -1,6 +1,6 @@
 # STATUS.md
 
-Last updated: 2026-03-31
+Last updated: 2026-04-02
 
 ## Progress Checklist
 
@@ -187,6 +187,44 @@ Each specialist follows the existing factory pattern (`createSpecialistExtension
 - [ ] **PrimitiveRegistryEntry type** — schema for registry entries, populated manually for all 9 specialists
 - [ ] **Live subprocess hardening** — adversarial integration tests for timeout, malformed output, abort, cleanup
 
+#### 5a.1 — Token Tracking Substrate
+Add token usage tracking to specialist invocations and team session artifacts. See Decision #36.
+
+- [ ] `TokenUsage` type (inputTokens, outputTokens, totalTokens)
+- [ ] Add `tokenUsage?` to `SpecialistInvocationSummary`
+- [ ] Add `totalTokenUsage?` to `TeamSessionArtifact.metrics`
+- [ ] Capture token counts from sub-agent subprocess JSON events
+- [ ] Token rollup/aggregation utilities (`extensions/shared/tokens.ts`)
+- [ ] Tests for token tracking and rollup correctness
+
+#### 5a.2 — Dashboard Substrate + Persistent Widget
+Build projection layer and ship persistent widget for session observability. See Decision #36.
+
+- [ ] Dashboard types: `WidgetState`, `ActivePrimitivePath`, `WorklistProgressView`
+- [ ] Projection layer: derive widget state from `TeamSessionArtifact`, `WorklistSummary`, delegation logs, token data
+- [ ] Persistent widget via `ctx.ui.setWidget()` (status, active path, worklist progress, blocker indicator, elapsed time, token count)
+- [ ] `extensions/dashboard/` extension entry point and lifecycle hooks
+- [ ] Tests for projections and widget state
+
+#### 5a.3 — Build-Team Validation on Real Tasks
+Operational validation pass: run build-team on actual implementation tasks. See Decision #36.
+
+- [ ] Select 2–3 bounded implementation tasks for build-team execution
+- [ ] Run build-team end-to-end, observe widget, review session artifacts and token data
+- [ ] Identify and fix substrate issues discovered during validation
+- [ ] At least one clean end-to-end run with useful observability data
+
+#### 5a.4 — `/dashboard` Command (Detailed Inspector)
+Near-full-screen read-only session inspector. See Decision #36.
+
+- [ ] Register `/dashboard` via `pi.registerCommand()`
+- [ ] Overview panel (session status, active path, progress, token total)
+- [ ] Token tree panel (hierarchical rollups with percentages)
+- [ ] Execution path panel (structured textual path through team run)
+- [ ] Worklist panel (full item summary, counts by state)
+- [ ] Failures/escalations panel (compact summary, source, category, root cause)
+- [ ] Tests for panel projections and command registration
+
 #### 5b — Specialist-Creator Team
 The first meta-team. Its output is a fully working new specialist: agent definition markdown, TypeScript extension, prompt config, and tests. See Decisions #16, #33, #34.
 
@@ -233,18 +271,45 @@ Seeds include `SEED.md` instructions and template files. Can target fresh repos 
 - [ ] Escalation re-try handler: when specialist escalates requesting broader context, orchestrator expands scope and re-invokes
 - [ ] Session persistence: carry orchestration state across sessions via `appendEntry()`
 
-### Stage 6 — Slash Commands and Interactive Workflows [NOT STARTED]
+### Stage 6 — Reflective Expertise Layer [NOT STARTED]
+
+Enable specialists to improve over time through governed, typed, versioned expertise overlays. See Decision #35.
+
+#### 6a — Expertise Types and Registry
+- [ ] Define `ExpertiseProfile`, `ExpertiseEntry`, `ExpertisePatch` types
+- [ ] Implement versioned registry storage with diff inspection and rollback
+- [ ] Conflict detection (contradictory entries, redundancy, boundary weakening)
+- [ ] Human-readable markdown projections alongside typed authoritative layer
+
+#### 6b — Context Loader and Runtime Injection
+- [ ] Expertise selection by task type, tags, packet metadata, scope, and token budget
+- [ ] Priority ordering: critical boundary rules > local > global > anti-patterns > quality > heuristics
+- [ ] Integration with existing `specialist-prompt.ts` composition pipeline
+- [ ] `ExpertiseInjectionReport` artifact for observability
+
+#### 6c — Governance Pipeline
+- [ ] Lesson and patch lifecycle states: proposed → under_review → approved → applied → deprecated/rejected
+- [ ] Review approval gates before activation
+- [ ] Evidence validation and scope validation
+- [ ] Version stamping in invocation metadata
+
+#### 6d — Local Expertise Pilot
+- [ ] Apply 6a-6c to one pilot specialist (likely reviewer)
+- [ ] Local scope only, manual lesson creation and approval
+- [ ] Measurement: reduced repeated mistakes, improved output consistency, fewer correction loops
+
+### Stage 7 — Slash Commands and Interactive Workflows [NOT STARTED]
 
 See Decision #17.
 
-#### 6a — `/plan` Command
+#### 7a — `/plan` Command
 Interactive planning session. User describes goals, agent helps refine them, then orchestrator executes using available primitives.
 
 - [ ] Register `/plan` via `pi.registerCommand()`
 - [ ] Interactive planning flow: gather requirements → select primitives → build execution plan → confirm with user → orchestrate
 - [ ] Plan output stored in repo (e.g., `plans/` directory or structured format) for resumability
 
-#### 6b — `/next` Command
+#### 7b — `/next` Command
 Resume an existing plan. Orchestrator reads the current plan state from the repo and executes the next set of tasks.
 
 - [ ] Register `/next` via `pi.registerCommand()`
@@ -252,8 +317,8 @@ Resume an existing plan. Orchestrator reads the current plan state from the repo
 - [ ] Orchestrate next steps using available primitives
 - [ ] Update plan state after execution (mark completed, note failures/escalations)
 
-#### 6c — `/specialist` Command
-Interactive session to discuss adding a new specialist. Evaluates need, checks for redundancy, then delegates to the specialist-creator team (5a) if approved.
+#### 7c — `/specialist` Command
+Interactive session to discuss adding a new specialist. Evaluates need, checks for redundancy, then delegates to the specialist-creator team (5b) if approved.
 
 - [ ] Register `/specialist` via `pi.registerCommand()`
 - [ ] Discussion flow: what gap does this specialist fill? → check existing specialists for overlap → propose spec → user approval → delegate to creator team
@@ -265,7 +330,7 @@ Interactive session to discuss adding a new specialist. Evaluates need, checks f
 
 ## Future Evolution
 
-See `docs/FUTURE_WORK.md` for deferred design ideas (team critic, campaign supervision, automated review gates, Merlin integration, hashline editing, isolated execution environments) with "revisit when" triggers. Source design documents are archived in `docs/archive/design/`.
+See `docs/FUTURE_WORK.md` for deferred design ideas (team critic, campaign supervision, automated review gates, Merlin integration, hashline editing, isolated execution environments, archive normalization, lesson derivation pipeline, consolidation workflows, historian specialist) with "revisit when" triggers. Source design documents are archived in `docs/archive/design/`.
 
 ## Blockers
 

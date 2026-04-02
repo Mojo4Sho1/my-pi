@@ -187,3 +187,98 @@ The current keyword-heuristic approach to specialist selection (`select.ts`) is 
 **Key principle:** Preserve inspectability at each phase. Heuristics are crude but debuggable; LLM selection is flexible but opaque. The migration path should layer LLM intelligence on top of deterministic pruning, not replace it.
 
 **Revisit when:** Stage 5g begins. Contract-aware pruning should be the first implementation step, not LLM replacement.
+
+---
+
+## Archive and Historical Record Normalization
+
+Convert execution artifacts (delegation logs, result packets, review outputs, team session artifacts, worklist outcomes) into typed `HistoricalRecord` objects for downstream analysis. Each record captures what happened, why it mattered, and what conditions influenced success or failure — normalized from structured outputs that the system already produces.
+
+This is the data foundation that feeds the lesson derivation pipeline. Without it, lessons must be authored manually. With it, the system can systematically extract patterns from its own execution history.
+
+**Source:** `docs/archive/design/expertise_layer.md`, Sections 9.1 (Archive) and 10.1 (HistoricalRecord data model).
+
+**Revisit when:** Teams are producing session artifacts at volume (10+ sessions per team) and Stage 6d local expertise pilot has proven the overlay mechanism works. The archive is only valuable if there's both data to normalize and a consumer (the lesson pipeline) ready to use it.
+
+---
+
+## Lesson Derivation Pipeline (Lesson Forge)
+
+Automated extraction of typed, confidence-rated, evidence-backed lessons from historical records. Each lesson is scoped (local vs global), classified by kind (heuristic, anti-pattern, boundary-rule, quality-rule, workflow-hint), and carries evidence references back to source records.
+
+The pipeline includes pattern extraction, scope classification, and validation. Rather than dedicated internal roles (the source document proposed 5), this can leverage the existing specialist roster — the critic for skepticism and scope evaluation, the boundary-auditor for overreach detection, and the reviewer for final approval.
+
+**Source:** `docs/archive/design/expertise_layer.md`, Sections 9.3 (Lesson Forge) and 10.3 (Lesson data model).
+
+**Revisit when:** Archive normalization exists and there's enough historical data to derive lessons from rather than manually authored ones. Manual lesson creation (Stage 6d) should be the proving ground first.
+
+---
+
+## Consolidation Workflows (Local and Cross-Project)
+
+Batch processing of approved lessons into expertise patches. Two modes:
+
+1. **Local consolidation** — compares approved local lessons against active local expertise profiles, identifies missing guidance, detects redundancy and contradictions, proposes patches with rationale and evidence links.
+2. **Cross-project consolidation** — evaluates whether vetted local lessons merit promotion to global specialist expertise. Requires stronger evidence thresholds, repo-independent phrasing, and stricter governance.
+
+The source document calls these "sleep" and "deep sleep." The underlying mechanism is consolidation — comparing accumulated lessons against current profiles and proposing minimal patches.
+
+**Source:** `docs/archive/design/expertise_layer.md`, Sections 9.5 (Dreaming/Consolidation) and 16 (Sleep and Deep Sleep Design).
+
+**Revisit when:** Lesson pipeline is operational and producing enough approved lessons that manual patch creation becomes a bottleneck. Cross-project consolidation should remain largely manual until the local loop proves stable.
+
+---
+
+## Historian Specialist
+
+A specialist dedicated to summarizing batches of execution history into semantic digests (`HistorianMemo`). The historian reads historical records and emits compact summaries: what was attempted, what succeeded, what failed, relevant conditions, and recurring patterns. It does not propose lessons directly — that's the lesson pipeline's job.
+
+May be a full specialist (using the existing `createSpecialistExtension` factory) or a simpler typed extraction function, depending on volume needs. At low volume, a function suffices; at higher volume, the specialist's LLM-based summarization becomes valuable for identifying non-obvious patterns.
+
+**Source:** `docs/archive/design/expertise_layer.md`, Sections 9.2 (Historian) and 10.2 (HistorianMemo data model).
+
+**Revisit when:** Archive normalization exists and historical record volume justifies dedicated summarization beyond what simple extraction functions provide.
+
+---
+
+## Dashboard Focus Mode
+
+Allow individual dashboard panels to expand into a more detailed inspection view. Likely first targets: Tokens (drill into invocation-level spend), Execution Path (expand state transitions with full context), Failures/Escalations (contributing event chain, causal ancestry).
+
+Focus mode should be anticipated architecturally in the panel module structure but does not need to ship in the initial `/dashboard` release.
+
+**Source:** `docs/archive/design/dashboard.md`, "Focus Mode" section.
+
+**Revisit when:** The `/dashboard` command (Stage 5a.4) has been used enough to identify which panels most need deeper inspection.
+
+---
+
+## Dashboard Visual Enrichment
+
+Replace textual dashboard representations with richer visuals: graphical state-machine visualization for execution paths, visual token distribution cues, visual worklist progress summaries, sequence/campaign visualization once those primitives exist.
+
+All visuals must remain artifact-backed — no ad-hoc transcript reconstruction.
+
+**Source:** `docs/archive/design/dashboard.md`, "Phase 5 — Visual Enrichment" section.
+
+**Revisit when:** The textual dashboard substrate has proven useful in practice and there's a concrete comprehension gap that visuals would close.
+
+---
+
+## Dashboard Session Navigation
+
+Multi-session capabilities: session browsing, session tabs, historical inspection, comparison mode, alternative slash commands for cross-session analysis.
+
+**Source:** `docs/archive/design/dashboard.md`, "Phase 6 — Future Session Navigation" section.
+
+**Revisit when:** Multi-session execution is common (sequences or campaigns running regularly) and there's demand for cross-session observability beyond reviewing individual session artifacts.
+
+---
+
+## Dashboard Cost Estimates and Budget Enforcement
+
+Token cost calculation, budget tracking, compaction-risk views, and budget enforcement policies. Requires stable token tracking data (Stage 5a.1) and a cost model mapping token counts to monetary values.
+
+**Source:** `docs/archive/design/dashboard.md`, Tokens Panel "v1 Scope" section (explicitly excluded from v1).
+
+**Revisit when:** Token tracking data (Stage 5a.1) reveals cost patterns worth managing, and a reliable cost model exists for the models in use.

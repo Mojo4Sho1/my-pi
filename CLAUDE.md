@@ -71,7 +71,8 @@ See `STATUS.md` for live project state. The project follows a staged implementat
 4. **Team routing and validation** (complete) — I/O contracts, team router, state-machine teams, substrate hardening
 5. **Meta-teams and expansion** (5a next) — teams that build other primitives, sequences
    - **For Stage 5a:** Read `docs/HANDOFF_5A.md` first — it has the complete execution guide with all code, templates, and registration changes. Skip plan mode.
-6. **Slash commands and interactive workflows** — `/plan`, `/next`, `/specialist`
+6. **Reflective expertise layer** — governed specialist improvement through typed, versioned expertise overlays
+7. **Slash commands and interactive workflows** — `/plan`, `/next`, `/specialist`
 
 ## Development
 
