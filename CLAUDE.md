@@ -37,6 +37,10 @@ Agent definitions in `agents/` are the specs. TypeScript extensions in `extensio
 | `STATUS.md` | Current project state and queued work |
 | `DECISION_LOG.md` | Durable project decisions (single source of truth) |
 | `docs/IMPLEMENTATION_PLAN.md` | Staged build strategy and current roadmap |
+| `docs/HANDOFF_5A1B.md` | Historical execution guide for Stage 5a.1b (hook substrate) |
+| `docs/HANDOFF_5A1C.md` | Historical execution guide for Stage 5a.1c (sandboxing/path protection) |
+| `docs/HANDOFF_5A2.md` | Historical execution guide for Stage 5a.2 (dashboard substrate + persistent widget) |
+| `docs/validation/METHODOLOGY.md` | Stage 5a.3 validation methodology, task index, and substrate verification checklist |
 | `docs/PI_EXTENSION_API.md` | Pi extension API reference (tool registration, sub-agents, lifecycle) |
 | `docs/PROJECT_FOUNDATION.md` | Project vision and architectural boundaries |
 | `docs/ORCHESTRATION_MODEL.md` | System vocabulary and hierarchy |
@@ -68,11 +72,13 @@ See `STATUS.md` for live project state. The project follows a staged implementat
 2. **First specialist extension (builder)** (complete) — proved sub-agent delegation pattern
 3. **Remaining specialists + orchestrator** (complete) — full delegation loop with selective context forwarding
 4. **Team routing and validation** (complete) — I/O contracts, team router, state-machine teams, substrate hardening
-5. **Meta-teams and expansion** (5a complete, 5a.1 next) — teams that build other primitives, sequences
-   - 5a.1: Token tracking + threshold semantics (warn/split/deny)
-   - 5a.1b: Hook substrate (policy + observer hooks, typed event payloads)
-   - 5a.1c: Deterministic sandboxing (policy envelopes, hardened launcher)
-   - 5a.2–5a.4: Dashboard, real-task validation, `/dashboard` command
+5. **Meta-teams and expansion** (5a.2 complete, 5a.3 next) — teams that build other primitives, sequences
+   - 5a.1: Token tracking + threshold semantics (complete)
+   - 5a.1b: Hook substrate (complete)
+   - 5a.1c: Deterministic sandboxing (complete)
+   - 5a.2: Dashboard substrate + persistent widget (complete)
+   - **For Stage 5a.3:** Start from `STATUS.md`, the Stage 5a.3 section of `docs/IMPLEMENTATION_PLAN.md`, and `docs/HANDOFF_5A2.md` for the live observability substrate now in place.
+   - 5a.3–5a.4: Real-task validation and `/dashboard` command build on the live dashboard substrate
 6. **Reflective expertise layer** — governed specialist improvement through typed, versioned expertise overlays
 7. **Command surface** — commands emerge from real usage; `/dashboard` is the only committed command
 
@@ -91,6 +97,9 @@ make test-watch # Run tests in watch mode
 - `packets.ts` — Packet creation and validation
 - `routing.ts` — State machine routing with iteration tracking and maxIterations guards
 - `contracts.ts` — I/O contract validation (`validateOutputContract`, `validateInputContract`, `contractsCompatible`, `buildContextFromContract`)
+- `hooks.ts` — Hook registry, observer/policy dispatch, and global hook installer seam
+- `tokens.ts` — Token aggregation and threshold utilities
+- `sandbox.ts` — Deterministic policy envelopes and authority model
 - `specialist-prompt.ts` — System/task prompt construction with typed output templates
 - `result-parser.ts` — Structured output extraction from sub-agent responses
 - `subprocess.ts` — Pi sub-agent spawn and JSON event parsing
@@ -104,6 +113,12 @@ make test-watch # Run tests in watch mode
 ### Teams (`extensions/teams/`)
 - `router.ts` — Team state machine executor (`executeTeam`) with revision loops and escalation
 - `definitions.ts` — Team registry and `build-team` exemplar
+
+### Dashboard (`extensions/dashboard/`)
+- `types.ts` — Widget-local view models and dashboard session snapshot types
+- `projections.ts` — Pure widget projections from session artifacts and live runtime state
+- `widget.ts` — Compact line-array widget rendering via `ctx.ui.setWidget()`
+- `index.ts` — Lifecycle reconstruction, hook observer wiring, and widget updates
 
 ### Specialists (`extensions/specialists/*/`)
 - `prompt.ts` — Specialist-specific prompt config with I/O contracts

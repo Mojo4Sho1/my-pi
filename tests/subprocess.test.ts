@@ -96,6 +96,39 @@ describe("spawnSpecialistAgent", () => {
     expect(result.finalText).toBe("final answer");
   });
 
+  it("extracts token usage from message_end events when present", async () => {
+    const mockSpawn = vi.fn().mockImplementation(() =>
+      createMockChild((child) => {
+        child.stdout.push(
+          JSON.stringify({
+            type: "message_end",
+            message: {
+              role: "assistant",
+              content: [{ type: "text", text: "final answer" }],
+              usage: {
+                input_tokens: 123,
+                output_tokens: 45,
+              },
+            },
+          }) + "\n"
+        );
+        child.stdout.push(null);
+        child.stderr.push(null);
+        child.emit("close", 0);
+      })
+    );
+
+    vi.doMock("child_process", () => ({ spawn: mockSpawn }));
+    const { spawnSpecialistAgent } = await import("../extensions/shared/subprocess.js");
+
+    const result = await spawnSpecialistAgent("system", "task");
+    expect(result.tokenUsage).toEqual({
+      inputTokens: 123,
+      outputTokens: 45,
+      totalTokens: 168,
+    });
+  });
+
   it("rejects when aborted before spawn", async () => {
     const { spawnSpecialistAgent } = await import("../extensions/shared/subprocess.js");
     const controller = new AbortController();

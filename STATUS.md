@@ -1,6 +1,6 @@
 # STATUS.md
 
-Last updated: 2026-04-02 (Stage 5a complete)
+Last updated: 2026-04-06 (Stage 5a.2 complete, 5a.3 validation tasks defined)
 
 ## Progress Checklist
 
@@ -188,60 +188,70 @@ Each specialist follows the existing factory pattern (`createSpecialistExtension
 - [x] **Live subprocess hardening** — adversarial integration tests for timeout, malformed output, abort, cleanup
 - [x] All 465 tests pass (350 existing + 115 new), TypeScript compiles cleanly
 
-#### 5a.1 — Token Tracking Substrate
+#### 5a.1 — Token Tracking Substrate [COMPLETE]
 Add token usage tracking and threshold semantics to specialist invocations and team session artifacts. See Decisions #36, #37.
 
-- [ ] `TokenUsage` type (inputTokens, outputTokens, totalTokens)
-- [ ] `TokenThresholds` type (warn, split, deny levels)
-- [ ] `ThresholdResult` type and `checkThresholds()` utility
-- [ ] Add `tokenUsage?` to `SpecialistInvocationSummary`
-- [ ] Add `totalTokenUsage?` to `TeamSessionArtifact.metrics`
-- [ ] Capture token counts from sub-agent subprocess JSON events
-- [ ] Token rollup/aggregation utilities (`extensions/shared/tokens.ts`)
-- [ ] Threshold integration into delegation path (warn logs, split/deny influence behavior)
-- [ ] Tests for token tracking, rollup correctness, and threshold checking
+- [x] `TokenUsage` type (inputTokens, outputTokens, totalTokens)
+- [x] `TokenThresholds` type (warn, split, deny levels)
+- [x] `ThresholdResult` type and `checkThresholds()` utility
+- [x] Add `tokenUsage?` to `SpecialistInvocationSummary`
+- [x] Add `totalTokenUsage?` to `TeamSessionArtifact.metrics`
+- [x] Capture token counts from sub-agent subprocess JSON events
+- [x] Token rollup/aggregation utilities (`extensions/shared/tokens.ts`)
+- [x] Threshold integration point added to delegation path (`TODO(5a.1)` marker for session-level warn/split/deny enforcement)
+- [x] Tests for token tracking, rollup correctness, and threshold checking
+- [x] All 480 tests pass, TypeScript compiles cleanly
 
-#### 5a.1b — Hook Substrate
+#### 5a.1b — Hook Substrate [COMPLETE]
 Clean lifecycle mechanism for interception and observation at runtime execution points. See Decision #38.
 
-- [ ] `HookEvent`, `HookFailure`, `PolicyResult` types
-- [ ] `HookRegistry` — local in-process registration and dispatch
-- [ ] Policy hooks (authoritative gates: allow/deny with structured reasons)
-- [ ] Observer hooks (non-authoritative listeners: logging, metrics, projections)
-- [ ] Event surface: `onSessionStart`, `beforeDelegation`, `afterDelegation`, `beforeSubprocessSpawn`, `afterSubprocessExit`, `onAdequacyFailure`, `onPolicyViolation`, `onArtifactWritten`, `onCommandInvoked`, `onSessionEnd`, `onTeamStart`, `beforeStateTransition`, `afterStateTransition`
-- [ ] Typed event payloads per event (session metadata, packet metadata, token totals, policy envelope)
-- [ ] Hook error isolation (failing hooks produce `HookFailure` artifacts, do not crash execution)
-- [ ] Integration: emit events from delegate.ts, subprocess.ts, router.ts
-- [ ] Tests for registration, dispatch, policy decisions, error isolation
+- [x] `HookEvent`, `HookFailure`, `PolicyResult` types
+- [x] `HookRegistry` — local in-process registration and dispatch
+- [x] Policy hooks (authoritative gates: allow/deny with structured reasons)
+- [x] Observer hooks (non-authoritative listeners: logging, metrics, projections)
+- [x] Event surface: `onSessionStart`, `beforeDelegation`, `afterDelegation`, `beforeSubprocessSpawn`, `afterSubprocessExit`, `onAdequacyFailure`, `onPolicyViolation`, `onArtifactWritten`, `onCommandInvoked`, `onSessionEnd`, `onTeamStart`, `beforeStateTransition`, `afterStateTransition`
+- [x] Typed event payloads per event (session metadata, packet metadata, token totals, policy envelope)
+- [x] Hook error isolation (failing hooks produce `HookFailure` artifacts, do not crash execution)
+- [x] Integration: emit events from delegate.ts, router.ts, and orchestrator entrypoints (`subprocess.ts` remains a pure utility)
+- [x] Tests for registration, dispatch, policy decisions, error isolation
+- [x] All 500 tests pass, TypeScript compiles cleanly
 
-#### 5a.1c — Deterministic Sandboxing and Path Protection
+#### 5a.1c — Deterministic Sandboxing and Path Protection [COMPLETE]
 Runtime enforcement of the architectural authority model. See Decision #38.
 
-- [ ] `PolicyEnvelope` type (allowedWritePaths, allowedReadRoots, allowShell, allowNetwork, allowProcessSpawn, allowedCommands, forbiddenGlobs)
-- [ ] `PolicyViolation` type (timestamp, attempted action, target, expected policy, violation type, enforcement result)
-- [ ] `SpawnRecord` type (timestamp, specialist, policy envelope, outcome)
-- [ ] Hardened launcher: enhance `subprocess.ts` with policy validation before spawn
-- [ ] Path validation: check write targets against allowedWritePaths and forbiddenGlobs
-- [ ] Default authority model: 7 read-only specialists, 2 narrow-write by explicit grant (builder, tester)
-- [ ] `buildDefaultEnvelope()` per specialist authority class
-- [ ] Integration with hook substrate: violations fire `onPolicyViolation` events
-- [ ] Tests for envelope validation, path checks, violation generation, default authority model
+- [x] `PolicyEnvelope` type (allowedWritePaths, allowedReadRoots, allowShell, allowNetwork, allowProcessSpawn, allowedCommands, forbiddenGlobs)
+- [x] `PolicyViolation` type (timestamp, attempted action, target, expected policy, violation type, enforcement result)
+- [x] `SpawnRecord` type (timestamp, specialist, policy envelope, outcome)
+- [x] Hardened launcher validation in `delegate.ts` before spawn using `sandbox.ts` policy envelopes
+- [x] Path validation: check write targets against allowedWritePaths and forbiddenGlobs
+- [x] Default authority model: 7 read-only specialists, 2 narrow-write by explicit grant (builder, tester)
+- [x] `buildDefaultEnvelope()` per specialist authority class
+- [x] Integration with hook substrate: violations fire `onPolicyViolation` events
+- [x] Tests for envelope validation, path checks, violation generation, default authority model
+- [x] All 522 tests pass, TypeScript compiles cleanly
 
-#### 5a.2 — Dashboard Substrate + Persistent Widget
+#### 5a.2 — Dashboard Substrate + Persistent Widget [COMPLETE]
 Build projection layer and ship persistent widget for session observability. See Decision #36.
 
-- [ ] Dashboard types: `WidgetState`, `ActivePrimitivePath`, `WorklistProgressView`
-- [ ] Projection layer: derive widget state from `TeamSessionArtifact`, `WorklistSummary`, delegation logs, token data
-- [ ] Persistent widget via `ctx.ui.setWidget()` (status, active path, worklist progress, blocker indicator, elapsed time, token count)
-- [ ] `extensions/dashboard/` extension entry point and lifecycle hooks
-- [ ] Tests for projections and widget state
+- [x] Dashboard types: `WidgetState`, `ActivePrimitivePath`, `WorklistProgressView`, `DashboardSessionSnapshot`
+- [x] Projection layer: derive widget state from `TeamSessionArtifact`, `WorklistSummary`, delegation logs, token data
+- [x] Persistent widget via `ctx.ui.setWidget()` (status, active path, worklist progress, blocker indicator, elapsed time, token count)
+- [x] `extensions/dashboard/` extension entry point and lifecycle hooks
+- [x] Shared hook-installer seam in `extensions/shared/hooks.ts` so standalone extensions can attach observers to every new `HookRegistry`
+- [x] Standardized `onArtifactWritten` payloads for `team_session` and `worklist_session` (live `artifact` included)
+- [x] Tests for projections, widget state, hook installers, and live artifact payloads
+- [x] All 545 tests pass, TypeScript compiles cleanly
 
 #### 5a.3 — Build-Team Validation on Real Tasks
 Operational validation pass: run build-team on actual implementation tasks. See Decision #36.
+Methodology and task catalog: `docs/validation/METHODOLOGY.md`
 
-- [ ] Select 2–3 bounded implementation tasks for build-team execution
-- [ ] Run build-team end-to-end, observe widget, review session artifacts and token data
-- [ ] Identify and fix substrate issues discovered during validation
+- [x] Define validation methodology (two-layer: task verification + substrate verification)
+- [x] Define 8 validation tasks across 3 tiers (see `docs/validation/`)
+- [ ] **Tier 1:** Task 01 (JSDoc), Task 02 (test README), Task 03 (format helpers)
+- [ ] **Tier 2:** Task 04 (contract validation), Task 05 (constants extraction), Task 06 (widget snapshots)
+- [ ] **Tier 3:** Task 07 (new specialist), Task 08 (/dashboard command skeleton)
+- [ ] Fix substrate bugs discovered during validation
 - [ ] At least one clean end-to-end run with useful observability data
 
 #### 5a.4 — `/dashboard` Command (Detailed Inspector)

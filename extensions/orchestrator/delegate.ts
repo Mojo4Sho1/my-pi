@@ -16,6 +16,13 @@ import { resolveModel } from "../shared/config.js";
 import { createResultPacket, validateResultPacket } from "../shared/packets.js";
 import { validateInputContract } from "../shared/contracts.js";
 import type { DelegationLogger } from "../shared/logging.js";
+import type { HookRegistry } from "../shared/hooks.js";
+import {
+  buildDefaultEnvelope,
+  validateEnvelope,
+  checkWritePaths,
+  createSpawnRecord,
+} from "../shared/sandbox.js";
 import { BUILDER_PROMPT_CONFIG } from "../specialists/builder/prompt.js";
 import { PLANNER_PROMPT_CONFIG } from "../specialists/planner/prompt.js";
 import { REVIEWER_PROMPT_CONFIG } from "../specialists/reviewer/prompt.js";
@@ -36,6 +43,8 @@ export interface DelegationInput {
   signal?: AbortSignal;
   /** Optional logger for delegation events */
   logger?: DelegationLogger;
+  /** Hook registry for lifecycle events */
+  hookRegistry?: HookRegistry;
   /** Runtime model override (highest precedence in model resolution) */
   modelOverride?: string;
   /** Project-level model config for this specialist */
@@ -51,6 +60,10 @@ export interface DelegationOutput {
   sessionArtifact?: import("../shared/types.js").TeamSessionArtifact;
   /** Structured review output (only present for reviewer results) */
   reviewOutput?: StructuredReviewOutput;
+  /** Token usage from the specialist subprocess (if available) */
+  tokenUsage?: import("../shared/types.js").TokenUsage;
+  /** Policy envelope used for this delegation */
+  policyEnvelope?: import("../shared/types.js").PolicyEnvelope;
 }
 
 const PROMPT_CONFIG_MAP: Record<SpecialistId, SpecialistPromptConfig> = {
@@ -85,6 +98,21 @@ export function getPromptConfig(specialistId: SpecialistId): SpecialistPromptCon
 export async function delegateToSpecialist(input: DelegationInput): Promise<DelegationOutput> {
   const { promptConfig, taskPacket, signal, logger } = input;
   const agentId = promptConfig.id;
+  const hookRegistry = input.hookRegistry;
+  let policyEnvelope: import("../shared/types.js").PolicyEnvelope | undefined;
+
+  const emitAfterDelegation = (
+    resultStatus: ResultPacket["status"],
+    tokenUsage?: import("../shared/types.js").TokenUsage,
+  ) => {
+    hookRegistry?.dispatchObserver("afterDelegation", {
+      specialistId: agentId,
+      taskId: taskPacket.id,
+      sourceAgent: taskPacket.sourceAgent,
+      resultStatus,
+      tokenUsage,
+    });
+  };
 
   // 1. Build prompts
   const systemPrompt = buildSpecialistSystemPrompt(promptConfig);
@@ -115,7 +143,7 @@ export async function delegateToSpecialist(input: DelegationInput): Promise<Dele
         modifiedFiles: [],
         sourceAgent: agentId,
       });
-      return { resultPacket: failurePacket, success: false };
+      return { resultPacket: failurePacket, success: false, policyEnvelope };
     }
   }
 
@@ -135,6 +163,144 @@ export async function delegateToSpecialist(input: DelegationInput): Promise<Dele
     runtimeOverride: input.modelOverride,
     projectConfig: input.projectModelConfig,
     specialistDefault: input.promptConfig.preferredModel,
+  });
+
+  // TODO(5a.1): Check token thresholds before delegation
+  // When session-level cumulative usage is available, call checkThresholds()
+  // and handle warn (log) / split (signal orchestrator) / deny (return failure)
+
+  // 2.7 Build and validate policy envelope (5a.1c)
+  policyEnvelope = buildDefaultEnvelope(agentId, taskPacket);
+  const sessionId = hookRegistry?.getSessionId() ?? "unknown_session";
+  const envelopeErrors = validateEnvelope(policyEnvelope);
+  if (envelopeErrors.length > 0) {
+    const spawnRecord = createSpawnRecord(
+      agentId,
+      policyEnvelope,
+      "blocked",
+      `Invalid policy envelope: ${envelopeErrors.join("; ")}`,
+      sessionId
+    );
+    hookRegistry?.dispatchObserver("onArtifactWritten", {
+      artifactType: "spawn_record",
+      taskId: taskPacket.id,
+      artifact: spawnRecord,
+    });
+    const deniedPacket = createResultPacket({
+      taskId: taskPacket.id,
+      status: "failure",
+      summary: `Delegation blocked by invalid sandbox policy: ${envelopeErrors.join("; ")}`,
+      deliverables: [],
+      modifiedFiles: [],
+      sourceAgent: agentId,
+    });
+    logger?.log({
+      timestamp: new Date().toISOString(),
+      level: "warn",
+      event: "delegation_error",
+      sourceAgent: taskPacket.sourceAgent,
+      targetAgent: agentId,
+      taskId: taskPacket.id,
+      status: "failure",
+      summary: deniedPacket.summary,
+      failureReason: "validation_failure",
+    });
+    emitAfterDelegation(deniedPacket.status);
+    return { resultPacket: deniedPacket, success: false, policyEnvelope };
+  }
+
+  const writeViolations = checkWritePaths(taskPacket.allowedWriteSet, policyEnvelope, {
+    sessionId,
+    invocationId: taskPacket.id,
+  });
+  if (writeViolations.length > 0) {
+    for (const violation of writeViolations) {
+      hookRegistry?.dispatchObserver("onPolicyViolation", violation);
+    }
+
+    const spawnRecord = createSpawnRecord(
+      agentId,
+      policyEnvelope,
+      "blocked",
+      `Policy violations: ${writeViolations.map((violation) => violation.violationType).join(", ")}`,
+      sessionId
+    );
+    hookRegistry?.dispatchObserver("onArtifactWritten", {
+      artifactType: "spawn_record",
+      taskId: taskPacket.id,
+      artifact: spawnRecord,
+    });
+
+    const deniedPacket = createResultPacket({
+      taskId: taskPacket.id,
+      status: "failure",
+      summary: `Delegation blocked by sandbox policy: ${writeViolations.length} violation(s) — ${writeViolations.map((violation) => `${violation.violationType}: ${violation.targetPath}`).join("; ")}`,
+      deliverables: [],
+      modifiedFiles: [],
+      sourceAgent: agentId,
+    });
+    logger?.log({
+      timestamp: new Date().toISOString(),
+      level: "warn",
+      event: "delegation_error",
+      sourceAgent: taskPacket.sourceAgent,
+      targetAgent: agentId,
+      taskId: taskPacket.id,
+      status: "failure",
+      summary: deniedPacket.summary,
+      failureReason: "validation_failure",
+    });
+    emitAfterDelegation(deniedPacket.status);
+    return { resultPacket: deniedPacket, success: false, policyEnvelope };
+  }
+
+  const spawnRecord = createSpawnRecord(agentId, policyEnvelope, "spawned", undefined, sessionId);
+  hookRegistry?.dispatchObserver("onArtifactWritten", {
+    artifactType: "spawn_record",
+    taskId: taskPacket.id,
+    artifact: spawnRecord,
+  });
+
+  const beforeDelegationPayload = {
+    specialistId: agentId,
+    taskId: taskPacket.id,
+    sourceAgent: taskPacket.sourceAgent,
+  };
+  const policyResult = hookRegistry?.dispatchPolicy("beforeDelegation", beforeDelegationPayload);
+  if (policyResult && !policyResult.allowed) {
+    hookRegistry?.dispatchObserver("onPolicyViolation", {
+      specialistId: agentId,
+      taskId: taskPacket.id,
+      reason: policyResult.reason,
+      annotations: policyResult.annotations,
+    });
+    const deniedPacket = createResultPacket({
+      taskId: taskPacket.id,
+      status: "failure",
+      summary: `Delegation denied by policy: ${policyResult.reason}`,
+      deliverables: [],
+      modifiedFiles: [],
+      sourceAgent: agentId,
+    });
+    logger?.log({
+      timestamp: new Date().toISOString(),
+      level: "warn",
+      event: "delegation_error",
+      sourceAgent: taskPacket.sourceAgent,
+      targetAgent: agentId,
+      taskId: taskPacket.id,
+      status: "failure",
+      summary: `Policy denied: ${policyResult.reason}`,
+      failureReason: "validation_failure",
+    });
+    emitAfterDelegation(deniedPacket.status);
+    return { resultPacket: deniedPacket, success: false, policyEnvelope };
+  }
+
+  hookRegistry?.dispatchObserver("beforeDelegation", beforeDelegationPayload);
+  hookRegistry?.dispatchObserver("beforeSubprocessSpawn", {
+    specialistId: agentId,
+    taskId: taskPacket.id,
   });
 
   // 3. Spawn the specialist sub-agent
@@ -162,8 +328,21 @@ export async function delegateToSpecialist(input: DelegationInput): Promise<Dele
       summary: errorMsg,
       failureReason: "task_failure",
     });
-    return { resultPacket: failurePacket, success: false };
+    emitAfterDelegation(failurePacket.status, subAgentResult?.tokenUsage);
+    return {
+      resultPacket: failurePacket,
+      success: false,
+      tokenUsage: subAgentResult?.tokenUsage,
+      policyEnvelope,
+    };
   }
+
+  hookRegistry?.dispatchObserver("afterSubprocessExit", {
+    specialistId: agentId,
+    taskId: taskPacket.id,
+    exitCode: subAgentResult.exitCode,
+    tokenUsage: subAgentResult.tokenUsage,
+  });
 
   // 4. Handle process-level failures
   if (subAgentResult.exitCode !== 0 && !subAgentResult.finalText) {
@@ -186,7 +365,13 @@ export async function delegateToSpecialist(input: DelegationInput): Promise<Dele
       summary: failurePacket.summary,
       failureReason: "task_failure",
     });
-    return { resultPacket: failurePacket, success: false };
+    emitAfterDelegation(failurePacket.status, subAgentResult.tokenUsage);
+    return {
+      resultPacket: failurePacket,
+      success: false,
+      tokenUsage: subAgentResult.tokenUsage,
+      policyEnvelope,
+    };
   }
 
   // 5. Parse specialist output
@@ -216,6 +401,11 @@ export async function delegateToSpecialist(input: DelegationInput): Promise<Dele
         taskId: taskPacket.id,
         summary: parsed.summary,
         failureReason: "quality_failure",
+      });
+      hookRegistry?.dispatchObserver("onAdequacyFailure", {
+        specialistId: agentId,
+        taskId: taskPacket.id,
+        failures: adequacyResult.failures,
       });
     }
   }
@@ -258,7 +448,13 @@ export async function delegateToSpecialist(input: DelegationInput): Promise<Dele
       summary: fallbackPacket.summary,
       failureReason: "validation_failure",
     });
-    return { resultPacket: fallbackPacket, success: false };
+    emitAfterDelegation(fallbackPacket.status, subAgentResult.tokenUsage);
+    return {
+      resultPacket: fallbackPacket,
+      success: false,
+      tokenUsage: subAgentResult.tokenUsage,
+      policyEnvelope,
+    };
   }
 
   // 7. Log delegation complete
@@ -273,10 +469,14 @@ export async function delegateToSpecialist(input: DelegationInput): Promise<Dele
     summary: resultPacket.summary,
   });
 
+  emitAfterDelegation(resultPacket.status, subAgentResult.tokenUsage);
+
   return {
     resultPacket,
     success: parsed.status === "success",
     reviewOutput,
+    tokenUsage: subAgentResult.tokenUsage,
+    policyEnvelope,
   };
 }
 
@@ -363,6 +563,7 @@ export async function delegateToTeam(input: {
   taskPacket: TaskPacket;
   signal?: AbortSignal;
   logger?: DelegationLogger;
+  hookRegistry?: HookRegistry;
 }): Promise<DelegationOutput> {
   const { TEAM_REGISTRY } = await import("../teams/definitions.js");
   const team = TEAM_REGISTRY[input.teamId];
@@ -380,7 +581,13 @@ export async function delegateToTeam(input: {
   }
 
   const { executeTeam } = await import("../teams/router.js");
-  const teamResult = await executeTeam(team, input.taskPacket, input.signal, input.logger);
+  const teamResult = await executeTeam(
+    team,
+    input.taskPacket,
+    input.signal,
+    input.logger,
+    input.hookRegistry
+  );
 
   return {
     resultPacket: teamResult.resultPacket,

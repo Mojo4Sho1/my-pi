@@ -293,6 +293,199 @@ export interface SpecialistInvocationSummary {
   contractSatisfied: boolean;
   /** Duration in milliseconds (if measurable) */
   durationMs?: number;
+  /** Token usage for this invocation (if available from subprocess) */
+  tokenUsage?: TokenUsage;
+}
+
+// --- Token Tracking (Stage 5a.1) ---
+
+export interface TokenUsage {
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+}
+
+export interface TokenThresholds {
+  /** Surface warning in widget/dashboard, execution continues */
+  warn: number;
+  /** Orchestrator should prefer fresh bounded invocation or reduced packet scope */
+  split: number;
+  /** Runtime blocks further delegation under current packet shape */
+  deny: number;
+}
+
+export type ThresholdLevel = "ok" | "warn" | "split" | "deny";
+
+export interface ThresholdResult {
+  level: ThresholdLevel;
+  currentUsage: number;
+  /** The threshold that was hit (or the next one if ok) */
+  threshold: number;
+  message?: string;
+}
+
+// --- Hook Substrate (Stage 5a.1b) ---
+
+/** All hook event names in the system */
+export type HookEventName =
+  | "onSessionStart"
+  | "onSessionEnd"
+  | "onTeamStart"
+  | "beforeStateTransition"
+  | "afterStateTransition"
+  | "beforeDelegation"
+  | "afterDelegation"
+  | "beforeSubprocessSpawn"
+  | "afterSubprocessExit"
+  | "onAdequacyFailure"
+  | "onPolicyViolation"
+  | "onArtifactWritten"
+  | "onCommandInvoked";
+
+export interface HookEvent<T = unknown> {
+  eventName: HookEventName;
+  timestamp: string;
+  sessionId: string;
+  payload: T;
+}
+
+export interface HookFailure {
+  hookId: string;
+  eventName: HookEventName;
+  error: string;
+  timestamp: string;
+}
+
+export type PolicyResult =
+  | { allowed: true }
+  | { allowed: false; reason: string; annotations?: Record<string, unknown> };
+
+/** Payload for beforeDelegation / afterDelegation */
+export interface DelegationHookPayload {
+  specialistId: string;
+  taskId: string;
+  sourceAgent: string;
+  /** Only on afterDelegation */
+  resultStatus?: PacketStatus;
+  /** Only on afterDelegation */
+  tokenUsage?: TokenUsage;
+}
+
+/** Payload for beforeSubprocessSpawn / afterSubprocessExit */
+export interface SubprocessHookPayload {
+  specialistId: string;
+  taskId: string;
+  /** Only on afterSubprocessExit */
+  exitCode?: number;
+  /** Only on afterSubprocessExit */
+  tokenUsage?: TokenUsage;
+}
+
+/** Payload for beforeStateTransition / afterStateTransition */
+export interface StateTransitionHookPayload {
+  teamId: string;
+  fromState: string;
+  toState: string;
+  agentId: string;
+  taskId: string;
+  /** Only on afterStateTransition */
+  resultStatus?: PacketStatus;
+}
+
+/** Payload for onTeamStart */
+export interface TeamStartHookPayload {
+  teamId: string;
+  teamVersion: string;
+  taskId: string;
+}
+
+/** Payload for onAdequacyFailure */
+export interface AdequacyFailureHookPayload {
+  specialistId: string;
+  taskId: string;
+  failures: string[];
+}
+
+/** Payload for onSessionStart / onSessionEnd */
+export interface SessionHookPayload {
+  sessionId: string;
+  /** Only on onSessionEnd */
+  totalTokenUsage?: TokenUsage;
+}
+
+/** Payload for onPolicyViolation */
+export type PolicyViolationHookPayload =
+  | PolicyViolation
+  | {
+    specialistId: string;
+    taskId: string;
+    reason: string;
+    annotations?: Record<string, unknown>;
+  };
+
+/** Payload for onArtifactWritten */
+export interface ArtifactHookPayload {
+  artifactType: string;
+  taskId?: string;
+  artifact?: unknown;
+}
+
+/** Payload for onCommandInvoked */
+export interface CommandHookPayload {
+  commandName: string;
+  toolCallId: string;
+  task?: string;
+  delegationHint?: string;
+  teamHint?: string;
+}
+
+// --- Sandboxing and Path Protection (Stage 5a.1c) ---
+
+export interface PolicyEnvelope {
+  /** Paths the invocation may write to */
+  allowedWritePaths: string[];
+  /** Root paths the invocation may read from */
+  allowedReadRoots: string[];
+  /** Whether shell execution is permitted */
+  allowShell: boolean;
+  /** Whether network access is permitted */
+  allowNetwork: boolean;
+  /** Whether process spawning is permitted */
+  allowProcessSpawn: boolean;
+  /** Specific commands allowed (if undefined, all non-forbidden commands ok when shell is allowed) */
+  allowedCommands?: string[];
+  /** Glob patterns that are always forbidden for writes */
+  forbiddenGlobs?: string[];
+}
+
+export type PolicyViolationType =
+  | "write_denied"
+  | "read_denied"
+  | "shell_denied"
+  | "network_denied"
+  | "spawn_denied"
+  | "command_denied"
+  | "glob_forbidden";
+
+export interface PolicyViolation {
+  timestamp: string;
+  sessionId: string;
+  invocationId: string;
+  attemptedAction: string;
+  targetPath?: string;
+  targetCommand?: string;
+  expectedPolicy: Partial<PolicyEnvelope>;
+  violationType: PolicyViolationType;
+  enforcementResult: "blocked" | "logged";
+}
+
+export interface SpawnRecord {
+  timestamp: string;
+  sessionId: string;
+  specialistId: string;
+  policyEnvelope: PolicyEnvelope;
+  outcome: "spawned" | "blocked";
+  blockReason?: string;
 }
 
 export interface TeamSessionArtifact {
@@ -330,6 +523,8 @@ export interface TeamSessionArtifact {
     retryCount: number;
     totalDurationMs: number;
     revisionCount: number;
+    /** Aggregated token usage across all specialist invocations */
+    totalTokenUsage?: TokenUsage;
   };
 }
 

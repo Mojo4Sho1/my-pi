@@ -3,6 +3,7 @@ import { createTaskPacket } from "../extensions/shared/packets.js";
 import type { TaskPacket, TeamDefinition, TeamSessionArtifact } from "../extensions/shared/types.js";
 import { BUILD_TEAM } from "../extensions/teams/definitions.js";
 import { computeTeamVersion } from "../extensions/shared/logging.js";
+import { createHookRegistry } from "../extensions/shared/hooks.js";
 
 describe("team session artifacts", () => {
   beforeEach(() => {
@@ -10,11 +11,15 @@ describe("team session artifacts", () => {
     vi.resetModules();
   });
 
-  function makeOutput(result: Record<string, unknown>) {
+  function makeOutput(
+    result: Record<string, unknown>,
+    tokenUsage?: { inputTokens: number; outputTokens: number; totalTokens: number }
+  ) {
     return {
       exitCode: 0,
       finalText: "```json\n" + JSON.stringify(result) + "\n```",
       stderr: "",
+      tokenUsage,
     };
   }
 
@@ -166,6 +171,81 @@ describe("team session artifacts", () => {
     expect(artifact.metrics.revisionCount).toBeGreaterThan(0);
     expect(artifact.metrics.totalTransitions).toBe(6);
     expect(artifact.metrics.totalDurationMs).toBeGreaterThanOrEqual(0);
+  });
+
+  it("aggregates token usage into specialist summaries and session metrics", async () => {
+    const mockSpawn = vi.fn()
+      .mockResolvedValueOnce(makeOutput({
+        status: "success", summary: "Plan", deliverables: [], modifiedFiles: [],
+      }, {
+        inputTokens: 100, outputTokens: 20, totalTokens: 120,
+      }))
+      .mockResolvedValueOnce(makeOutput({
+        status: "success", summary: "Review", deliverables: [], modifiedFiles: [],
+      }, {
+        inputTokens: 40, outputTokens: 10, totalTokens: 50,
+      }))
+      .mockResolvedValueOnce(makeOutput({
+        status: "success", summary: "Build", deliverables: [], modifiedFiles: ["a.ts"],
+      }, {
+        inputTokens: 150, outputTokens: 80, totalTokens: 230,
+      }))
+      .mockResolvedValueOnce(makeOutput({
+        status: "success", summary: "Test", deliverables: [], modifiedFiles: [],
+      }, {
+        inputTokens: 60, outputTokens: 30, totalTokens: 90,
+      }));
+
+    const { executeTeam } = await setupTeamRouter(mockSpawn);
+    const result = await executeTeam(BUILD_TEAM, makeTeamTaskPacket());
+    const artifact = result.sessionArtifact!;
+
+    expect(artifact.specialistSummaries[0].tokenUsage).toEqual({
+      inputTokens: 100,
+      outputTokens: 20,
+      totalTokens: 120,
+    });
+    expect(artifact.metrics.totalTokenUsage).toEqual({
+      inputTokens: 350,
+      outputTokens: 140,
+      totalTokens: 490,
+    });
+  });
+
+  it("emits team and state transition hook events", async () => {
+    const mockSpawn = vi.fn()
+      .mockResolvedValueOnce(makeOutput({
+        status: "success", summary: "Plan", deliverables: [], modifiedFiles: [],
+      }))
+      .mockResolvedValueOnce(makeOutput({
+        status: "success", summary: "Review", deliverables: [], modifiedFiles: [],
+      }))
+      .mockResolvedValueOnce(makeOutput({
+        status: "success", summary: "Build", deliverables: [], modifiedFiles: ["a.ts"],
+      }))
+      .mockResolvedValueOnce(makeOutput({
+        status: "success", summary: "Test", deliverables: [], modifiedFiles: [],
+      }));
+
+    const { executeTeam } = await setupTeamRouter(mockSpawn);
+    const hookRegistry = createHookRegistry();
+    const events: string[] = [];
+
+    hookRegistry.registerObserver("onTeamStart", () => {
+      events.push("onTeamStart");
+    });
+    hookRegistry.registerObserver("beforeStateTransition", () => {
+      events.push("beforeStateTransition");
+    });
+    hookRegistry.registerObserver("afterStateTransition", () => {
+      events.push("afterStateTransition");
+    });
+
+    await executeTeam(BUILD_TEAM, makeTeamTaskPacket(), undefined, undefined, hookRegistry);
+
+    expect(events[0]).toBe("onTeamStart");
+    expect(events.filter((event) => event === "beforeStateTransition")).toHaveLength(4);
+    expect(events.filter((event) => event === "afterStateTransition")).toHaveLength(4);
   });
 
   it("escalation (loop exhaustion) produces artifact with terminationReason retry_exhaustion", async () => {

@@ -6,11 +6,14 @@
  */
 
 import { spawn, type ChildProcess } from "child_process";
+import type { TokenUsage } from "./types.js";
 
 export interface SubAgentResult {
   exitCode: number;
   finalText: string;
   stderr: string;
+  /** Token usage extracted from subprocess JSON events (if available) */
+  tokenUsage?: TokenUsage;
 }
 
 const DEFAULT_TIMEOUT_MS = 120_000; // 2 minutes
@@ -59,6 +62,7 @@ export function spawnSpecialistAgent(
     let stdoutBuffer = "";
     let stderrBuffer = "";
     let finalText = "";
+    let tokenUsage: TokenUsage | undefined;
     let settled = false;
 
     const settle = (result: SubAgentResult) => {
@@ -112,6 +116,21 @@ export function spawnSpecialistAgent(
               }
             }
           }
+
+          if (event.type === "message_end" && event.message?.usage) {
+            // Assumes Pi forwards Anthropic-style usage fields on message_end.
+            const usage = event.message.usage;
+            if (
+              typeof usage.input_tokens === "number" &&
+              typeof usage.output_tokens === "number"
+            ) {
+              tokenUsage = {
+                inputTokens: usage.input_tokens,
+                outputTokens: usage.output_tokens,
+                totalTokens: usage.input_tokens + usage.output_tokens,
+              };
+            }
+          }
         } catch {
           // Non-JSON line — skip silently
         }
@@ -127,6 +146,7 @@ export function spawnSpecialistAgent(
         exitCode: -1,
         finalText: "",
         stderr: `Spawn error: ${err.message}`,
+        tokenUsage,
       });
     });
 
@@ -136,6 +156,7 @@ export function spawnSpecialistAgent(
         exitCode: code ?? -1,
         finalText,
         stderr: stderrBuffer,
+        tokenUsage,
       });
     });
   });

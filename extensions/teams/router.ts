@@ -29,6 +29,9 @@ import { createTaskPacket, createResultPacket } from "../shared/packets.js";
 import { delegateToSpecialist, getPromptConfig } from "../orchestrator/delegate.js";
 import { buildContextFromContract, validateOutputContract } from "../shared/contracts.js";
 import { computeTeamVersion } from "../shared/logging.js";
+import { aggregateTokenUsage } from "../shared/tokens.js";
+import { READ_ONLY_SPECIALISTS } from "../shared/sandbox.js";
+import type { HookRegistry } from "../shared/hooks.js";
 import type { DelegationLogger } from "../shared/logging.js";
 import type { SpecialistId } from "../orchestrator/select.js";
 
@@ -93,6 +96,10 @@ function buildSessionArtifact(params: {
     }
   }
 
+  const totalTokenUsage = aggregateTokenUsage(
+    params.specialistSummaries.map((summary) => summary.tokenUsage)
+  );
+
   return {
     sessionId: params.sessionId,
     startedAt: params.startedAt,
@@ -115,6 +122,7 @@ function buildSessionArtifact(params: {
       retryCount: loopCount,
       totalDurationMs: endTime - startTime,
       revisionCount,
+      totalTokenUsage: totalTokenUsage.totalTokens > 0 ? totalTokenUsage : undefined,
     },
   };
 }
@@ -131,6 +139,7 @@ export async function executeTeam(
   taskPacket: TaskPacket,
   signal?: AbortSignal,
   logger?: DelegationLogger,
+  hookRegistry?: HookRegistry,
 ): Promise<TeamExecutionResult> {
   const sessionId = generateSessionId();
   const startedAt = new Date().toISOString();
@@ -148,6 +157,11 @@ export async function executeTeam(
     targetAgent: `team_${team.id}`,
     taskId: taskPacket.id,
     summary: `Starting team '${team.id}' (version ${teamVersion})`,
+  });
+  hookRegistry?.dispatchObserver("onTeamStart", {
+    teamId: team.id,
+    teamVersion,
+    taskId: taskPacket.id,
   });
 
   // Helper to build result with artifact
@@ -275,7 +289,7 @@ export async function executeTeam(
     const specialistTaskPacket = createTaskPacket({
       objective: taskPacket.objective,
       allowedReadSet: taskPacket.allowedReadSet,
-      allowedWriteSet: specialistId === "planner" || specialistId === "reviewer"
+      allowedWriteSet: READ_ONLY_SPECIALISTS.has(specialistId)
         ? []
         : taskPacket.allowedWriteSet,
       acceptanceCriteria: [`Complete the ${specialistId} phase for team '${team.id}'`],
@@ -285,12 +299,21 @@ export async function executeTeam(
     });
 
     // Delegate to the specialist (pass logger through)
+    hookRegistry?.dispatchObserver("beforeStateTransition", {
+      teamId: team.id,
+      fromState: currentStateName,
+      toState: "pending",
+      agentId,
+      taskId: taskPacket.id,
+    });
+
     const delegationStartMs = Date.now();
-    const { resultPacket } = await delegateToSpecialist({
+    const { resultPacket, tokenUsage } = await delegateToSpecialist({
       promptConfig,
       taskPacket: specialistTaskPacket,
       signal,
       logger,
+      hookRegistry,
     });
     const delegationDurationMs = Date.now() - delegationStartMs;
 
@@ -321,6 +344,7 @@ export async function executeTeam(
       status: resultPacket.status,
       contractSatisfied,
       durationMs: delegationDurationMs,
+      tokenUsage,
     });
 
     // Advance the state machine
@@ -347,6 +371,14 @@ export async function executeTeam(
         taskId: taskPacket.id,
         summary: `Revision loop exhausted on edge '${advanceResult.edge}' after ${advanceResult.iterations} iterations`,
         failureReason: "retry_exhaustion",
+      });
+      hookRegistry?.dispatchObserver("afterStateTransition", {
+        teamId: team.id,
+        fromState: currentStateName,
+        toState: advanceResult.edge.split("→").pop()?.trim() || currentStateName,
+        agentId,
+        taskId: taskPacket.id,
+        resultStatus: resultPacket.status,
       });
 
       // Loop iterations exhausted — escalate
@@ -388,6 +420,14 @@ export async function executeTeam(
         modifiedFiles: [],
         sourceAgent: `team_${team.id}`,
       });
+      hookRegistry?.dispatchObserver("afterStateTransition", {
+        teamId: team.id,
+        fromState: currentStateName,
+        toState: "error",
+        agentId,
+        taskId: taskPacket.id,
+        resultStatus: resultPacket.status,
+      });
       return buildResult(
         errorPacket, false, statesVisited, machineState.iterationCounts,
         machineState.currentState, "validation_failure", "validation_failure",
@@ -416,6 +456,14 @@ export async function executeTeam(
       taskId: taskPacket.id,
       status: resultPacket.status,
       summary: `${currentStateName} → ${targetState}`,
+    });
+    hookRegistry?.dispatchObserver("afterStateTransition", {
+      teamId: team.id,
+      fromState: currentStateName,
+      toState: targetState,
+      agentId,
+      taskId: taskPacket.id,
+      resultStatus: resultPacket.status,
     });
 
     machineState = advanceResult.newState;
