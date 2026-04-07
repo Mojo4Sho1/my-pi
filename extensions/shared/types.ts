@@ -8,8 +8,16 @@
 
 // --- Packet Types ---
 
+/**
+ * Enumerates the high-level outcome states that task and result flows can report.
+ * It is used across packets, routing transitions, and session artifacts to describe execution status.
+ */
 export type PacketStatus = "success" | "partial" | "failure" | "escalation";
 
+/**
+ * Represents the bounded unit of work the orchestrator or a team sends to a downstream agent.
+ * It carries the objective, permissions, and scoped context needed to execute a delegation safely.
+ */
 export interface TaskPacket {
   /** Unique identifier for this task */
   id: string;
@@ -31,6 +39,10 @@ export interface TaskPacket {
   createdAt: string;
 }
 
+/**
+ * Captures the structured handback produced in response to a TaskPacket.
+ * See also TaskPacket and TeamSessionArtifact for how results are routed and recorded over a full run.
+ */
 export interface ResultPacket {
   /** Unique identifier for this result */
   id: string;
@@ -57,10 +69,28 @@ export interface ResultPacket {
 
 // --- Agent Definition Types ---
 
+/**
+ * Classifies the primitive kind an agent definition describes within the orchestration hierarchy.
+ * The value determines whether a definition represents a top-level orchestrator, a narrow specialist, a team, or a sequence.
+ */
 export type DefinitionType = "orchestrator" | "specialist" | "team" | "sequence";
+
+/**
+ * Distinguishes broad orchestration actors from downstream executors.
+ * This helps enforce the authority model described by AgentDefinition.
+ */
 export type RoutingClass = "orchestrator" | "downstream";
+
+/**
+ * Describes how much context an agent is expected to receive by default.
+ * It supports the system's broad-orchestrator, narrow-specialist control model.
+ */
 export type ContextScope = "broad" | "narrow";
 
+/**
+ * Encodes the behavioral guidance that shapes how an agent should reason, communicate, and manage risk.
+ * These settings inform prompt construction and help keep specialists within their intended boundaries.
+ */
 export interface WorkingStyle {
   reasoningPosture: string;
   communicationPosture: string;
@@ -69,6 +99,10 @@ export interface WorkingStyle {
   antiPatterns: string[];
 }
 
+/**
+ * Defines the shared metadata and operating contract for any agent-like primitive in the system.
+ * Specialized definitions such as SpecialistConfig extend this base shape with stricter guarantees.
+ */
 export interface AgentDefinition {
   id: string;
   name: string;
@@ -88,6 +122,10 @@ export interface AgentDefinition {
   workingStyle?: WorkingStyle;
 }
 
+/**
+ * Narrows AgentDefinition to the stricter contract required for downstream specialists.
+ * It guarantees specialist-specific boundary fields and requires a WorkingStyle. See also AgentDefinition.
+ */
 export interface SpecialistConfig extends AgentDefinition {
   definitionType: "specialist";
   routingClass: "downstream";
@@ -101,8 +139,16 @@ export interface SpecialistConfig extends AgentDefinition {
 
 // --- I/O Contract Types (Stage 4a) ---
 
+/**
+ * Lists the primitive field shapes supported by typed input and output contracts.
+ * These values let contracts describe the structured data specialists exchange through context and deliverables.
+ */
 export type ContractFieldType = "string" | "string[]" | "boolean" | "number" | "object";
 
+/**
+ * Describes one named field in an input or output contract.
+ * It is the basic schema unit used by InputContract and OutputContract.
+ */
 export interface ContractField {
   /** Field name (e.g. "planSummary") */
   name: string;
@@ -116,18 +162,28 @@ export interface ContractField {
   sourceSpecialist?: string;
 }
 
-/** What a specialist/team requires in its TaskPacket.context */
+/**
+ * Defines the structured fields a specialist or team expects to find in TaskPacket.context.
+ * See also OutputContract, which describes the fields a primitive promises to produce.
+ */
 export interface InputContract {
   fields: ContractField[];
 }
 
-/** What a specialist/team guarantees in its structured deliverables */
+/**
+ * Defines the structured fields a specialist or team guarantees in its deliverables.
+ * It is paired with InputContract to validate compatibility between adjacent execution steps.
+ */
 export interface OutputContract {
   fields: ContractField[];
 }
 
 // --- Team and Routing Types ---
 
+/**
+ * Describes a reusable team primitive composed of multiple specialists and a routing state machine.
+ * It packages membership, contracts, and transition rules into a unit the orchestrator can treat as opaque.
+ */
 export interface TeamDefinition {
   id: string;
   name: string;
@@ -144,12 +200,20 @@ export interface TeamDefinition {
   escalationConditions: string[];
 }
 
+/**
+ * Defines the full routing graph for a team execution.
+ * It identifies the entry state, terminal states, and per-state behavior described by StateDefinition.
+ */
 export interface StateMachineDefinition {
   startState: string;
   terminalStates: string[];
   states: Record<string, StateDefinition>;
 }
 
+/**
+ * Describes how a single team state is executed and where it may transition next.
+ * It supports both normal single-agent states and future fan-out state shapes.
+ */
 export interface StateDefinition {
   /** Which specialist handles this state */
   agent: string;
@@ -161,6 +225,10 @@ export interface StateDefinition {
   fanOutJoin?: "all" | "any";
 }
 
+/**
+ * Defines one edge in a team's state machine based on a returned PacketStatus.
+ * It can also impose loop limits to force escalation when retries are exhausted.
+ */
 export interface TransitionDefinition {
   /** Condition that triggers this transition */
   on: PacketStatus;
@@ -172,6 +240,10 @@ export interface TransitionDefinition {
 
 // --- Failure Reason Taxonomy (Stage 4d) ---
 
+/**
+ * Enumerates normalized reasons a run can fail, abort, or escalate.
+ * These values are used in artifacts and metrics so failures can be analyzed consistently across executions.
+ */
 export type FailureReason =
   | "task_failure"
   | "contract_violation"
@@ -186,10 +258,22 @@ export type FailureReason =
 
 // --- Structured Review Findings (Stage 4e) ---
 
+/**
+ * Represents the overall disposition of a structured review.
+ * It summarizes whether work is approved, blocked, or needs changes. See also StructuredReviewOutput.
+ */
 export type ReviewVerdict = "approve" | "request_changes" | "comment" | "blocked";
 
+/**
+ * Ranks the severity of an individual review finding.
+ * It helps downstream synthesis and display code distinguish critical issues from minor comments.
+ */
 export type FindingPriority = "critical" | "major" | "minor" | "nit";
 
+/**
+ * Captures one structured issue identified by a reviewer.
+ * Multiple findings are collected into a StructuredReviewOutput for downstream handling.
+ */
 export interface ReviewFinding {
   /** Author-assigned by reviewer (e.g., "F1", "F2") */
   id: string;
@@ -209,6 +293,10 @@ export interface ReviewFinding {
   fileRefs?: string[];
 }
 
+/**
+ * Defines the structured payload returned by review-oriented specialists.
+ * It combines an overall verdict, detailed findings, and a summary for orchestration and reporting.
+ */
 export interface StructuredReviewOutput {
   /** Review verdict */
   verdict: ReviewVerdict;
@@ -220,8 +308,16 @@ export interface StructuredReviewOutput {
 
 // --- Structured Test Output (Stage 5a) ---
 
+/**
+ * Describes the method used to validate a subject during structured testing.
+ * It gives test outputs a consistent vocabulary across manual, automated, and inspection-based checks.
+ */
 export type TestMethod = "manual" | "automated" | "inspection";
 
+/**
+ * Records one structured test case outcome produced by a tester.
+ * These entries roll up into StructuredTestOutput in the same way review findings roll up into review output.
+ */
 export interface TestResult {
   /** Author-assigned by tester (e.g., "T1", "T2") */
   id: string;
@@ -237,6 +333,10 @@ export interface TestResult {
   passed: boolean;
 }
 
+/**
+ * Defines the structured payload returned by testing-oriented specialists.
+ * It groups individual test results with a brief execution summary. See also TestResult.
+ */
 export interface StructuredTestOutput {
   /** Individual test results */
   testResults: TestResult[];
@@ -246,11 +346,19 @@ export interface StructuredTestOutput {
 
 // --- Model Routing (Stage 4e) ---
 
+/**
+ * Stores configured default model selections for specialists.
+ * It supports the model resolution chain that combines runtime, project, and specialist-level preferences.
+ */
 export interface ModelRoutingPolicy {
   /** Map of specialist ID to model identifier */
   specialistDefaults: Record<string, string>;
 }
 
+/**
+ * Carries the layered inputs used to choose a model for a specialist invocation.
+ * Each field represents a different precedence tier in the system's model routing policy.
+ */
 export interface ModelResolutionContext {
   /** From DelegationInput or task packet (highest precedence) */
   runtimeOverride?: string;
@@ -263,6 +371,10 @@ export interface ModelResolutionContext {
 
 // --- Team Session Artifacts (Stage 4d) ---
 
+/**
+ * Records one executed state transition within a team session.
+ * These entries form the ordered trace stored on TeamSessionArtifact.
+ */
 export interface StateTraceEntry {
   /** State name */
   state: string;
@@ -280,6 +392,10 @@ export interface StateTraceEntry {
   iterationCount?: number;
 }
 
+/**
+ * Summarizes a single specialist invocation inside a broader team run.
+ * It gives session artifacts compact per-agent visibility, including status, contract success, and token usage.
+ */
 export interface SpecialistInvocationSummary {
   /** Specialist agent ID */
   agentId: string;
@@ -299,12 +415,20 @@ export interface SpecialistInvocationSummary {
 
 // --- Token Tracking (Stage 5a.1) ---
 
+/**
+ * Captures token counts for a single invocation or aggregate rollup.
+ * It provides the common accounting shape reused by subprocess parsing, thresholds, and session artifacts.
+ */
 export interface TokenUsage {
   inputTokens: number;
   outputTokens: number;
   totalTokens: number;
 }
 
+/**
+ * Defines token budget breakpoints that trigger warnings, splitting behavior, or denial.
+ * These thresholds let the orchestrator react before delegation scope grows too large.
+ */
 export interface TokenThresholds {
   /** Surface warning in widget/dashboard, execution continues */
   warn: number;
@@ -314,8 +438,16 @@ export interface TokenThresholds {
   deny: number;
 }
 
+/**
+ * Represents the qualitative threshold band for current token usage.
+ * It is the normalized status returned alongside numeric threshold checks.
+ */
 export type ThresholdLevel = "ok" | "warn" | "split" | "deny";
 
+/**
+ * Describes the outcome of evaluating token usage against configured thresholds.
+ * It includes both the qualitative level and the numeric boundary that was hit or is next.
+ */
 export interface ThresholdResult {
   level: ThresholdLevel;
   currentUsage: number;
@@ -326,7 +458,10 @@ export interface ThresholdResult {
 
 // --- Hook Substrate (Stage 5a.1b) ---
 
-/** All hook event names in the system */
+/**
+ * Enumerates all lifecycle event names emitted through the hook substrate.
+ * These names are used to register observers and policy hooks at key orchestration execution points.
+ */
 export type HookEventName =
   | "onSessionStart"
   | "onSessionEnd"
@@ -342,6 +477,10 @@ export type HookEventName =
   | "onArtifactWritten"
   | "onCommandInvoked";
 
+/**
+ * Represents one typed event emitted by the runtime hook system.
+ * The generic payload lets each event carry context-specific data while sharing common session metadata.
+ */
 export interface HookEvent<T = unknown> {
   eventName: HookEventName;
   timestamp: string;
@@ -349,6 +488,10 @@ export interface HookEvent<T = unknown> {
   payload: T;
 }
 
+/**
+ * Records a hook execution error without crashing the main orchestration flow.
+ * It provides structured diagnostics for failing observers or policies.
+ */
 export interface HookFailure {
   hookId: string;
   eventName: HookEventName;
@@ -356,11 +499,18 @@ export interface HookFailure {
   timestamp: string;
 }
 
+/**
+ * Represents the authoritative decision returned by a policy hook.
+ * A denial can carry a reason and annotations that explain why the attempted action was blocked.
+ */
 export type PolicyResult =
   | { allowed: true }
   | { allowed: false; reason: string; annotations?: Record<string, unknown> };
 
-/** Payload for beforeDelegation / afterDelegation */
+/**
+ * Provides delegation-specific hook metadata for events emitted before and after a specialist run.
+ * See also SubprocessHookPayload for lower-level execution details.
+ */
 export interface DelegationHookPayload {
   specialistId: string;
   taskId: string;
@@ -371,7 +521,10 @@ export interface DelegationHookPayload {
   tokenUsage?: TokenUsage;
 }
 
-/** Payload for beforeSubprocessSpawn / afterSubprocessExit */
+/**
+ * Provides subprocess-level hook metadata around specialist process launch and exit.
+ * It lets observers inspect execution outcomes without coupling to higher-level orchestration logic.
+ */
 export interface SubprocessHookPayload {
   specialistId: string;
   taskId: string;
@@ -381,7 +534,10 @@ export interface SubprocessHookPayload {
   tokenUsage?: TokenUsage;
 }
 
-/** Payload for beforeStateTransition / afterStateTransition */
+/**
+ * Provides team routing metadata for hooks around state transitions.
+ * It links the originating team, states, and task to the status produced by the transition.
+ */
 export interface StateTransitionHookPayload {
   teamId: string;
   fromState: string;
@@ -392,28 +548,40 @@ export interface StateTransitionHookPayload {
   resultStatus?: PacketStatus;
 }
 
-/** Payload for onTeamStart */
+/**
+ * Provides the initial metadata emitted when a team execution begins.
+ * It identifies which team version is running for a given task.
+ */
 export interface TeamStartHookPayload {
   teamId: string;
   teamVersion: string;
   taskId: string;
 }
 
-/** Payload for onAdequacyFailure */
+/**
+ * Carries the details of a semantic adequacy failure detected before or after delegation.
+ * It lets hooks observe which specialist and task failed quality checks and why.
+ */
 export interface AdequacyFailureHookPayload {
   specialistId: string;
   taskId: string;
   failures: string[];
 }
 
-/** Payload for onSessionStart / onSessionEnd */
+/**
+ * Provides session lifecycle metadata for hook events at the start and end of a run.
+ * End-of-session events may also include aggregated token usage.
+ */
 export interface SessionHookPayload {
   sessionId: string;
   /** Only on onSessionEnd */
   totalTokenUsage?: TokenUsage;
 }
 
-/** Payload for onPolicyViolation */
+/**
+ * Represents the payload emitted when a policy rule is violated.
+ * It may be a full PolicyViolation record or a lightweight inline form with reason and annotations.
+ */
 export type PolicyViolationHookPayload =
   | PolicyViolation
   | {
@@ -423,14 +591,20 @@ export type PolicyViolationHookPayload =
     annotations?: Record<string, unknown>;
   };
 
-/** Payload for onArtifactWritten */
+/**
+ * Carries metadata for artifact emission events observed by the hook system.
+ * It allows runtime observers to react to typed artifacts such as team sessions or worklist snapshots.
+ */
 export interface ArtifactHookPayload {
   artifactType: string;
   taskId?: string;
   artifact?: unknown;
 }
 
-/** Payload for onCommandInvoked */
+/**
+ * Carries metadata for command-surface hook events.
+ * It is used to observe orchestrator tool invocations and the hints that shaped selection.
+ */
 export interface CommandHookPayload {
   commandName: string;
   toolCallId: string;
@@ -441,6 +615,10 @@ export interface CommandHookPayload {
 
 // --- Sandboxing and Path Protection (Stage 5a.1c) ---
 
+/**
+ * Defines the execution authority granted to a specialist invocation.
+ * It describes permitted reads, writes, and process capabilities for deterministic sandbox enforcement.
+ */
 export interface PolicyEnvelope {
   /** Paths the invocation may write to */
   allowedWritePaths: string[];
@@ -458,6 +636,10 @@ export interface PolicyEnvelope {
   forbiddenGlobs?: string[];
 }
 
+/**
+ * Enumerates the normalized categories of sandbox or policy violations.
+ * These values make enforcement results consistent across path, shell, network, and command checks.
+ */
 export type PolicyViolationType =
   | "write_denied"
   | "read_denied"
@@ -467,6 +649,10 @@ export type PolicyViolationType =
   | "command_denied"
   | "glob_forbidden";
 
+/**
+ * Records a concrete policy enforcement event triggered by a forbidden action.
+ * It captures what was attempted, what policy was expected, and whether the runtime blocked or only logged it.
+ */
 export interface PolicyViolation {
   timestamp: string;
   sessionId: string;
@@ -479,6 +665,10 @@ export interface PolicyViolation {
   enforcementResult: "blocked" | "logged";
 }
 
+/**
+ * Records the sandboxed spawn decision for one specialist subprocess attempt.
+ * It preserves both the policy envelope that applied and whether the launch was allowed or blocked.
+ */
 export interface SpawnRecord {
   timestamp: string;
   sessionId: string;
@@ -488,6 +678,10 @@ export interface SpawnRecord {
   blockReason?: string;
 }
 
+/**
+ * Captures the structured execution artifact produced for a full team run.
+ * It combines trace data, per-specialist summaries, metrics, and final outcome for observability and analysis.
+ */
 export interface TeamSessionArtifact {
   /** Unique session ID */
   sessionId: string;
@@ -530,6 +724,10 @@ export interface TeamSessionArtifact {
 
 // --- Primitive Registry (Stage 5a) ---
 
+/**
+ * Describes one registered primitive that can be discovered and selected at runtime.
+ * It summarizes identity, contracts, status, and selection hints for specialists, teams, sequences, or seeds.
+ */
 export interface PrimitiveRegistryEntry {
   id: string;
   version: string;
