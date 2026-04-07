@@ -230,15 +230,24 @@ export default function dashboardExtension(pi: ExtensionAPI): void {
   let snapshot = createEmptySnapshot();
 
   function renderCurrentWidget(): void {
-    if (!currentCtx) {
+    if (!currentCtx || !currentCtx.hasUI) {
       return;
     }
     applyWidget(currentCtx, projectWidgetState(snapshot));
   }
 
   function handleSessionContext(ctx: ExtensionContext): void {
+    // In --print / --mode json sub-agent contexts, UI and session manager may not exist
+    if (!ctx.hasUI) {
+      return;
+    }
     currentCtx = ctx;
-    snapshot = reconstructSnapshotFromBranch(ctx.sessionManager.getBranch() as DashboardBranchEntry[]);
+    try {
+      snapshot = reconstructSnapshotFromBranch(ctx.sessionManager.getBranch() as DashboardBranchEntry[]);
+    } catch {
+      // sessionManager.getBranch() may not be available — start with empty snapshot
+      snapshot = createEmptySnapshot();
+    }
     renderCurrentWidget();
   }
 
