@@ -2,6 +2,8 @@
 
 Quick reference for Pi's extension API as it applies to my-pi development. For full documentation, see the [pi-mono source](https://github.com/badlogic/pi-mono) under `packages/coding-agent/docs/extensions.md`.
 
+Use this document for current API shape and package mechanics. Use [`docs/UPSTREAM_PI_POLICY.md`](/Users/josephcaldwell/Documents/dev/my-pi/docs/UPSTREAM_PI_POLICY.md) when the task involves upstream Pi version changes, compatibility review, or deciding whether to adopt a newer Pi release.
+
 ---
 
 ## Extension Structure
@@ -125,13 +127,16 @@ Available in event handlers and tool `execute` functions:
 
 ## Package Declaration
 
-Extensions are declared in `package.json`:
+Package resources are declared in `package.json`. In this repo the manifest is explicit:
 
 ```json
 {
   "keywords": ["pi-package"],
   "pi": {
-    "extensions": ["./extensions"],
+    "extensions": [
+      "./extensions/orchestrator/index.ts",
+      "./extensions/dashboard/index.ts"
+    ],
     "skills": ["./skills"],
     "prompts": ["./prompts"],
     "themes": ["./themes"]
@@ -139,7 +144,11 @@ Extensions are declared in `package.json`:
 }
 ```
 
-Also auto-discovered from convention directories (`extensions/`, `skills/`, etc.).
+Important operational note:
+
+- Pi only sees these resources after the package itself has been installed or otherwise loaded by Pi.
+- Merely cloning the repo is not enough to make its skills, prompts, or extensions appear in Pi.
+- Convention directories such as `extensions/`, `skills/`, and `prompts/` matter within a loaded package; they do not activate the package on their own.
 
 ---
 

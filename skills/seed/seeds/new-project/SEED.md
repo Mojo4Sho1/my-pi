@@ -42,7 +42,7 @@ _TODO: Add a `templates/` subdirectory alongside this file with any files the ag
 
 **Design constraints already decided:**
 - Seeds are non-interactive (agent does not ask questions mid-execution)
-- The agent is already inside the target repo when `/seed` is invoked
+- The agent is already inside the target repo when the future seed extension command applies this seed
 - Seeds are standalone, not composable with other seeds
 
 **Future consideration (do not implement yet):**

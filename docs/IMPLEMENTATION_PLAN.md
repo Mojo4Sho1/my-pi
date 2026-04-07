@@ -3990,7 +3990,7 @@ A meta-team that creates new sequence definitions by composing teams and special
 
 A meta-team that creates seeds — reusable bootstrap context packs for setting up project repos. Seeds include `SEED.md` instructions and template files. Can target fresh repos, forked repos, or non-project use cases.
 
-See Decision #19 and existing seed infrastructure in `skills/seed/`.
+See Decision #19 and the seed-definition assets under `skills/seed/seeds/`. Note that the interactive `/seed` command is future extension work, not current functionality.
 
 ### Roster
 
@@ -4013,7 +4013,7 @@ Likely the same as specialist-creator: planner + spec-writer + builder + critic 
 ### Dependencies
 
 - Stage 5b complete (specialist-creator proven — same pattern)
-- Existing seed infrastructure in `skills/seed/` functional
+- Seed-definition assets in `skills/seed/seeds/` available; real `/seed` extension command remains future work
 
 ---
 

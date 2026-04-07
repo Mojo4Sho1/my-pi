@@ -83,6 +83,7 @@ Supporting: `agents/` (definition specs), `docs/` (architectural reference), `te
 | `docs/IMPLEMENTATION_PLAN.md` | Staged build strategy and current roadmap |
 | `docs/validation/METHODOLOGY.md` | Stage 5a.3 validation methodology, task index, and substrate verification checklist |
 | `docs/PI_EXTENSION_API.md` | Pi extension API reference (tool registration, sub-agents, lifecycle) |
+| `docs/UPSTREAM_PI_POLICY.md` | Policy for tracking upstream Pi changes, reviewing upgrades, and validating compatibility-sensitive updates |
 | `docs/PROJECT_FOUNDATION.md` | Project vision and architectural boundaries |
 | `docs/ORCHESTRATION_MODEL.md` | System vocabulary and hierarchy |
 | `agents/AGENT_DEFINITION_CONTRACT.md` | Contract for agent definition structure |
@@ -94,6 +95,7 @@ Supporting: `agents/` (definition specs), `docs/` (architectural reference), `te
 - If the implementation plan already has detailed specs, **execute directly** rather than spending tokens on planning.
 - If the plan is vague or leaves open questions, plan first to resolve them.
 - Always check `STATUS.md` for the current state and `DECISION_LOG.md` for relevant decisions before starting.
+- If the task touches Pi versions, package loading, extension lifecycle behavior, or spawned `pi` CLI behavior, also read `docs/UPSTREAM_PI_POLICY.md` before making compatibility-sensitive changes.
 
 ## Current Stage
 

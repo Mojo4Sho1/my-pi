@@ -1,5 +1,9 @@
-# prompts/
+# `prompts/`
 
-Intentional top-level placeholder for Pi prompts in this package.
+Pi prompt templates for this package live here.
 
-This directory is materialized as a first-class package area and can be populated by later scoped tasks.
+- Prompt templates are lightweight reusable prompt snippets
+- They are exposed as bare `/<name>` after Pi has loaded this package
+- Use this directory for minimal prompt expansion, not for interactive or stateful command behavior
+
+This package currently keeps the directory registered, but does not ship any active prompt templates yet.
