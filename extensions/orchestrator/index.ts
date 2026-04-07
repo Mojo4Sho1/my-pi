@@ -50,6 +50,34 @@ const OrchestrateParams = Type.Object({
 
 type OrchestrateParamsType = Static<typeof OrchestrateParams>;
 
+/**
+ * Extract file paths mentioned in task text and merge with explicit relevantFiles.
+ * Catches patterns like `extensions/shared/format.ts`, `tests/foo.test.ts`, etc.
+ * Also infers standard directories (extensions/, tests/) when task implies code changes.
+ */
+function inferFilePaths(task: string, explicit: string[]): string[] {
+  const inferred = new Set(explicit);
+
+  // Extract explicit file paths from task text (e.g., extensions/shared/format.ts)
+  const pathPattern = /(?:^|[\s`"'(])((extensions|tests|agents|lib|src|docs)\/[\w./-]+\.\w+)/g;
+  let match;
+  while ((match = pathPattern.exec(task)) !== null) {
+    inferred.add(match[1]);
+  }
+
+  // Extract backtick-quoted paths that look like files
+  const backtickPattern = /`([^`]+\.\w{1,4})`/g;
+  while ((match = backtickPattern.exec(task)) !== null) {
+    const candidate = match[1];
+    // Only add if it looks like a repo-relative path (has a slash)
+    if (candidate.includes("/")) {
+      inferred.add(candidate);
+    }
+  }
+
+  return [...inferred];
+}
+
 export default function orchestratorExtension(pi: ExtensionAPI) {
   pi.registerTool({
     name: "orchestrate",
@@ -67,7 +95,8 @@ export default function orchestratorExtension(pi: ExtensionAPI) {
       onUpdate: AgentToolUpdateCallback | undefined,
       ctx: ExtensionContext
     ): Promise<AgentToolResult<unknown>> {
-      const { task, relevantFiles, delegationHint, teamHint, modelOverride } = params;
+      const { task, relevantFiles: explicitFiles, delegationHint, teamHint, modelOverride } = params;
+      const relevantFiles = inferFilePaths(task, explicitFiles);
       const logger = createPiLogger(pi);
       const hookRegistry = createHookRegistry();
       let sessionTokenUsage: import("../shared/types.js").TokenUsage | undefined;
