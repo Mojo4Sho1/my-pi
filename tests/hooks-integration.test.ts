@@ -110,6 +110,7 @@ describe("hook integration", () => {
       {
         task: "plan and implement the feature",
         relevantFiles: ["src/index.ts"],
+        delegationHint: "planner,builder",
       },
       undefined,
       undefined,

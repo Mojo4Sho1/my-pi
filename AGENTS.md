@@ -1,41 +1,142 @@
 # AGENTS.md
 
-## Purpose
+Agent-agnostic guidance for any AI coding assistant working in this repository.
 
-This repository is the source of truth for a portable, modular, coding-focused Pi package that implements extension-powered orchestration.
+## What This Project Is
 
-It provides TypeScript extensions that enable an orchestrator to delegate work to specialized sub-agents through packet-based I/O and state-machine routing. The current specialist roster lives in `docs/ORCHESTRATION_MODEL.md` and `STATUS.md`.
+my-pi is a Pi package (pi.dev) that implements extension-powered multi-agent orchestration. It provides TypeScript extensions that enable an orchestrator to delegate work to specialized sub-agents with packet-based I/O and state-machine routing.
 
-## Core principles
+Agent definitions in `agents/` are the specs. TypeScript extensions in `extensions/` are the implementations.
+
+## Architecture
+
+**Orchestrator-first control model.** Only the orchestrator has broad context by default. All downstream actors (specialists, teams, sequences) are narrow-by-default and work from task packets.
+
+**Execution hierarchy:** specialists -> teams -> sequences (build lower layers before higher ones).
+
+**Current specialist roster:** planner, builder, reviewer, tester, spec-writer, schema-designer, routing-designer, critic, boundary-auditor -- defined in `agents/specialists/`, implemented in `extensions/specialists/`.
+
+**Packets carry execution state.** Task packets define what a specialist should do; result packets define what they did. Packet types and validation live in `extensions/shared/types.ts` and `extensions/shared/packets.ts`.
+
+**State-machine routing** for teams: defined in team definitions, enforced by `extensions/shared/routing.ts`. Teams are opaque to the orchestrator -- send a TaskPacket in, get a ResultPacket out.
+
+**I/O contracts** formalize what each specialist requires as input and guarantees as output. Contracts live on `SpecialistPromptConfig` and are validated by `extensions/shared/contracts.ts`.
+
+## Core Principles
 
 1. Build reusable primitives before one-off conveniences.
 2. Prefer small, composable capabilities over monolithic systems.
 3. Keep changes minimal, targeted, and reviewable.
-4. Protect portability — this repo should be safe to clone onto a new machine.
+4. Protect portability -- this repo should be safe to clone onto a new machine.
 5. Build only what is needed. Do not add complexity unless it clearly improves speed, reliability, safety, or reuse.
 
-## Primitive hierarchy
+## Development
 
-Preserve the build order: specialists → teams → sequences.
+```bash
+make typecheck  # Type-check without emitting
+make test       # Run tests (vitest)
+make test-watch # Run tests in watch mode
+```
 
-Do not collapse multiple layers into one artifact, and do not build higher layers before the lower layer is sufficiently useful.
+## Code Conventions
 
-## Package conventions
+**Tests:** All tests use [vitest](https://vitest.dev/) -- `describe`, `it`, `expect`. Do NOT use `node:test` or `node:assert`. Test files live in `tests/` with the pattern `<name>.test.ts`. See any existing test (e.g., `tests/tokens.test.ts`) for the import pattern.
 
-This repo is a Pi package. Resource directories:
+**Imports:** TypeScript files use `.js` extensions on relative imports (e.g., `import { foo } from "./bar.js"`). This applies to both source and test files.
 
-- `extensions/` — TypeScript extensions (orchestrator, specialists, shared types)
-- `skills/` — Pi skills
-- `prompts/` — Pi prompts
-- `themes/` — Pi themes
+**Formatting:** No explicit formatter configured. Match the style of surrounding code.
 
-Supporting directories: `agents/` (definition specs), `docs/` (architectural reference), `tests/`.
+**Before finishing:** Any agent creating or modifying `.ts` files must run `make typecheck` and fix all errors before reporting success. If `make test` is available, run it too.
 
-**Extension loading gotcha:** Only `extensions/orchestrator/index.ts` and `extensions/dashboard/index.ts` are Pi extensions (they export default factory functions). Everything else under `extensions/` — `shared/`, `specialists/`, `teams/`, `worklist/` — are internal libraries imported by code. The `package.json` explicitly lists the two extension files to prevent Pi from trying to auto-discover and load library modules as extensions. Do not change `pi.extensions` back to `["./extensions"]` or add new entries without ensuring the file exports a valid Pi extension factory.
+**Naming:** `working_style` (not `persona`) steers agent behavior. Agent definitions are markdown specs in `agents/`; extensions implement them in TypeScript.
 
-**Sub-agent CLI gotcha:** Pi's `--print` flag means "run once and exit" — it does NOT produce JSON output. For structured JSONL event parsing, you must use `--mode json --print`. The system prompt uses `--system-prompt`, and the task prompt is a positional argument (not `-p`). See `extensions/shared/subprocess.ts` for the correct invocation.
+## Key Conventions
 
-## Development context
+- Contracts and packet validation are in TypeScript (`extensions/shared/`), not markdown docs
+- Changes go in this repo (source of truth), not in Pi-managed directories
+- No secrets, tokens, or machine-specific state in the repo
 
-See `CLAUDE.md` for development guidance, reading order, and current project state.
-See `STATUS.md` for what is in progress and what comes next.
+## Pi Package Structure
+
+This repo is a Pi package (`package.json` with `pi` key):
+- `extensions/` -- TypeScript extensions (orchestrator, specialists, shared types) -- **main build target**
+- `skills/` -- Pi skills (future)
+- `prompts/` -- Pi prompts (future)
+- `themes/` -- Pi themes
+
+Supporting: `agents/` (definition specs), `docs/` (architectural reference), `tests/` (validation)
+
+## Gotchas
+
+**Extension loading:** Only `extensions/orchestrator/index.ts` and `extensions/dashboard/index.ts` are Pi extensions (they export default factory functions). Everything else under `extensions/` -- `shared/`, `specialists/`, `teams/`, `worklist/` -- are internal libraries imported by code. The `package.json` explicitly lists the two extension files to prevent Pi from trying to auto-discover and load library modules as extensions. Do not change `pi.extensions` back to `["./extensions"]` or add new entries without ensuring the file exports a valid Pi extension factory.
+
+**Sub-agent CLI:** Pi's `--print` flag means "run once and exit" -- it does NOT produce JSON output. For structured JSONL event parsing, you must use `--mode json --print`. The system prompt uses `--system-prompt`, and the task prompt is a positional argument (not `-p`). See `extensions/shared/subprocess.ts` for the correct invocation.
+
+**JSONL event parsing:** Pi delivers assistant content via `message_update` events (streamed incrementally), NOT in `message_end`. The `agent_end` event carries the full message history. The last JSONL line may lack a trailing newline. See `subprocess.ts` for the parser that handles all of this.
+
+## Key Documents
+
+| Document | Purpose |
+|---|---|
+| `STATUS.md` | Current project state and queued work |
+| `DECISION_LOG.md` | Durable project decisions (single source of truth) |
+| `docs/IMPLEMENTATION_PLAN.md` | Staged build strategy and current roadmap |
+| `docs/validation/METHODOLOGY.md` | Stage 5a.3 validation methodology, task index, and substrate verification checklist |
+| `docs/PI_EXTENSION_API.md` | Pi extension API reference (tool registration, sub-agents, lifecycle) |
+| `docs/PROJECT_FOUNDATION.md` | Project vision and architectural boundaries |
+| `docs/ORCHESTRATION_MODEL.md` | System vocabulary and hierarchy |
+| `agents/AGENT_DEFINITION_CONTRACT.md` | Contract for agent definition structure |
+
+## How to Implement the Next Stage
+
+**Before exploring the codebase, read `docs/IMPLEMENTATION_PLAN.md` for the target stage.** It contains pre-resolved design decisions, exact type definitions, function signatures, file lists, and often code snippets. Start from the plan, not from scratch exploration.
+
+- If the implementation plan already has detailed specs, **execute directly** rather than spending tokens on planning.
+- If the plan is vague or leaves open questions, plan first to resolve them.
+- Always check `STATUS.md` for the current state and `DECISION_LOG.md` for relevant decisions before starting.
+
+## Current Stage
+
+See `STATUS.md` for live project state. The project follows a staged implementation plan (`docs/IMPLEMENTATION_PLAN.md`):
+
+1. **Foundation and shared types** (complete)
+2. **First specialist extension (builder)** (complete)
+3. **Remaining specialists + orchestrator** (complete)
+4. **Team routing and validation** (complete)
+5. **Meta-teams and expansion** (5a.2 complete, 5a.3 in progress)
+6. **Reflective expertise layer** (future)
+7. **Command surface** (future)
+
+## Key Source Files
+
+### Shared infrastructure (`extensions/shared/`)
+- `types.ts` -- Packet, agent, routing, and I/O contract type definitions
+- `packets.ts` -- Packet creation and validation
+- `routing.ts` -- State machine routing with iteration tracking and maxIterations guards
+- `contracts.ts` -- I/O contract validation
+- `hooks.ts` -- Hook registry, observer/policy dispatch, and global hook installer seam
+- `tokens.ts` -- Token aggregation and threshold utilities
+- `sandbox.ts` -- Deterministic policy envelopes and authority model
+- `specialist-prompt.ts` -- System/task prompt construction with typed output templates
+- `result-parser.ts` -- Structured output extraction from sub-agent responses
+- `subprocess.ts` -- Pi sub-agent spawn and JSON event parsing
+
+### Orchestrator (`extensions/orchestrator/`)
+- `index.ts` -- Extension entry point, `orchestrate` tool registration (supports `delegationHint` and `teamHint`)
+- `select.ts` -- Specialist selection (LLM-driven via explicit hints)
+- `delegate.ts` -- Delegation lifecycle
+- `synthesize.ts` -- Result synthesis from multiple specialist outputs
+
+### Teams (`extensions/teams/`)
+- `router.ts` -- Team state machine executor with revision loops and escalation
+- `definitions.ts` -- Team registry and `build-team` exemplar
+
+### Dashboard (`extensions/dashboard/`)
+- `types.ts` -- Widget-local view models and dashboard session snapshot types
+- `projections.ts` -- Pure widget projections from session artifacts and live runtime state
+- `widget.ts` -- Compact line-array widget rendering
+- `index.ts` -- Lifecycle reconstruction, hook observer wiring, and widget updates
+
+### Specialists (`extensions/specialists/*/`)
+- `prompt.ts` -- Specialist-specific prompt config with I/O contracts
+- `index.ts` -- Extension entry point (uses `createSpecialistExtension` factory)

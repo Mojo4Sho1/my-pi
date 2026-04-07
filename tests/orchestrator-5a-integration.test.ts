@@ -2,7 +2,7 @@
  * Stage 5a integration tests.
  *
  * Validates that all 9 specialists are properly registered in
- * the orchestrator: config lookup, keyword selection, and
+ * the orchestrator: config lookup, explicit hint selection, and
  * context forwarding for the 5 new specialists.
  */
 
@@ -32,31 +32,13 @@ describe("getPromptConfig for new specialists", () => {
   }
 });
 
-describe("selectSpecialists keyword matching for new specialists", () => {
-  it("selects spec-writer for specification tasks", () => {
-    const result = selectSpecialists("write a specification for the new agent definition");
-    expect(result.specialists).toContain("spec-writer");
-  });
-
-  it("selects schema-designer for schema tasks", () => {
-    const result = selectSpecialists("design the schema and I/O contract for the packet shape");
-    expect(result.specialists).toContain("schema-designer");
-  });
-
-  it("selects routing-designer for state machine tasks", () => {
-    const result = selectSpecialists("design the state machine routing with transitions");
-    expect(result.specialists).toContain("routing-designer");
-  });
-
-  it("selects critic for evaluation tasks", () => {
-    const result = selectSpecialists("critique the design for redundancy and reuse");
-    expect(result.specialists).toContain("critic");
-  });
-
-  it("selects boundary-auditor for access control tasks", () => {
-    const result = selectSpecialists("audit the boundary and access control permissions");
-    expect(result.specialists).toContain("boundary-auditor");
-  });
+describe("selectSpecialists explicit hints for new specialists", () => {
+  for (const id of NEW_SPECIALISTS) {
+    it(`selects ${id} when hint is '${id}'`, () => {
+      const result = selectSpecialists("any task", id);
+      expect(result.specialists).toEqual([id]);
+    });
+  }
 });
 
 describe("buildContextForSpecialist for new specialists", () => {

@@ -32,16 +32,30 @@ const OrchestrateParams = Type.Object({
   task: Type.String({ description: "What needs to be done" }),
   relevantFiles: Type.Array(Type.String(), { description: "Files related to the task" }),
   delegationHint: Type.Optional(
-    Type.Union([
-      Type.Literal("planner"),
-      Type.Literal("reviewer"),
-      Type.Literal("builder"),
-      Type.Literal("tester"),
-      Type.Literal("auto"),
-    ], { description: "Which specialist(s) to use. Defaults to auto-selection." })
+    Type.String({
+      description:
+        "Which specialist(s) to delegate to. For multiple specialists, use comma-separated IDs " +
+        "(e.g. 'builder,tester'). They run sequentially, each receiving prior results as context.\n" +
+        "Available specialists:\n" +
+        "- planner: decompose tasks, map dependencies, identify risks\n" +
+        "- builder: implement code, fix bugs, create files, refactor\n" +
+        "- tester: write tests, validate changes, run verification\n" +
+        "- reviewer: review code for correctness, compliance, quality\n" +
+        "- spec-writer: write prose specifications and agent definitions\n" +
+        "- schema-designer: design TypeScript interfaces, packet shapes, I/O contracts\n" +
+        "- routing-designer: design state machine routing and transitions\n" +
+        "- critic: evaluate designs for redundancy, quality, reuse\n" +
+        "- boundary-auditor: audit access control and narrow-by-default compliance\n" +
+        "Always specify the specialist(s). Omitting defaults to builder.",
+    })
   ),
   teamHint: Type.Optional(
-    Type.String({ description: "Team ID to delegate to (e.g. 'build-team'). Overrides specialist selection." })
+    Type.String({
+      description:
+        "Team ID to delegate to (e.g. 'build-team'). Overrides specialist selection. " +
+        "Teams run multi-specialist state machine workflows. Use for tasks requiring " +
+        "coordinated build→review→test flows.",
+    })
   ),
   modelOverride: Type.Optional(
     Type.String({ description: "Override model for all specialists in this delegation" })
@@ -51,27 +65,60 @@ const OrchestrateParams = Type.Object({
 type OrchestrateParamsType = Static<typeof OrchestrateParams>;
 
 /**
- * Extract file paths mentioned in task text and merge with explicit relevantFiles.
+ * Extract file paths from a text string.
  * Catches patterns like `extensions/shared/format.ts`, `tests/foo.test.ts`, etc.
- * Also infers standard directories (extensions/, tests/) when task implies code changes.
  */
-function inferFilePaths(task: string, explicit: string[]): string[] {
-  const inferred = new Set(explicit);
+function extractPathsFromText(text: string): string[] {
+  const paths: string[] = [];
 
-  // Extract explicit file paths from task text (e.g., extensions/shared/format.ts)
+  // Extract explicit file paths (e.g., extensions/shared/format.ts)
   const pathPattern = /(?:^|[\s`"'(])((extensions|tests|agents|lib|src|docs)\/[\w./-]+\.\w+)/g;
   let match;
-  while ((match = pathPattern.exec(task)) !== null) {
-    inferred.add(match[1]);
+  while ((match = pathPattern.exec(text)) !== null) {
+    paths.push(match[1]);
   }
 
   // Extract backtick-quoted paths that look like files
   const backtickPattern = /`([^`]+\.\w{1,4})`/g;
-  while ((match = backtickPattern.exec(task)) !== null) {
+  while ((match = backtickPattern.exec(text)) !== null) {
     const candidate = match[1];
-    // Only add if it looks like a repo-relative path (has a slash)
     if (candidate.includes("/")) {
-      inferred.add(candidate);
+      paths.push(candidate);
+    }
+  }
+
+  return paths;
+}
+
+const MAX_DOC_SIZE = 50_000; // 50KB — skip oversized files
+
+/**
+ * Extract file paths from task text, explicit list, and referenced .md docs.
+ * Reads any .md files in the explicit list and extracts paths from their content,
+ * so specialists get a complete write set without manual enumeration.
+ */
+async function inferFilePaths(task: string, explicit: string[]): Promise<string[]> {
+  const inferred = new Set(explicit);
+
+  // Extract paths from task text
+  for (const p of extractPathsFromText(task)) {
+    inferred.add(p);
+  }
+
+  // Read .md files from the explicit list and extract paths from their content
+  const { readFile, stat } = await import("fs/promises");
+  const mdFiles = explicit.filter((f) => f.endsWith(".md"));
+
+  for (const mdFile of mdFiles) {
+    try {
+      const info = await stat(mdFile);
+      if (info.size > MAX_DOC_SIZE) continue;
+      const content = await readFile(mdFile, "utf-8");
+      for (const p of extractPathsFromText(content)) {
+        inferred.add(p);
+      }
+    } catch {
+      // File doesn't exist or can't be read — skip silently
     }
   }
 
@@ -83,9 +130,10 @@ export default function orchestratorExtension(pi: ExtensionAPI) {
     name: "orchestrate",
     label: "Orchestrate Task",
     description:
-      "Delegate a task to one or more specialist sub-agents. " +
-      "Selects the appropriate specialist(s) based on the task description, " +
-      "packages task packets with narrowed context, and synthesizes results.",
+      "Delegate a task to a specialist sub-agent or team. " +
+      "You MUST specify delegationHint or teamHint to choose the right primitive. " +
+      "The orchestrator packages task packets with narrowed context, " +
+      "delegates to the specialist, and returns the result.",
     parameters: OrchestrateParams,
 
     async execute(
@@ -96,7 +144,7 @@ export default function orchestratorExtension(pi: ExtensionAPI) {
       ctx: ExtensionContext
     ): Promise<AgentToolResult<unknown>> {
       const { task, relevantFiles: explicitFiles, delegationHint, teamHint, modelOverride } = params;
-      const relevantFiles = inferFilePaths(task, explicitFiles);
+      const relevantFiles = await inferFilePaths(task, explicitFiles);
       const logger = createPiLogger(pi);
       const hookRegistry = createHookRegistry();
       let sessionTokenUsage: import("../shared/types.js").TokenUsage | undefined;
@@ -161,7 +209,14 @@ export default function orchestratorExtension(pi: ExtensionAPI) {
         }
 
         // 1. Select specialist(s)
-        const selection = selectSpecialists(task, delegationHint as DelegationHint | undefined);
+        // Parse comma-separated delegationHint into array form
+        let parsedHint: DelegationHint | undefined;
+        if (typeof delegationHint === "string" && delegationHint.includes(",")) {
+          parsedHint = delegationHint.split(",").map((s) => s.trim()) as DelegationHint;
+        } else {
+          parsedHint = delegationHint as DelegationHint | undefined;
+        }
+        const selection = selectSpecialists(task, parsedHint);
 
         if (selection.specialists.length === 0) {
           return {

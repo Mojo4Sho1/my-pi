@@ -129,6 +129,91 @@ describe("spawnSpecialistAgent", () => {
     });
   });
 
+  it("accumulates text from message_update events when message_end has no content", async () => {
+    const mockSpawn = vi.fn().mockImplementation(() =>
+      createMockChild((child) => {
+        // Simulate real Pi streaming: message_start, then message_updates with content,
+        // then message_end with no content (just metadata)
+        child.stdout.push(
+          JSON.stringify({ type: "message_start", message: { role: "assistant" } }) + "\n"
+        );
+        child.stdout.push(
+          JSON.stringify({ type: "message_update", content: [{ type: "text", text: "Hello " }] }) + "\n"
+        );
+        child.stdout.push(
+          JSON.stringify({ type: "message_update", content: [{ type: "text", text: "world" }] }) + "\n"
+        );
+        // message_end with empty/no content — typical of real Pi output
+        child.stdout.push(
+          JSON.stringify({ type: "message_end", message: { role: "assistant", content: [] } }) + "\n"
+        );
+        child.stdout.push(null);
+        child.stderr.push(null);
+        child.emit("close", 0);
+      })
+    );
+
+    vi.doMock("child_process", () => ({ spawn: mockSpawn }));
+    const { spawnSpecialistAgent } = await import("../extensions/shared/subprocess.js");
+
+    const result = await spawnSpecialistAgent("system", "task");
+    expect(result.finalText).toBe("Hello world");
+  });
+
+  it("flushes remaining buffer on close (last line without trailing newline)", async () => {
+    const mockSpawn = vi.fn().mockImplementation(() =>
+      createMockChild((child) => {
+        // agent_end event without trailing newline — sits in buffer
+        const agentEnd = JSON.stringify({
+          type: "agent_end",
+          messages: [
+            { role: "assistant", content: [{ type: "text", text: "final from agent_end" }] },
+          ],
+        });
+        // No trailing \n — this is the bug scenario
+        child.stdout.push(agentEnd);
+        child.stdout.push(null);
+        child.stderr.push(null);
+        child.emit("close", 0);
+      })
+    );
+
+    vi.doMock("child_process", () => ({ spawn: mockSpawn }));
+    const { spawnSpecialistAgent } = await import("../extensions/shared/subprocess.js");
+
+    const result = await spawnSpecialistAgent("system", "task");
+    expect(result.finalText).toBe("final from agent_end");
+  });
+
+  it("prefers message_end content over accumulated message_update text", async () => {
+    const mockSpawn = vi.fn().mockImplementation(() =>
+      createMockChild((child) => {
+        child.stdout.push(
+          JSON.stringify({ type: "message_start", message: { role: "assistant" } }) + "\n"
+        );
+        child.stdout.push(
+          JSON.stringify({ type: "message_update", content: [{ type: "text", text: "partial" }] }) + "\n"
+        );
+        // message_end WITH content should take precedence
+        child.stdout.push(
+          JSON.stringify({
+            type: "message_end",
+            message: { role: "assistant", content: [{ type: "text", text: "complete answer" }] },
+          }) + "\n"
+        );
+        child.stdout.push(null);
+        child.stderr.push(null);
+        child.emit("close", 0);
+      })
+    );
+
+    vi.doMock("child_process", () => ({ spawn: mockSpawn }));
+    const { spawnSpecialistAgent } = await import("../extensions/shared/subprocess.js");
+
+    const result = await spawnSpecialistAgent("system", "task");
+    expect(result.finalText).toBe("complete answer");
+  });
+
   it("rejects when aborted before spawn", async () => {
     const { spawnSpecialistAgent } = await import("../extensions/shared/subprocess.js");
     const controller = new AbortController();

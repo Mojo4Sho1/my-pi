@@ -67,6 +67,7 @@ export function spawnSpecialistAgent(
     let stdoutBuffer = "";
     let stderrBuffer = "";
     let finalText = "";
+    let currentMessageText = "";
     let tokenUsage: TokenUsage | undefined;
     let settled = false;
 
@@ -99,6 +100,77 @@ export function spawnSpecialistAgent(
     };
     signal?.addEventListener("abort", onAbort, { once: true });
 
+    const extractText = (msg: Record<string, unknown>): string | undefined => {
+      if (msg?.role !== "assistant" || !Array.isArray(msg.content)) return undefined;
+      for (const block of msg.content) {
+        if (block.type === "text" && typeof block.text === "string" && block.text.trim()) {
+          return block.text;
+        }
+      }
+      return undefined;
+    };
+
+    const processEvent = (event: Record<string, unknown>) => {
+      // Reset accumulator at message boundaries
+      if (event.type === "message_start") {
+        currentMessageText = "";
+      }
+
+      // Accumulate text from streaming updates — Pi delivers content
+      // incrementally via message_update, not in message_end
+      if (event.type === "message_update") {
+        const blocks = Array.isArray(event.content) ? event.content : [];
+        for (const block of blocks) {
+          if (
+            (block as Record<string, unknown>).type === "text" &&
+            typeof (block as Record<string, unknown>).text === "string"
+          ) {
+            currentMessageText += (block as Record<string, unknown>).text;
+          }
+        }
+      }
+
+      if (event.type === "message_end" && event.message) {
+        // Prefer content from the message_end event itself; fall back to
+        // text accumulated from message_update events
+        const text =
+          extractText(event.message as Record<string, unknown>) ||
+          (currentMessageText.trim() ? currentMessageText : undefined);
+        if (text) finalText = text;
+        currentMessageText = "";
+      }
+
+      // turn_end carries the last assistant message for that turn
+      if (event.type === "turn_end" && event.message) {
+        const text = extractText(event.message as Record<string, unknown>);
+        if (text) finalText = text;
+      }
+
+      // agent_end carries all messages — use the last assistant message
+      if (event.type === "agent_end" && Array.isArray(event.messages)) {
+        for (const msg of event.messages as Record<string, unknown>[]) {
+          const text = extractText(msg);
+          if (text) finalText = text;
+        }
+      }
+
+      if (event.type === "message_end" && (event.message as Record<string, unknown>)?.usage) {
+        // Pi uses { input, output, totalTokens } — not Anthropic-style { input_tokens, output_tokens }
+        const usage = (event.message as Record<string, unknown>).usage as Record<string, unknown>;
+        const inputCount = typeof usage.input === "number" ? usage.input
+          : typeof usage.input_tokens === "number" ? usage.input_tokens : undefined;
+        const outputCount = typeof usage.output === "number" ? usage.output
+          : typeof usage.output_tokens === "number" ? usage.output_tokens : undefined;
+        if (inputCount !== undefined && outputCount !== undefined) {
+          tokenUsage = {
+            inputTokens: inputCount,
+            outputTokens: outputCount,
+            totalTokens: inputCount + outputCount,
+          };
+        }
+      }
+    };
+
     child.stdout!.on("data", (chunk: Buffer) => {
       stdoutBuffer += chunk.toString();
       // Process complete lines
@@ -108,55 +180,7 @@ export function spawnSpecialistAgent(
         stdoutBuffer = stdoutBuffer.slice(newlineIdx + 1);
         if (!line) continue;
         try {
-          const event = JSON.parse(line);
-          // Collect final text from assistant messages across multiple event types.
-          // Pi emits: message_end (per-message), turn_end (per-turn), agent_end (session summary).
-          // A multi-turn specialist (tool calls + final answer) may only have the final text
-          // in the last message_end, turn_end, or agent_end event.
-          const extractText = (msg: Record<string, unknown>): string | undefined => {
-            if (msg?.role !== "assistant" || !Array.isArray(msg.content)) return undefined;
-            for (const block of msg.content) {
-              if (block.type === "text" && typeof block.text === "string" && block.text.trim()) {
-                return block.text;
-              }
-            }
-            return undefined;
-          };
-
-          if (event.type === "message_end" && event.message) {
-            const text = extractText(event.message);
-            if (text) finalText = text;
-          }
-
-          // turn_end carries the last assistant message for that turn
-          if (event.type === "turn_end" && event.message) {
-            const text = extractText(event.message);
-            if (text) finalText = text;
-          }
-
-          // agent_end carries all messages — use the last assistant message
-          if (event.type === "agent_end" && Array.isArray(event.messages)) {
-            for (const msg of event.messages) {
-              const text = extractText(msg as Record<string, unknown>);
-              if (text) finalText = text;
-            }
-          }
-
-          if (event.type === "message_end" && event.message?.usage) {
-            // Pi uses { input, output, totalTokens } — not Anthropic-style { input_tokens, output_tokens }
-            const usage = event.message.usage;
-            const inputCount = typeof usage.input === "number" ? usage.input
-              : typeof usage.input_tokens === "number" ? usage.input_tokens : undefined;
-            const outputCount = typeof usage.output === "number" ? usage.output
-              : typeof usage.output_tokens === "number" ? usage.output_tokens : undefined;
-            if (inputCount !== undefined && outputCount !== undefined) {
-              tokenUsage = {
-                inputTokens: inputCount,
-                outputTokens: outputCount,
-                totalTokens: inputCount + outputCount,
-              };
-            }
-          }
+          processEvent(JSON.parse(line));
         } catch {
           // Non-JSON line — skip silently
         }
@@ -178,6 +202,16 @@ export function spawnSpecialistAgent(
 
     child.on("close", (code) => {
       signal?.removeEventListener("abort", onAbort);
+      // Flush any remaining buffered data — the last JSONL line (often
+      // agent_end) may lack a trailing newline
+      const remaining = stdoutBuffer.trim();
+      if (remaining) {
+        try {
+          processEvent(JSON.parse(remaining));
+        } catch {
+          // Non-JSON remnant — skip
+        }
+      }
       settle({
         exitCode: code ?? -1,
         finalText,

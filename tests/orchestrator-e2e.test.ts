@@ -78,7 +78,7 @@ function callOrchestrate(
     {
       task: overrides.task ?? "plan and implement the feature",
       relevantFiles: overrides.relevantFiles ?? ["src/index.ts"],
-      delegationHint: overrides.delegationHint,
+      delegationHint: overrides.delegationHint ?? "planner,builder",
     },
     undefined,
     undefined,
@@ -126,6 +126,7 @@ describe("orchestrator e2e", () => {
       const execute = await setupOrchestrator(mockSpawn);
       const result = await callOrchestrate(execute, {
         task: "plan, implement, and test the feature",
+        delegationHint: "planner,builder,tester",
       });
 
       expect(mockSpawn).toHaveBeenCalledTimes(3);
@@ -146,6 +147,7 @@ describe("orchestrator e2e", () => {
       const execute = await setupOrchestrator(mockSpawn);
       const result = await callOrchestrate(execute, {
         task: "plan, implement, and test the feature",
+        delegationHint: "planner,builder,tester",
       });
 
       expect(mockSpawn).toHaveBeenCalledTimes(2);
@@ -179,6 +181,7 @@ describe("orchestrator e2e", () => {
       const execute = await setupOrchestrator(mockSpawn);
       const result = await callOrchestrate(execute, {
         task: "plan and review the architecture",
+        delegationHint: "planner,reviewer",
       });
 
       expect(mockSpawn).toHaveBeenCalledTimes(2);
@@ -223,6 +226,7 @@ describe("orchestrator e2e", () => {
       const execute = await setupOrchestrator(mockSpawn);
       await callOrchestrate(execute, {
         task: "plan, implement, and test the feature",
+        delegationHint: "planner,builder,tester",
       });
 
       // Third call is tester
@@ -262,6 +266,7 @@ describe("orchestrator e2e", () => {
       await callOrchestrate(execute, {
         task: "plan and review the architecture",
         relevantFiles: ["src/index.ts", "src/utils.ts"],
+        delegationHint: "planner,reviewer",
       });
 
       // Both planner and reviewer are read-only
@@ -283,6 +288,7 @@ describe("orchestrator e2e", () => {
       await callOrchestrate(execute, {
         task: "plan, implement, and test the feature",
         relevantFiles: ["src/a.ts", "src/b.ts"],
+        delegationHint: "planner,builder,tester",
       });
 
       // Planner (read-only) should NOT have files in write set

@@ -6,6 +6,9 @@
  * a PolicyEnvelope validated before subprocess spawn.
  */
 
+import {
+  SPECIALIST_IDS,
+} from "./constants.js";
 import type {
   PolicyEnvelope,
   PolicyViolation,
@@ -13,18 +16,18 @@ import type {
 } from "./types.js";
 
 export const READ_ONLY_SPECIALISTS: ReadonlySet<string> = new Set([
-  "planner",
-  "reviewer",
-  "critic",
-  "spec-writer",
-  "schema-designer",
-  "routing-designer",
-  "boundary-auditor",
+  SPECIALIST_IDS.PLANNER,
+  SPECIALIST_IDS.REVIEWER,
+  SPECIALIST_IDS.CRITIC,
+  SPECIALIST_IDS.SPEC_WRITER,
+  SPECIALIST_IDS.SCHEMA_DESIGNER,
+  SPECIALIST_IDS.ROUTING_DESIGNER,
+  SPECIALIST_IDS.BOUNDARY_AUDITOR,
 ]);
 
 export const WRITE_SPECIALISTS: ReadonlySet<string> = new Set([
-  "builder",
-  "tester",
+  SPECIALIST_IDS.BUILDER,
+  SPECIALIST_IDS.TESTER,
 ]);
 
 interface PolicyContext {

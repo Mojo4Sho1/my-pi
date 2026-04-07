@@ -67,7 +67,7 @@ function callOrchestrate(
     {
       task: overrides.task ?? "plan and implement the feature",
       relevantFiles: overrides.relevantFiles ?? ["src/index.ts"],
-      delegationHint: overrides.delegationHint,
+      delegationHint: overrides.delegationHint ?? "planner,builder",
     },
     undefined,
     undefined,

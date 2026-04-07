@@ -3,9 +3,10 @@
  */
 
 import type { ExtensionContext } from "@mariozechner/pi-coding-agent";
+import { DASHBOARD_WIDGET_KEY } from "../shared/constants.js";
 import type { WidgetState } from "./types.js";
 
-export const WIDGET_KEY = "my-pi-dashboard";
+export const WIDGET_KEY = DASHBOARD_WIDGET_KEY;
 
 function formatDuration(elapsedMs: number): string {
   const totalSeconds = Math.max(0, Math.floor(elapsedMs / 1000));

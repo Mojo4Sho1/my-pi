@@ -50,6 +50,8 @@ Live execution state belongs in `STATUS.md`. This document defines the sequence 
    - 5f: Seed-creator team
    - 5g: Dynamic selection and discovery
    - 5h: Escalation and retry
+   - 5i: Task relay and handoff system
+   - 5j: Context-aware self-respawn
 6. Reflective expertise layer
    - 6a: Expertise types and registry
    - 6b: Context loader and runtime injection
@@ -3756,6 +3758,65 @@ See Decision #36.
 
 ---
 
+## Stage 5a.5 — Convention-Aware Orchestrator
+
+### Purpose
+
+Make the orchestrator automatically discover and forward project conventions to specialist sub-agents, so specialists produce code that conforms to the host repo's patterns without manual prompt engineering.
+
+Currently, specialists receive only their role prompt and a task packet. They have no awareness of the host project's test framework, import style, linter config, or build commands. This causes predictable failures (e.g., using `node:test` in a vitest project, missing `.js` import extensions) that require manual re-runs.
+
+### Problem observed (Stage 5a.3)
+
+During validation, the builder specialist consistently produced code that passed at runtime but violated project conventions — wrong test framework, missing import extensions, not running typecheck. Each failure required a follow-up delegation to fix. The orchestrator should prevent this class of error by giving specialists the context they need upfront.
+
+### Key deliverables
+
+**Convention scanner** — A function that runs once per orchestration session and extracts project conventions from the host repo. Scans for:
+
+| Source | Signals extracted |
+|--------|-------------------|
+| `AGENTS.md` | Full content (agent-agnostic conventions) |
+| `package.json` | Test framework (`vitest`, `jest`, `mocha`), scripts (`test`, `lint`, `typecheck`), type (`module` vs `commonjs`) |
+| `Makefile` / `justfile` | Available targets (build, test, lint, typecheck) |
+| `tsconfig.json` | Module resolution, strict mode, path aliases |
+| `.eslintrc` / `biome.json` | Linter presence and key rules |
+
+**Convention injection** — The orchestrator injects a `projectConventions` section into each specialist's task prompt. This is a compact summary (not raw file dumps) of what the specialist needs to know: test framework, import style, verification commands, and any explicit instructions from AGENTS.md.
+
+**Caching** — Conventions are scanned once per `orchestrate` call (or once per session if session state is available) and reused across all specialist delegations in that call.
+
+### New/modified files
+
+| File | Purpose |
+|------|---------|
+| `extensions/shared/conventions.ts` | Convention scanner: reads repo files, extracts signals, produces a `ProjectConventions` object |
+| `extensions/shared/types.ts` | Add `ProjectConventions` type |
+| `extensions/shared/specialist-prompt.ts` | Inject conventions into task prompt |
+| `extensions/orchestrator/index.ts` | Call convention scanner before delegation loop |
+| `tests/conventions.test.ts` | Scanner tests with mocked file system |
+
+### Design constraints
+
+- **No network calls.** Convention scanning reads only local files in the working directory.
+- **Graceful degradation.** If no convention files are found, specialists get no convention context (current behavior). No errors.
+- **Compact output.** The injected context should be <500 tokens. Summarize, don't dump raw files.
+- **Read-only.** The scanner never modifies repo files.
+
+### Exit criteria
+
+- Convention scanner correctly extracts test framework, import style, and verification commands from at least 3 different project setups (vitest + Makefile, jest + npm scripts, no test config)
+- Specialists receive convention context in their task prompts
+- A builder specialist in a vitest project produces vitest tests without being told in the task text
+- `make typecheck` and `make test` pass
+
+### Dependencies
+
+- Stage 5a.3 complete (validation findings inform what conventions matter most)
+- Stage 5a.4 is independent (can be parallelized)
+
+---
+
 ## Stage 5b — Specialist-Creator Team
 
 ### Purpose
@@ -4004,6 +4065,123 @@ Handle escalation as a workflow event, not just a terminal status.
 
 ---
 
+## Stage 5i — Task Relay and Handoff System
+
+### Purpose
+
+Enable the orchestrator to manage bounded, sequential task execution with structured handoff documents, so each agent invocation has clear scope, exit criteria, and responsibility to prepare the next agent's context. This formalizes the pattern: plan upfront, execute in bounded chunks, checkpoint between tasks.
+
+### Design
+
+**Handoff document structure:**
+```
+docs/handoff/
+  STATUS.md          — current project/session state (agent-updated)
+  TASK_QUEUE.md      — ordered task list with acceptance checklists
+  NEXT_TASK.md       — the active task (read on start, cleared on completion)
+  DECISIONS_NEEDED.md — questions requiring human input (agent appends, human resolves)
+```
+
+**Relay flow:**
+1. Orchestrator reads `NEXT_TASK.md` on invocation
+2. Delegates to appropriate specialist(s) based on task spec
+3. Specialist completes work, orchestrator verifies exit criteria from task checklist
+4. On success: orchestrator pops next task from `TASK_QUEUE.md` into `NEXT_TASK.md`, updates `STATUS.md`
+5. On decision needed: appends to `DECISIONS_NEEDED.md`, stops and notifies human
+6. On failure: stops, reports to human with diagnostic context
+
+**Task queue format:** Each task entry includes:
+- Task ID and title
+- Specialist hint (which primitive(s) to use)
+- Acceptance checklist (what "done" means)
+- Relevant files
+- Dependencies (which prior tasks must be complete)
+- Human gate flag (whether human review is required before proceeding to next task)
+
+**Key principles:**
+- Human authors the campaign plan and detailed specs; agents execute bounded tasks
+- Each task is self-contained — an agent with fresh context can execute it from the handoff docs alone
+- The orchestrator manages the relay loop; humans gate when the `humanGate` flag is set or when `DECISIONS_NEEDED.md` has unresolved items
+- Templates are repo-agnostic — the handoff structure works in any project using my-pi
+
+### Key deliverables
+
+- Handoff document templates (task queue, next task, status, decisions needed)
+- `extensions/shared/handoff.ts` — read/write/validate handoff documents
+- Orchestrator relay mode: read `NEXT_TASK.md`, execute, update handoff state
+- Task queue management: pop next task, check dependencies, respect human gates
+- Makefile target or equivalent for manual relay invocation (`make relay`)
+
+### Exit criteria
+
+- Orchestrator can read a task from `NEXT_TASK.md`, delegate it, verify acceptance criteria, and advance the queue
+- Human gate stops the relay and surfaces `DECISIONS_NEEDED.md` when flagged
+- Handoff documents are correctly updated after each task completion
+- A fresh agent invocation with empty context can resume from handoff docs alone
+- Templates work in external repos (not hardcoded to my-pi paths)
+
+### Dependencies
+
+- Stage 5a.3 complete (proven specialist delegation)
+- Stage 5a.5 complete (convention awareness, so specialists in external repos produce conforming code)
+
+---
+
+## Stage 5j — Context-Aware Self-Respawn
+
+### Purpose
+
+Enable the orchestrator to detect when its context budget is approaching capacity and autonomously checkpoint to handoff documents, then spawn a fresh instance of itself to continue execution — without requiring human intervention. This implements Decision #37 (split/respawn over summarization) as a concrete orchestrator capability.
+
+### Design
+
+**Context budget tracking:**
+- The orchestrator monitors its own context consumption (token count or message count) against a configurable threshold
+- When the threshold is reached mid-relay, the orchestrator enters "respawn mode" instead of delegating the next task
+
+**Respawn flow:**
+1. Orchestrator detects context approaching limit (e.g., 80% of budget)
+2. Writes all current state to handoff documents (`STATUS.md`, `NEXT_TASK.md`, `TASK_QUEUE.md`)
+3. Includes a respawn marker in `STATUS.md` indicating this was an automatic checkpoint, not a human-initiated stop
+4. Spawns a new Pi subprocess with a bootstrap prompt: "Read `docs/handoff/NEXT_TASK.md` and continue the relay"
+5. The current orchestrator instance exits cleanly
+6. The new instance picks up with fresh context, reads handoff docs, and resumes
+
+**Human-in-the-loop considerations:**
+- Self-respawn only occurs when no `humanGate` tasks are pending and `DECISIONS_NEEDED.md` is empty
+- If a human gate is next in the queue, the orchestrator stops and notifies rather than respawning
+- Configurable: the relay can be set to always require human approval between respawns, or to allow autonomous continuation
+- A maximum respawn count prevents runaway loops (default: configurable per task queue)
+
+**Key constraints:**
+- The respawn must be lossless — no in-flight specialist work should be lost
+- The new instance must not need any state beyond what's in the handoff documents
+- The mechanism must work for both my-pi internal development and external repos using my-pi as a coding agent
+
+### Key deliverables
+
+- Context budget monitor (token/message tracking against configurable threshold)
+- Respawn checkpoint writer (flush all orchestrator state to handoff docs)
+- Self-spawn mechanism (Pi subprocess invocation with bootstrap prompt)
+- Respawn marker in `STATUS.md` (distinguishes automatic checkpoint from human stop)
+- Maximum respawn guard (prevent infinite loops)
+- Configuration surface for respawn behavior (autonomous vs. human-gated, threshold, max respawns)
+
+### Exit criteria
+
+- Orchestrator autonomously respawns when context budget is 80% consumed
+- New instance resumes from handoff docs with no loss of task queue state
+- Human gates and unresolved decisions prevent automatic respawn
+- Maximum respawn count is enforced
+- Works in both my-pi and external repos
+
+### Dependencies
+
+- Stage 5i complete (handoff system must exist for respawn to checkpoint into)
+- Stage 5a.1 complete (token tracking substrate for budget monitoring)
+
+---
+
 # Stage 6 — Reflective Expertise Layer
 
 ## Purpose
@@ -4186,6 +4364,7 @@ Stage 1 (types)
           → Stage 5f (seed-creator team) [depends on 5b]
           → Stage 5g (discovery)
           → Stage 5h (escalation)
+          → Stage 5i (task relay and handoff) → 5j (context-aware self-respawn)
           → Stage 6a (expertise types) → 6b (context loader) → 6c (governance) → 6d (local pilot)
             → Stage 7 (command surface, as justified by real usage)
 ```
