@@ -5,55 +5,47 @@
 
 ## Current focus
 
-Stage 5a.3 — Build-team validation on real tasks.
+Stage 5a.6 — Panic and Teardown (BLOCKING). Must be implemented before any further orchestration work.
 
 ## Completed in current focus
 
-- Defined validation methodology and 8 tasks across 3 tiers (`docs/validation/`)
-- Fixed 7 substrate bugs discovered during validation:
-  1. Extension loading — barrel export crash, fixed with explicit `pi.extensions` paths
-  2. CLI flags — `--print` != JSON; correct: `--mode json --print --system-prompt <prompt> <task>`
-  3. Timeout — increased to 10min for real coding tasks
-  4. Token usage field names — parser handles both Pi and Anthropic naming
-  5. Dashboard in sub-agents — `ctx.hasUI` guard for non-interactive mode
-  6. Empty finalText — `message_update` accumulation + buffer flush on close
-  7. Wrong specialist selection — removed keyword matching, LLM-driven via explicit `delegationHint`
-- Completed validation tasks:
-  - Task 03 (Format Helpers) — builder created `extensions/shared/format.ts`, tester validated
-  - Task 04 (Contract Completeness) — builder created `tests/contract-completeness.test.ts`, fixed typecheck issues
-  - Task 05 (Extract Shared Constants) — builder created `extensions/shared/constants.ts`, imports updated across `sandbox.ts`, `widget.ts`, `select.ts`
-  - Task 06 (Widget Rendering Snapshot Tests) — builder created `tests/dashboard-widget-snapshots.test.ts` covering all 8 widget states with exact inline string-array assertions; tester validated
-  - Task 07 (Build a New Specialist) — created read-only `doc-formatter` specialist definition, extension, and tests in `agents/`, `extensions/`, and `tests/`; logged results in `docs/validation/results/RESULT_07_NEW_SPECIALIST.md`
-- Added `inferFilePaths()` to orchestrator — reads `.md` files from `relevantFiles` and extracts file paths from content
-- Restructured docs: AGENTS.md is single source of truth for all AI agents, CLAUDE.md is pointer + Claude-specific guidance
-- Added Stage 5a.5 (Convention-Aware Orchestrator), 5i (Task Relay), 5j (Self-Respawn) to implementation plan
-- Created handoff document templates in `docs/handoff/templates/`
+- Stage 5a.3 validation complete: all 8 tasks done, 617 tests passing
+- 7 substrate bugs found and fixed during specialist chain validation
+- 1 team state machine bug found (`partial` status missing transition) — fixed in code
+- Build-team e2e attempted for Task 08 — team router error confirmed fix was not loaded (stale extension). Implementation completed locally.
+- Specialist flow ordering fixed: creation tasks use planner→builder→reviewer→tester
+- **CRITICAL:** Discovered orphaned sub-agent subprocess issue — canceled parent left specialists consuming tokens. Decision #43, Stage 5a.6 is the blocking fix.
+- Decisions #40-43 recorded; Stages 5a.3b-3e and 5a.6 added to implementation plan
+- Handoff system created: templates, `/next` skill (skill discovery issue pending), task queue, relay workflow
+- Tester specialist role redesigned (Decision #40): test author, not test runner
 
 ## Passing checks
 
 - Run timestamp: `2026-04-07`
 - `make typecheck`: PASS
-- `make test`: PASS — 612 tests, 45 test files, all passing
+- `make test`: PASS — 617 tests, 46 test files, all passing
 
 ## Known gaps / blockers
 
-- Tasks 01 and 02 (Tier 1) were not run through the orchestrator — low priority, can be done later
-- Task 07 exposed a flow mismatch: the requested `planner,reviewer,builder,tester` specialist sequence blocked at reviewer because it looked for built artifacts before the builder ran
+- **BLOCKER: Sub-agent orphaning (Decision #43).** Canceled orchestration leaves orphaned subprocesses consuming tokens. Stage 5a.6 (Panic and Teardown) must be implemented before any additional orchestration work. Design: `docs/design/PANIC_AND_TEARDOWN_DESIGN.md`.
+- Build-team not yet validated end-to-end with live Pi subprocess (5a.3b blocked by 5a.6)
+- `/next` skill not loading in Pi — skill discovery issue under investigation
 
 ## Decision notes for next session
 
-- Specialist selection is now LLM-driven via `delegationHint` — always specify the specialist(s) explicitly
-- The orchestrator's `delegationHint` accepts comma-separated strings (e.g., "builder,tester") parsed into arrays at runtime
-- `inferFilePaths()` extracts paths from task text and referenced `.md` files — reduces need for exhaustive `relevantFiles` lists
-- Handoff system adopted: agents read `NEXT_TASK.md` on start, update all handoff docs on completion
+- Stage 5a.6 is BLOCKING — implement panic/teardown before 5a.3b, 5a.3c, 5a.3d, 5a.3e, or 5a.4
+- Tester specialist should write tests, not run them (Decision #40)
+- Specialist invocation patterns (verified build, parallel scout) are cheaper alternatives to teams (Decision #41)
+- Pi extensions reload only on restart — code changes mid-session are not picked up
 
 ## Next task (single target)
 
-Task 08 — /dashboard command skeleton (see `NEXT_TASK.md`)
+Stage 5a.6 — Implement panic and teardown system (see `NEXT_TASK.md`)
 
 ## Definition of done for next task
 
-- Create `extensions/dashboard/command.ts`, `extensions/dashboard/panels/overview.ts`, and `tests/dashboard-command.test.ts`
-- Reuse existing dashboard projections/types without duplicating logic
-- `make typecheck` and `make test` pass
-- Keep the task additive and overview-only
+- Run registry tracks all nested work
+- Parent abort propagates to descendants
+- Settled-state barrier prevents premature completion reporting
+- `/panic` extension command exists and works
+- No orphaned subprocesses survive cancellation

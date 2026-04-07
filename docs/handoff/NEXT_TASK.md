@@ -5,74 +5,75 @@
 
 ## Task summary
 
-Build the `/dashboard` command skeleton with an Overview panel only. Reuse the existing dashboard projections and types; keep the implementation additive.
+Implement the panic and teardown system (Stage 5a.6): run registry, abort propagation, settled-state barrier, `/panic` extension command, and graceful-then-forced teardown. This is a BLOCKING prerequisite for all further orchestration work.
 
 ## Why this task is next
 
-- Task 07 is complete, including verification and handoff updates
-- Task 08 is the remaining Tier 3 validation task for Stage 5a.3
-- It provides a bounded head start on Stage 5a.4 without requiring the full multi-panel inspector
+- During Stage 5a.3 validation, a canceled orchestration task left orphaned sub-agent subprocesses consuming tokens invisibly
+- This is a safety and cost control issue that must be fixed before adding any orchestration complexity
+- Decision #43 and the full design are in `docs/design/PANIC_AND_TEARDOWN_DESIGN.md`
 
 ## Scope (in)
 
-- Create `extensions/dashboard/command.ts`
-- Create `extensions/dashboard/panels/overview.ts`
-- Create `tests/dashboard-command.test.ts`
-- Register `/dashboard` via `pi.registerCommand()`
-- Implement only the Overview panel
-- Reuse existing dashboard projections/types instead of duplicating logic
+- Create `extensions/shared/run-registry.ts` — parent-owned run registry with lifecycle states
+- Create `extensions/shared/teardown.ts` — graceful-then-forced teardown logic
+- Create `extensions/panic/index.ts` — `/panic` extension command
+- Update `extensions/shared/subprocess.ts` — register spawned sub-agents in run registry
+- Update `extensions/orchestrator/delegate.ts` — register delegations, propagate abort
+- Update `extensions/teams/router.ts` — register team executions, propagate abort
+- Add tests for run registry, teardown, abort propagation, and `/panic`
+- Update `package.json` to register the panic extension
 
 ## Scope (out)
 
-- Do not implement the Tokens, Execution Path, Worklist, or Failures panels yet
-- Do not modify existing dashboard files unless strictly required for additive command wiring
-- Do not duplicate projection logic already available in `extensions/dashboard/projections.ts`
+- Full widget/dashboard implementation (consumes this work later)
+- Repo-local policy files (`.pi/policies/teardown.yaml`) — design must be compatible but not implemented
+- Rich historical telemetry
+- Distributed/multi-host teardown
 
-## Team
+## Specialist flow
 
-build-team
+This task should NOT use the orchestrator — it modifies the orchestrator itself. Implement directly.
 
 ## Relevant files
 
-- Reads from: `docs/handoff/_HANDOFF_INDEX.md`, `docs/validation/_VALIDATION_INDEX.md`, `docs/_IMPLEMENTATION_PLAN_INDEX.md`, `docs/PI_EXTENSION_API.md`, `extensions/dashboard/index.ts`, `extensions/dashboard/projections.ts`, `extensions/dashboard/types.ts`, `tests/dashboard-widget.test.ts`, `docs/validation/TASK_08_DASHBOARD_CMD.md`
-- Creates: `extensions/dashboard/command.ts`, `extensions/dashboard/panels/overview.ts`, `tests/dashboard-command.test.ts`
+- Design doc: `docs/design/PANIC_AND_TEARDOWN_DESIGN.md`
+- Modifies: `extensions/shared/subprocess.ts`, `extensions/orchestrator/delegate.ts`, `extensions/teams/router.ts`, `package.json`
+- Creates: `extensions/shared/run-registry.ts`, `extensions/shared/teardown.ts`, `extensions/panic/index.ts`, `tests/run-registry.test.ts`, `tests/teardown.test.ts`, `tests/panic.test.ts`
 
 ## Dependencies / prerequisites
 
-- Existing dashboard projection layer is implemented under `extensions/dashboard/`
-- Stage 5a.4 specification exists in `docs/IMPLEMENTATION_PLAN.md` and should be reached through `docs/_IMPLEMENTATION_PLAN_INDEX.md`
-- Pi command API reference exists in `docs/PI_EXTENSION_API.md`
-- Execute this task through team delegation with `teamHint: "build-team"` so the build-team state machine router handles the real task
+- Stage 5a.3 complete (all spawn paths identified through validation)
+- Design document exists: `docs/design/PANIC_AND_TEARDOWN_DESIGN.md`
 
 ## Acceptance criteria (definition of done)
 
-- `extensions/dashboard/command.ts` exists and registers `/dashboard`
-- `extensions/dashboard/panels/overview.ts` exists and renders the Overview panel
-- Overview output includes session status, active path, work progress, blocker/escalation state, and token total when available
-- Overview handles missing optional data gracefully
-- Existing projection functions/types are reused rather than duplicated
-- `tests/dashboard-command.test.ts` exists with command-registration and overview-rendering coverage
-- No other dashboard panels are implemented in this task
+- All nested work registered in parent-owned run registry
+- Parent abort automatically triggers descendant teardown
+- Cancellation not reported complete until all descendants are terminal
+- Graceful-then-forced teardown escalation works
+- `/panic` extension command exists and reports what it stopped
+- No orphaned subprocess survives parent cancellation
+- Validated with scenarios: normal completion, parent cancel, panic, ignored graceful stop, repeated panic
 - `make typecheck` passes
 - `make test` passes
 
 ## Verification checklist
 
-- [ ] `extensions/dashboard/command.ts` exists and registers `/dashboard`
-- [ ] `extensions/dashboard/panels/overview.ts` exists with overview rendering
-- [ ] Overview includes required top-line session data
-- [ ] Overview handles missing optional data gracefully
-- [ ] Projection logic is reused, not duplicated
-- [ ] `tests/dashboard-command.test.ts` exists with registration/rendering coverage
-- [ ] No other panels were implemented
+- [ ] Run registry tracks all spawned sub-agents and subprocesses
+- [ ] Parent abort propagates to all descendants
+- [ ] Settled-state barrier prevents premature completion
+- [ ] `/panic` command works and reports results
+- [ ] Graceful-then-forced escalation tested
+- [ ] All 5 validation scenarios pass
 - [ ] `make typecheck` passes
 - [ ] `make test` passes
 - [ ] Update `docs/handoff/CURRENT_STATUS.md` with results
-- [ ] Mark Task 08 as `done` in `docs/handoff/TASK_QUEUE.md`
-- [ ] Update `docs/handoff/NEXT_TASK.md` with the next queued task or explicit backlog note
+- [ ] Update `docs/handoff/TASK_QUEUE.md`
+- [ ] Update `docs/handoff/NEXT_TASK.md` with next task
 
 ## Risks / rollback notes
 
-- The command API details must match Pi’s current extension surface exactly
-- The task should stay additive; avoid destabilizing existing dashboard widget behavior
-- Use the handoff and validation indexes first so the task stays scoped to the active validation flow and the Stage 5a.4 section it actually needs
+- This modifies core subprocess and delegation infrastructure — high blast radius
+- Must not break existing specialist delegation or team routing
+- Test thoroughly before considering complete
