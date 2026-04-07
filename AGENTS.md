@@ -74,6 +74,8 @@ Supporting: `agents/` (definition specs), `docs/` (architectural reference), `te
 
 **JSONL event parsing:** Pi delivers assistant content via `message_update` events (streamed incrementally), NOT in `message_end`. The `agent_end` event carries the full message history. The last JSONL line may lack a trailing newline. See `subprocess.ts` for the parser that handles all of this.
 
+**Sub-agent orphaning (CRITICAL):** Canceling a parent orchestration task does NOT currently guarantee that spawned sub-agent subprocesses are terminated. Orphaned specialists can continue consuming tokens invisibly after the parent stops. This is a known issue (Decision #43) and Stage 5a.6 (Panic and Teardown) is the blocking fix. Until 5a.6 is implemented: (1) be aware that canceling orchestration may leave background work running, (2) check system processes manually after cancellation if token usage continues, (3) do not add additional nesting depth to orchestration flows. See `docs/design/PANIC_AND_TEARDOWN_DESIGN.md` for the full design.
+
 ## Key Documents
 
 | Document | Purpose |

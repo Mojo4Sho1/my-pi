@@ -44,6 +44,7 @@ Live execution state belongs in `STATUS.md`. This document defines the sequence 
    - 5a.1c: Deterministic sandboxing and path protection
    - 5a.2: Dashboard substrate + persistent widget
    - 5a.3: Build-team validation on real tasks (specialist chains)
+   - 5a.6: Panic and teardown — run registry, abort propagation, `/panic` command (Decision #43, BLOCKING)
    - 5a.3b: Team state machine end-to-end validation
    - 5a.3c: Tester specialist role redesign (test author, not runner — Decision #40)
    - 5a.3d: Specialist invocation patterns (verified build, parallel scout — Decision #41)
@@ -3764,6 +3765,62 @@ See Decision #36.
 
 ---
 
+## Stage 5a.6 — Panic and Teardown: Deterministic Descendant Lifecycle Control
+
+### Purpose
+
+Prevent runaway token consumption and orphaned sub-agent processes by implementing a deterministic teardown model for nested agent execution. During Stage 5a.3 validation, a canceled orchestration task continued consuming tokens via orphaned subprocess specialists. This must be fixed before additional orchestration complexity is added. See Decision #43.
+
+**Full design document:** `docs/design/PANIC_AND_TEARDOWN_DESIGN.md`
+
+### Key deliverables
+
+**A. Run Registry** — Parent-owned registry tracking all nested work (sub-agent sessions, subprocesses, tmux panes). Each entry: unique run ID, parent run ID, run kind, lifecycle state, termination handles, cleanup strategy. No fire-and-forget spawning — all nested work must register.
+
+**B. Abort Propagation** — Parent cancellation automatically propagates to all descendants. Covers: nested agent sessions, subprocesses, tmux-backed children. Registry state updated as cancellation progresses.
+
+**C. Settled-State Barrier** — Distinguish between cancellation-requested, cancellation-in-progress, and fully-settled. A task is not "done canceling" until all descendants are terminal (`settled`, `failed`, `killed`, `canceled`).
+
+**D. `/panic` Extension Command** — Emergency stop command. Traverses run registry, attempts graceful shutdown, escalates to forced kill after configurable grace period, reports results. Must be deterministic, safe to invoke repeatedly, and not depend on LLM interpretation.
+
+**E. Graceful-Then-Forced Teardown** — Mark targets as `canceling`, request graceful stop, wait grace period, force-kill remaining, wait for settle, report. Applies to both `/panic` and normal parent-abort flows.
+
+**F. Teardown Reporting** — Structured output: target run count, each descendant termination attempt, escalation events, final settled result. Required even before widget exists.
+
+### Integration points
+
+- `extensions/shared/subprocess.ts` — sub-agent spawn must register in run registry
+- `extensions/orchestrator/delegate.ts` — delegation must register and propagate abort
+- `extensions/teams/router.ts` — team execution must register and propagate abort
+- New: `extensions/shared/run-registry.ts` — run registry implementation
+- New: `extensions/shared/teardown.ts` — teardown orchestration logic
+- New: `extensions/panic/index.ts` — `/panic` extension command
+
+### Exit criteria
+
+1. All nested work is registered in a parent-owned run registry
+2. Parent abort automatically triggers descendant teardown
+3. Cancellation is not reported complete until settled state
+4. Graceful-then-forced escalation works
+5. `/panic` command exists and reports what it stopped
+6. No orphaned subprocess survives parent cancellation
+7. Documentation explains the teardown model
+8. Future widget work has a clean lifecycle state model to consume
+9. Validated with controlled failure scenarios (normal completion, parent cancel, panic, ignored graceful stop, repeated panic)
+
+### Dependencies
+
+- Stage 5a.3 complete (specialist delegation proven — needed to understand all spawn paths)
+
+### Relationship to other stages
+
+- **5a.3b–5a.3e** depend on this: no additional orchestration complexity until teardown is reliable
+- **5a.4 (dashboard)** should consume run registry state for real-time monitoring
+- **5i (task relay)** and **5j (self-respawn)** must respect teardown lifecycle
+- Future repo-local policy files (`.pi/policies/teardown.yaml`) should be able to tune grace periods, max depth, max concurrent sub-agents — design must not hard-code these
+
+---
+
 ## Stage 5a.3b — Team State Machine End-to-End Validation
 
 ### Purpose
@@ -4485,9 +4542,10 @@ Stage 1 (types)
             → Stage 5a.1 (token tracking substrate)
               → Stage 5a.2 (dashboard substrate + persistent widget)
                 → Stage 5a.3 (specialist chain validation)
-                  → Stage 5a.3b (team state machine e2e) → 5a.3c (tester redesign) → 5a.3d (invocation patterns)
-                  → Stage 5a.3e (token logging)
-                → Stage 5a.4 (/dashboard command — priority: real-time orchestration monitoring)
+                  → Stage 5a.6 (panic and teardown — BLOCKING)
+                    → Stage 5a.3b (team state machine e2e) → 5a.3c (tester redesign) → 5a.3d (invocation patterns)
+                    → Stage 5a.3e (token logging)
+                  → Stage 5a.4 (/dashboard command — consumes run registry for real-time monitoring)
               → Stage 5b (specialist-creator team) → 5c (team-creator team)
           → Stage 5d (sequences) → 5e (sequence-creator team)
           → Stage 5f (seed-creator team) [depends on 5b]

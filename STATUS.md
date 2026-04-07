@@ -251,8 +251,8 @@ Methodology and task catalog: `docs/validation/METHODOLOGY.md`
 - [ ] **Tier 1:** Task 02 (test README), Task 03 (format helpers)
 - [x] **Tier 1:** Task 01 (JSDoc) — verified 2026-04-07; `extensions/shared/types.ts` already satisfies the task and full validation passed (`docs/validation/results/RESULT_01_JSDOC.md`)
 - [ ] **Tier 2:** Task 04 (contract validation), Task 05 (constants extraction), Task 06 (widget snapshots)
-- [ ] **Tier 3:** Task 07 (new specialist), Task 08 (/dashboard command skeleton)
-- [ ] Fix substrate bugs discovered during validation
+- [ ] **Tier 3:** Task 07 (new specialist), Task 08 (/dashboard command skeleton) — implementation landed and local verification passed on 2026-04-07 (`docs/validation/results/RESULT_08_DASHBOARD_CMD.md`), but live build-team validation did not complete cleanly because the run exposed a routing gap (`testing` had no `partial` transition) and the follow-up orchestrator run appeared to use stale loaded code
+- [ ] Fix substrate bugs discovered during validation — Task 08 surfaced a real build-team routing bug around `partial` specialist results; repo code was patched to add `partial` transitions and regression coverage, but the live orchestrator/team environment still needs a clean re-run after reload
 - [ ] At least one clean end-to-end run with useful observability data
 
 #### 5a.4 — `/dashboard` Command (Detailed Inspector)
@@ -354,10 +354,9 @@ See `docs/FUTURE_WORK.md` for deferred design ideas (team critic, campaign super
 
 ## Blockers
 
-- None
+- **Sub-agent orphaning (Decision #43):** Canceled orchestration tasks can leave orphaned sub-agent subprocesses consuming tokens. Stage 5a.6 (Panic and Teardown) is the blocking fix. No additional orchestration complexity (5a.3b–5a.3e, 5a.4) should be added until teardown is reliable. Design: `docs/design/PANIC_AND_TEARDOWN_DESIGN.md`.
 
 ## Risks
 
-- Sub-agent spawning pattern needs hands-on validation with Pi CLI (documented but not yet tested in practice)
 - Packet model should stay lean and be driven by specialist I/O needs, not speculative design
 - Specialist-creator team has a bootstrapping problem: it may need specialists that don't exist yet. Plan for a manual bootstrap of any prerequisite specialists before the creator team can self-sustain.

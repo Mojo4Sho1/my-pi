@@ -426,3 +426,21 @@ Agents execute bounded tasks from structured handoff documents. The relay patter
 Human authors the campaign plan and detailed specs. Agents execute and hand off. `DECISIONS_NEEDED.md` is the escalation path when requirements are underspecified.
 
 **Why:** Agents perform best with bounded scope and clear exit criteria. Fresh context per task avoids compaction/drift. Handoff docs are the checkpoint — if an agent fails, the chain doesn't break. See Stages 5i and 5j in the implementation plan for the full relay system and self-respawn design.
+
+### 43. Panic and teardown: deterministic descendant lifecycle control (2026-04-07) [active]
+
+All spawned nested work (sub-agent sessions, subprocesses, tmux panes) must be registered in a parent-owned run registry. Parent cancellation must automatically propagate to all descendants. The system must not report cancellation as complete until all descendants reach a terminal state (`settled`, `failed`, `killed`, `canceled`).
+
+A `/panic` extension command provides emergency stop: it traverses the run registry, attempts graceful shutdown, escalates to forced kill after a grace period, and reports results. `/panic` is deterministic runtime behavior, not a prompt or skill.
+
+**Why:** During Stage 5a.3 validation, a canceled orchestration task continued consuming tokens via orphaned sub-agent subprocesses. The visible parent stopped but descendants kept running. This is unacceptable — it creates uncontrolled cost, hidden repo mutations, and inability to trust cancellation.
+
+**Key requirements:**
+- No fire-and-forget sub-agent execution — all spawns must register
+- Parent abort implies descendant abort (automatic, not manual)
+- Settled-state barrier: cancellation is not complete until all descendants are terminal
+- Graceful-then-forced teardown escalation
+- `/panic` works even when other activity is ongoing
+- Observability (future widget) consumes teardown state, not the reverse
+
+**Implementation priority:** This must be implemented before additional orchestration complexity is added. See Stage 5a.6 in the implementation plan. Full design: `docs/design/PANIC_AND_TEARDOWN_DESIGN.md`.
