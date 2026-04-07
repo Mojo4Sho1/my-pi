@@ -28,9 +28,9 @@ Build the `/dashboard` command skeleton with an Overview panel only. Reuse the e
 - Do not modify existing dashboard files unless strictly required for additive command wiring
 - Do not duplicate projection logic already available in `extensions/dashboard/projections.ts`
 
-## Specialist flow
+## Team
 
-planner,builder,reviewer,tester
+build-team
 
 ## Relevant files
 
@@ -42,6 +42,7 @@ planner,builder,reviewer,tester
 - Existing dashboard projection layer is implemented under `extensions/dashboard/`
 - Stage 5a.4 specification exists in `docs/IMPLEMENTATION_PLAN.md`
 - Pi command API reference exists in `docs/PI_EXTENSION_API.md`
+- Execute this task through team delegation with `teamHint: "build-team"` so the build-team state machine router handles the real task
 
 ## Acceptance criteria (definition of done)
 

@@ -19,7 +19,8 @@ Reads the handoff documents and executes the current task using the orchestrator
 4. Check `docs/handoff/DECISIONS_NEEDED.md` — if there are open decisions, stop and notify the user instead of proceeding
 5. Use the `orchestrate` tool to execute the task:
    - Set `task` from the task summary in `NEXT_TASK.md`
-   - Set `delegationHint` from the specialist flow in `NEXT_TASK.md`
+   - If `NEXT_TASK.md` specifies a team, set `teamHint` from that section instead of using `delegationHint`
+   - For the current handoff format, use `teamHint: "build-team"` from the `Team` section in `NEXT_TASK.md`
    - Set `relevantFiles` from the relevant files listed in `NEXT_TASK.md`
 6. After orchestration completes, verify the acceptance criteria from the verification checklist
 7. Update handoff docs per the verification checklist:
@@ -33,4 +34,5 @@ Reads the handoff documents and executes the current task using the orchestrator
 - This is a Pi skill, so it is exposed as `/skill:next`, not bare `/next`
 - If there are open decisions in `DECISIONS_NEEDED.md`, do not proceed — ask the user to resolve them first
 - If the orchestration fails or returns partial/escalation, do not advance the queue — report the result to the user
-- The specialist flow and relevant files are specified in `NEXT_TASK.md` — use them as provided
+- Use the `Team` section in `NEXT_TASK.md` to drive `teamHint`; do not derive a `delegationHint` from the old specialist-flow format
+- The team and relevant files are specified in `NEXT_TASK.md` — use them as provided

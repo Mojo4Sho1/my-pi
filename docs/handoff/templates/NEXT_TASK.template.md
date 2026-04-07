@@ -20,9 +20,9 @@
 
 - [Explicit list of what is NOT in scope — prevents agent drift]
 
-## Specialist flow
+## Team
 
-[Which specialist(s) to delegate to, in order. E.g., "builder,tester" or "planner,builder,reviewer,tester"]
+[Team to delegate to. E.g., "build-team". When this field is present, the orchestrate tool should use `teamHint` rather than `delegationHint`.]
 
 ## Relevant files
 
