@@ -25,11 +25,11 @@ Create the `/dashboard` command skeleton with the overview panel, giving a head 
 
 ## Expected Specialist Flow
 
-Build-team state machine: planning → review → building → testing → done
+Build-team state machine: planning → building → review → testing → done
 
 1. **Planner** — reads the 5a.4 spec and designs the command structure, decides how to scope the overview-only subset
-2. **Reviewer** — validates the plan against the implementation plan spec
-3. **Builder** — creates command.ts, panels/overview.ts, and the test file
+2. **Builder** — creates command.ts, panels/overview.ts, and the test file
+3. **Reviewer** — validates the implementation against the plan and existing patterns
 4. **Tester** — runs tests and validates
 
 ## Stress-Test Focus

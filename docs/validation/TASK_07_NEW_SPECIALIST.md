@@ -23,11 +23,11 @@ Use the build-team to create a new `doc-formatter` utility specialist that norma
 
 ## Expected Specialist Flow
 
-Build-team state machine: planning → review → building → testing → done
+Build-team state machine: planning → building → review → testing → done
 
 1. **Planner** — designs the specialist: agent definition structure, prompt config, I/O contracts, test strategy
-2. **Reviewer** — reviews the plan for consistency with existing specialist patterns
-3. **Builder** — creates all three files (agent def, prompt.ts, index.ts, test file)
+2. **Builder** — creates all four files (agent def, prompt.ts, index.ts, test file)
+3. **Reviewer** — reviews the implementation for consistency with existing specialist patterns
 4. **Tester** — runs the new tests and validates they pass
 
 ## Stress-Test Focus
