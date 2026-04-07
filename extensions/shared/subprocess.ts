@@ -16,7 +16,7 @@ export interface SubAgentResult {
   tokenUsage?: TokenUsage;
 }
 
-const DEFAULT_TIMEOUT_MS = 120_000; // 2 minutes
+const DEFAULT_TIMEOUT_MS = 600_000; // 10 minutes — specialists run tools, edit files, and invoke builds
 
 /**
  * Spawn a Pi sub-agent with the given system and task prompts.
@@ -123,16 +123,17 @@ export function spawnSpecialistAgent(
           }
 
           if (event.type === "message_end" && event.message?.usage) {
-            // Assumes Pi forwards Anthropic-style usage fields on message_end.
+            // Pi uses { input, output, totalTokens } — not Anthropic-style { input_tokens, output_tokens }
             const usage = event.message.usage;
-            if (
-              typeof usage.input_tokens === "number" &&
-              typeof usage.output_tokens === "number"
-            ) {
+            const inputCount = typeof usage.input === "number" ? usage.input
+              : typeof usage.input_tokens === "number" ? usage.input_tokens : undefined;
+            const outputCount = typeof usage.output === "number" ? usage.output
+              : typeof usage.output_tokens === "number" ? usage.output_tokens : undefined;
+            if (inputCount !== undefined && outputCount !== undefined) {
               tokenUsage = {
-                inputTokens: usage.input_tokens,
-                outputTokens: usage.output_tokens,
-                totalTokens: usage.input_tokens + usage.output_tokens,
+                inputTokens: inputCount,
+                outputTokens: outputCount,
+                totalTokens: inputCount + outputCount,
               };
             }
           }
