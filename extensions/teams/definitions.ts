@@ -10,17 +10,17 @@ import type { TeamDefinition } from "../shared/types.js";
 /**
  * Build Team — the exemplar team for Stage 4b.
  *
- * Executes a full plan → review → build → test workflow.
- * Review and build failures loop back for revision with maxIterations guards.
+ * Executes a full plan → build → review → test workflow.
+ * Build, review, and test failures loop back for revision with maxIterations guards.
  */
 export const BUILD_TEAM: TeamDefinition = {
   id: "build-team",
   name: "Build Team",
-  purpose: "Plan, review, build, and test a feature end-to-end",
+  purpose: "Plan, build, review, and test a feature end-to-end",
   members: [
     "specialist_planner",
-    "specialist_reviewer",
     "specialist_builder",
+    "specialist_reviewer",
     "specialist_tester",
   ],
   entryContract: { fields: [] },
@@ -41,24 +41,24 @@ export const BUILD_TEAM: TeamDefinition = {
       planning: {
         agent: "specialist_planner",
         transitions: [
-          { on: "success", to: "review" },
-          { on: "failure", to: "failed" },
-          { on: "escalation", to: "failed" },
-        ],
-      },
-      review: {
-        agent: "specialist_reviewer",
-        transitions: [
           { on: "success", to: "building" },
-          { on: "failure", to: "planning", maxIterations: 2 },
+          { on: "failure", to: "failed" },
           { on: "escalation", to: "failed" },
         ],
       },
       building: {
         agent: "specialist_builder",
         transitions: [
-          { on: "success", to: "testing" },
+          { on: "success", to: "review" },
           { on: "failure", to: "planning", maxIterations: 2 },
+          { on: "escalation", to: "failed" },
+        ],
+      },
+      review: {
+        agent: "specialist_reviewer",
+        transitions: [
+          { on: "success", to: "testing" },
+          { on: "failure", to: "building", maxIterations: 2 },
           { on: "escalation", to: "failed" },
         ],
       },

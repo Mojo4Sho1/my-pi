@@ -17,23 +17,23 @@ const buildTeamMachine: StateMachineDefinition = {
     planning: {
       agent: "specialist_planner",
       transitions: [
-        { on: "success", to: "review" },
-        { on: "failure", to: "failed" },
-      ],
-    },
-    review: {
-      agent: "specialist_reviewer",
-      transitions: [
         { on: "success", to: "building" },
-        { on: "failure", to: "planning" },
-        { on: "escalation", to: "failed" },
+        { on: "failure", to: "failed" },
       ],
     },
     building: {
       agent: "specialist_builder",
       transitions: [
-        { on: "success", to: "testing" },
+        { on: "success", to: "review" },
         { on: "failure", to: "planning" },
+        { on: "escalation", to: "failed" },
+      ],
+    },
+    review: {
+      agent: "specialist_reviewer",
+      transitions: [
+        { on: "success", to: "testing" },
+        { on: "failure", to: "building" },
         { on: "escalation", to: "failed" },
       ],
     },
@@ -175,10 +175,10 @@ describe("advanceState", () => {
 
     expect("newState" in result).toBe(true);
     if ("newState" in result) {
-      expect(result.newState.currentState).toBe("review");
+      expect(result.newState.currentState).toBe("building");
       expect(result.newState.history).toHaveLength(1);
       expect(result.newState.history[0].from).toBe("planning");
-      expect(result.newState.history[0].to).toBe("review");
+      expect(result.newState.history[0].to).toBe("building");
       expect(result.newState.history[0].on).toBe("success");
     }
   });
@@ -188,8 +188,8 @@ describe("advanceState", () => {
     // "partial" has no transition from "planning"
     const result = advanceState(buildTeamMachine, state, makeResult("escalation"));
 
-    // planning only has success→review and failure→failed, not escalation
-    // Actually, let's check: planning has success→review and failure→failed
+    // planning only has success→building and failure→failed, not escalation
+    // Actually, let's check: planning has success→building and failure→failed
     // escalation is not defined for planning
     expect("error" in result).toBe(true);
   });
@@ -207,17 +207,17 @@ describe("advanceState", () => {
   it("follows a full successful path", () => {
     let state = initMachineState(buildTeamMachine);
 
-    // planning → review
+    // planning → building
     let result = advanceState(buildTeamMachine, state, makeResult("success"));
     expect("newState" in result).toBe(true);
     if ("newState" in result) state = result.newState;
 
-    // review → building
+    // building → review
     result = advanceState(buildTeamMachine, state, makeResult("success"));
     expect("newState" in result).toBe(true);
     if ("newState" in result) state = result.newState;
 
-    // building → testing
+    // review → testing
     result = advanceState(buildTeamMachine, state, makeResult("success"));
     expect("newState" in result).toBe(true);
     if ("newState" in result) state = result.newState;
@@ -234,11 +234,11 @@ describe("advanceState", () => {
   it("follows a failure-and-retry path", () => {
     let state = initMachineState(buildTeamMachine);
 
-    // planning → review (success)
+    // planning → building (success)
     let result = advanceState(buildTeamMachine, state, makeResult("success"));
     if ("newState" in result) state = result.newState;
 
-    // review → planning (failure sends back to planning)
+    // building → planning (failure sends back to planning)
     result = advanceState(buildTeamMachine, state, makeResult("failure"));
     expect("newState" in result).toBe(true);
     if ("newState" in result) {

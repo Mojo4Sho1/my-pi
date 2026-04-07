@@ -39,7 +39,7 @@ describe("executeTeam", () => {
     return { executeTeam };
   }
 
-  it("executes full happy path: planning → review → building → testing → done", async () => {
+  it("executes full happy path: planning → building → review → testing → done", async () => {
     const mockSpawn = vi.fn()
       .mockResolvedValueOnce(makeOutput({
         status: "success",
@@ -49,15 +49,15 @@ describe("executeTeam", () => {
       }))
       .mockResolvedValueOnce(makeOutput({
         status: "success",
-        summary: "Review passed",
-        deliverables: ["No issues found"],
-        modifiedFiles: [],
-      }))
-      .mockResolvedValueOnce(makeOutput({
-        status: "success",
         summary: "Built feature",
         deliverables: ["Added handler"],
         modifiedFiles: ["src/index.ts"],
+      }))
+      .mockResolvedValueOnce(makeOutput({
+        status: "success",
+        summary: "Review passed",
+        deliverables: ["No issues found"],
+        modifiedFiles: [],
       }))
       .mockResolvedValueOnce(makeOutput({
         status: "success",
@@ -72,7 +72,7 @@ describe("executeTeam", () => {
     expect(result.success).toBe(true);
     expect(result.resultPacket.status).toBe("success");
     expect(result.resultPacket.sourceAgent).toBe("team_build-team");
-    expect(result.statesVisited).toEqual(["planning", "review", "building", "testing", "done"]);
+    expect(result.statesVisited).toEqual(["planning", "building", "review", "testing", "done"]);
     expect(mockSpawn).toHaveBeenCalledTimes(4);
   });
 
@@ -80,16 +80,14 @@ describe("executeTeam", () => {
     const mockSpawn = vi.fn()
       // Plan 1
       .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Plan 1", deliverables: ["s1"], modifiedFiles: [] }))
-      // Review passes
-      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Review ok", deliverables: ["ok"], modifiedFiles: [] }))
       // Build fails → loops to planning
       .mockResolvedValueOnce(makeOutput({ status: "failure", summary: "Build failed", deliverables: [], modifiedFiles: [] }))
       // Re-plan
       .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Plan 2", deliverables: ["s2"], modifiedFiles: [] }))
-      // Re-review passes
-      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Review ok 2", deliverables: ["ok"], modifiedFiles: [] }))
       // Build succeeds
       .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Built", deliverables: ["done"], modifiedFiles: ["x.ts"] }))
+      // Review passes
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Review ok", deliverables: ["ok"], modifiedFiles: [] }))
       // Test passes
       .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Tests pass", deliverables: ["pass"], modifiedFiles: [] }));
 
@@ -99,7 +97,7 @@ describe("executeTeam", () => {
     expect(result.success).toBe(true);
     expect(result.statesVisited).toContain("planning");
     expect(result.iterationsUsed["building->planning"]).toBe(1);
-    expect(mockSpawn).toHaveBeenCalledTimes(7);
+    expect(mockSpawn).toHaveBeenCalledTimes(6);
   });
 
   it("stops on escalation from any specialist", async () => {
@@ -140,28 +138,35 @@ describe("executeTeam", () => {
     expect(mockSpawn).toHaveBeenCalledTimes(1);
   });
 
-  it("executes revision loop: review fails → re-plan → review succeeds", async () => {
+  it("executes revision loop: review fails → rebuild → review succeeds", async () => {
     const mockSpawn = vi.fn()
-      // First plan
+      // Plan
       .mockResolvedValueOnce(makeOutput({
         status: "success",
         summary: "Initial plan",
         deliverables: ["step-1"],
         modifiedFiles: [],
       }))
-      // First review — fails, loops back to planning
+      // First build
+      .mockResolvedValueOnce(makeOutput({
+        status: "success",
+        summary: "Built feature v1",
+        deliverables: ["Added handler"],
+        modifiedFiles: ["src/index.ts"],
+      }))
+      // First review — fails, loops back to building
       .mockResolvedValueOnce(makeOutput({
         status: "failure",
-        summary: "Plan has gaps",
+        summary: "Build has gaps",
         deliverables: ["Missing error handling"],
         modifiedFiles: [],
       }))
-      // Second plan (after review failure)
+      // Rebuild after review failure
       .mockResolvedValueOnce(makeOutput({
         status: "success",
-        summary: "Revised plan",
-        deliverables: ["step-1", "step-2-error-handling"],
-        modifiedFiles: [],
+        summary: "Built feature v2",
+        deliverables: ["Added handler", "Added error handling"],
+        modifiedFiles: ["src/index.ts"],
       }))
       // Second review — passes
       .mockResolvedValueOnce(makeOutput({
@@ -169,13 +174,6 @@ describe("executeTeam", () => {
         summary: "Review passed",
         deliverables: ["Looks good"],
         modifiedFiles: [],
-      }))
-      // Build
-      .mockResolvedValueOnce(makeOutput({
-        status: "success",
-        summary: "Built feature",
-        deliverables: ["Added handler"],
-        modifiedFiles: ["src/index.ts"],
       }))
       // Test
       .mockResolvedValueOnce(makeOutput({
@@ -191,9 +189,9 @@ describe("executeTeam", () => {
     expect(result.success).toBe(true);
     expect(result.resultPacket.status).toBe("success");
     expect(result.statesVisited).toEqual([
-      "planning", "review",     // first attempt
-      "planning", "review",     // revision loop
-      "building", "testing", "done",
+      "planning", "building", "review", // first attempt
+      "building", "review",             // revision loop
+      "testing", "done",
     ]);
     expect(mockSpawn).toHaveBeenCalledTimes(6);
   });
@@ -202,14 +200,16 @@ describe("executeTeam", () => {
     const mockSpawn = vi.fn()
       // Plan 1
       .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Plan 1", deliverables: ["s1"], modifiedFiles: [] }))
+      // Build 1
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Build 1", deliverables: ["done"], modifiedFiles: ["x.ts"] }))
       // Review 1 — fail (loop iteration 1)
       .mockResolvedValueOnce(makeOutput({ status: "failure", summary: "Reject 1", deliverables: [], modifiedFiles: [] }))
-      // Plan 2
-      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Plan 2", deliverables: ["s2"], modifiedFiles: [] }))
+      // Build 2
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Build 2", deliverables: ["done"], modifiedFiles: ["x.ts"] }))
       // Review 2 — fail (loop iteration 2 = maxIterations)
       .mockResolvedValueOnce(makeOutput({ status: "failure", summary: "Reject 2", deliverables: [], modifiedFiles: [] }))
-      // Plan 3
-      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Plan 3", deliverables: ["s3"], modifiedFiles: [] }))
+      // Build 3
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Build 3", deliverables: ["done"], modifiedFiles: ["x.ts"] }))
       // Review 3 — fail (should trigger exhaustion)
       .mockResolvedValueOnce(makeOutput({ status: "failure", summary: "Reject 3", deliverables: [], modifiedFiles: [] }));
 
@@ -225,8 +225,8 @@ describe("executeTeam", () => {
   it("returns team-level result with combined modified files", async () => {
     const mockSpawn = vi.fn()
       .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Planned", deliverables: ["s1"], modifiedFiles: [] }))
-      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Reviewed", deliverables: ["ok"], modifiedFiles: [] }))
       .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Built", deliverables: ["done"], modifiedFiles: ["a.ts", "b.ts"] }))
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Reviewed", deliverables: ["ok"], modifiedFiles: [] }))
       .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Tested", deliverables: ["pass"], modifiedFiles: ["b.ts", "c.ts"] }));
 
     const { executeTeam } = await setupTeamRouter(mockSpawn);
@@ -239,16 +239,16 @@ describe("executeTeam", () => {
   it("tracks iteration counts in result", async () => {
     const mockSpawn = vi.fn()
       .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Plan", deliverables: ["s1"], modifiedFiles: [] }))
-      .mockResolvedValueOnce(makeOutput({ status: "failure", summary: "Reject", deliverables: [], modifiedFiles: [] }))
-      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Plan 2", deliverables: ["s2"], modifiedFiles: [] }))
-      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Pass", deliverables: ["ok"], modifiedFiles: [] }))
       .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Built", deliverables: ["done"], modifiedFiles: ["x.ts"] }))
+      .mockResolvedValueOnce(makeOutput({ status: "failure", summary: "Reject", deliverables: [], modifiedFiles: [] }))
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Built 2", deliverables: ["done"], modifiedFiles: ["x.ts"] }))
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Pass", deliverables: ["ok"], modifiedFiles: [] }))
       .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Tested", deliverables: ["pass"], modifiedFiles: [] }));
 
     const { executeTeam } = await setupTeamRouter(mockSpawn);
     const result = await executeTeam(BUILD_TEAM, makeTeamTaskPacket());
 
-    expect(result.iterationsUsed["review->planning"]).toBe(1);
+    expect(result.iterationsUsed["review->building"]).toBe(1);
   });
 
   it("handles subprocess spawn failure", async () => {

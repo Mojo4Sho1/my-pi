@@ -48,10 +48,10 @@ describe("team session artifacts", () => {
         status: "success", summary: "Plan created", deliverables: ["step-1"], modifiedFiles: [],
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Review passed", deliverables: [], modifiedFiles: [],
+        status: "success", summary: "Built feature", deliverables: [], modifiedFiles: ["src/index.ts"],
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Built feature", deliverables: [], modifiedFiles: ["src/index.ts"],
+        status: "success", summary: "Review passed", deliverables: [], modifiedFiles: [],
       }))
       .mockResolvedValueOnce(makeOutput({
         status: "success", summary: "Tests passed", deliverables: [], modifiedFiles: [],
@@ -81,10 +81,10 @@ describe("team session artifacts", () => {
         status: "success", summary: "Plan", deliverables: [], modifiedFiles: [],
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Review", deliverables: [], modifiedFiles: [],
+        status: "success", summary: "Build", deliverables: [], modifiedFiles: ["src/index.ts"],
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Build", deliverables: [], modifiedFiles: ["src/index.ts"],
+        status: "success", summary: "Review", deliverables: [], modifiedFiles: [],
       }))
       .mockResolvedValueOnce(makeOutput({
         status: "success", summary: "Test", deliverables: [], modifiedFiles: [],
@@ -94,15 +94,15 @@ describe("team session artifacts", () => {
     const result = await executeTeam(BUILD_TEAM, makeTeamTaskPacket());
     const artifact = result.sessionArtifact!;
 
-    // 4 non-terminal states: planning, review, building, testing
+    // 4 non-terminal states: planning, building, review, testing
     expect(artifact.stateTrace).toHaveLength(4);
     expect(artifact.stateTrace[0].state).toBe("planning");
     expect(artifact.stateTrace[0].agent).toBe("specialist_planner");
-    expect(artifact.stateTrace[0].transitionTo).toBe("review");
+    expect(artifact.stateTrace[0].transitionTo).toBe("building");
     expect(artifact.stateTrace[0].resultStatus).toBe("success");
 
-    expect(artifact.stateTrace[1].state).toBe("review");
-    expect(artifact.stateTrace[2].state).toBe("building");
+    expect(artifact.stateTrace[1].state).toBe("building");
+    expect(artifact.stateTrace[2].state).toBe("review");
     expect(artifact.stateTrace[3].state).toBe("testing");
     expect(artifact.stateTrace[3].transitionTo).toBe("done");
   });
@@ -113,10 +113,10 @@ describe("team session artifacts", () => {
         status: "success", summary: "Plan", deliverables: [], modifiedFiles: [],
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Review", deliverables: [], modifiedFiles: [],
+        status: "success", summary: "Build", deliverables: [], modifiedFiles: ["a.ts"],
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Build", deliverables: [], modifiedFiles: ["a.ts"],
+        status: "success", summary: "Review", deliverables: [], modifiedFiles: [],
       }))
       .mockResolvedValueOnce(makeOutput({
         status: "success", summary: "Test", deliverables: [], modifiedFiles: [],
@@ -140,22 +140,22 @@ describe("team session artifacts", () => {
   });
 
   it("loop/revision produces correct loopCount and revisionCount in metrics", async () => {
-    // Plan → review fails → plan again → review passes → build → test → done
+    // Plan → build → review fails → rebuild → review passes → test → done
     const mockSpawn = vi.fn()
       .mockResolvedValueOnce(makeOutput({
         status: "success", summary: "Plan v1", deliverables: [], modifiedFiles: [],
       }))
       .mockResolvedValueOnce(makeOutput({
+        status: "success", summary: "Build v1", deliverables: [], modifiedFiles: ["a.ts"],
+      }))
+      .mockResolvedValueOnce(makeOutput({
         status: "failure", summary: "Review failed", deliverables: [], modifiedFiles: [],
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Plan v2", deliverables: [], modifiedFiles: [],
+        status: "success", summary: "Build v2", deliverables: [], modifiedFiles: ["a.ts"],
       }))
       .mockResolvedValueOnce(makeOutput({
         status: "success", summary: "Review passed", deliverables: [], modifiedFiles: [],
-      }))
-      .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Built", deliverables: [], modifiedFiles: ["a.ts"],
       }))
       .mockResolvedValueOnce(makeOutput({
         status: "success", summary: "Tested", deliverables: [], modifiedFiles: [],
@@ -166,7 +166,7 @@ describe("team session artifacts", () => {
     const artifact = result.sessionArtifact!;
 
     expect(result.success).toBe(true);
-    // planning was visited twice, so loopCount and revisionCount should reflect this
+    // building/review were revisited, so loopCount and revisionCount should reflect this
     expect(artifact.metrics.loopCount).toBeGreaterThan(0);
     expect(artifact.metrics.revisionCount).toBeGreaterThan(0);
     expect(artifact.metrics.totalTransitions).toBe(6);
@@ -181,14 +181,14 @@ describe("team session artifacts", () => {
         inputTokens: 100, outputTokens: 20, totalTokens: 120,
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Review", deliverables: [], modifiedFiles: [],
-      }, {
-        inputTokens: 40, outputTokens: 10, totalTokens: 50,
-      }))
-      .mockResolvedValueOnce(makeOutput({
         status: "success", summary: "Build", deliverables: [], modifiedFiles: ["a.ts"],
       }, {
         inputTokens: 150, outputTokens: 80, totalTokens: 230,
+      }))
+      .mockResolvedValueOnce(makeOutput({
+        status: "success", summary: "Review", deliverables: [], modifiedFiles: [],
+      }, {
+        inputTokens: 40, outputTokens: 10, totalTokens: 50,
       }))
       .mockResolvedValueOnce(makeOutput({
         status: "success", summary: "Test", deliverables: [], modifiedFiles: [],
@@ -218,10 +218,10 @@ describe("team session artifacts", () => {
         status: "success", summary: "Plan", deliverables: [], modifiedFiles: [],
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Review", deliverables: [], modifiedFiles: [],
+        status: "success", summary: "Build", deliverables: [], modifiedFiles: ["a.ts"],
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Build", deliverables: [], modifiedFiles: ["a.ts"],
+        status: "success", summary: "Review", deliverables: [], modifiedFiles: [],
       }))
       .mockResolvedValueOnce(makeOutput({
         status: "success", summary: "Test", deliverables: [], modifiedFiles: [],
@@ -249,23 +249,26 @@ describe("team session artifacts", () => {
   });
 
   it("escalation (loop exhaustion) produces artifact with terminationReason retry_exhaustion", async () => {
-    // review→planning maxIterations=2: first two failures advance (count 0→1, 1→2), third attempt exhausts (count=2 >= 2)
-    // plan → review(fail,count→1) → plan → review(fail,count→2) → plan → review(fail,count=2→exhausted)
+    // review→building maxIterations=2: first two failures advance (count 0→1, 1→2), third attempt exhausts (count=2 >= 2)
+    // plan → build → review(fail,count→1) → build → review(fail,count→2) → build → review(fail,count=2→exhausted)
     const mockSpawn = vi.fn()
       .mockResolvedValueOnce(makeOutput({
         status: "success", summary: "Plan v1", deliverables: [], modifiedFiles: [],
       }))
       .mockResolvedValueOnce(makeOutput({
+        status: "success", summary: "Build v1", deliverables: [], modifiedFiles: ["a.ts"],
+      }))
+      .mockResolvedValueOnce(makeOutput({
         status: "failure", summary: "Review rejected v1", deliverables: [], modifiedFiles: [],
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Plan v2", deliverables: [], modifiedFiles: [],
+        status: "success", summary: "Build v2", deliverables: [], modifiedFiles: ["a.ts"],
       }))
       .mockResolvedValueOnce(makeOutput({
         status: "failure", summary: "Review rejected v2", deliverables: [], modifiedFiles: [],
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Plan v3", deliverables: [], modifiedFiles: [],
+        status: "success", summary: "Build v3", deliverables: [], modifiedFiles: ["a.ts"],
       }))
       .mockResolvedValueOnce(makeOutput({
         status: "failure", summary: "Review rejected v3", deliverables: [], modifiedFiles: [],
@@ -283,14 +286,11 @@ describe("team session artifacts", () => {
   });
 
   it("failure in mid-chain produces artifact with correct failure info", async () => {
-    // Plan → review → build(fail) loops back to planning with maxIterations=2
-    // Need 3 build failures to exhaust: plan→review→build(fail,count→1)→plan→review→build(fail,count→2)→plan→review→build(fail,exhausted)
+    // Plan → build(fail) loops back to planning with maxIterations=2
+    // Need 3 build failures to exhaust: plan→build(fail,count→1)→plan→build(fail,count→2)→plan→build(fail,exhausted)
     const mockSpawn = vi.fn()
       .mockResolvedValueOnce(makeOutput({
         status: "success", summary: "Plan v1", deliverables: [], modifiedFiles: [],
-      }))
-      .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Review v1", deliverables: [], modifiedFiles: [],
       }))
       .mockResolvedValueOnce(makeOutput({
         status: "failure", summary: "Build failed v1", deliverables: [], modifiedFiles: [],
@@ -299,16 +299,10 @@ describe("team session artifacts", () => {
         status: "success", summary: "Plan v2", deliverables: [], modifiedFiles: [],
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Review v2", deliverables: [], modifiedFiles: [],
-      }))
-      .mockResolvedValueOnce(makeOutput({
         status: "failure", summary: "Build failed v2", deliverables: [], modifiedFiles: [],
       }))
       .mockResolvedValueOnce(makeOutput({
         status: "success", summary: "Plan v3", deliverables: [], modifiedFiles: [],
-      }))
-      .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Review v3", deliverables: [], modifiedFiles: [],
       }))
       .mockResolvedValueOnce(makeOutput({
         status: "failure", summary: "Build failed v3", deliverables: [], modifiedFiles: [],
@@ -330,10 +324,10 @@ describe("team session artifacts", () => {
         status: "success", summary: "Plan", deliverables: [], modifiedFiles: [],
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Review", deliverables: [], modifiedFiles: [],
+        status: "success", summary: "Build", deliverables: [], modifiedFiles: ["a.ts"],
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Build", deliverables: [], modifiedFiles: ["a.ts"],
+        status: "success", summary: "Review", deliverables: [], modifiedFiles: [],
       }))
       .mockResolvedValueOnce(makeOutput({
         status: "success", summary: "Test", deliverables: [], modifiedFiles: [],
@@ -352,10 +346,10 @@ describe("team session artifacts", () => {
         status: "success", summary: "Plan", deliverables: ["step-1"], modifiedFiles: [],
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Review", deliverables: [], modifiedFiles: [],
+        status: "success", summary: "Build", deliverables: [], modifiedFiles: ["a.ts"],
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Build", deliverables: [], modifiedFiles: ["a.ts"],
+        status: "success", summary: "Review", deliverables: [], modifiedFiles: [],
       }))
       .mockResolvedValueOnce(makeOutput({
         status: "success", summary: "Test", deliverables: [], modifiedFiles: [],
@@ -401,10 +395,10 @@ describe("team session artifacts", () => {
         status: "success", summary: "Plan", deliverables: [], modifiedFiles: [],
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Review", deliverables: [], modifiedFiles: [],
+        status: "success", summary: "Build", deliverables: [], modifiedFiles: ["a.ts"],
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Build", deliverables: [], modifiedFiles: ["a.ts"],
+        status: "success", summary: "Review", deliverables: [], modifiedFiles: [],
       }))
       .mockResolvedValueOnce(makeOutput({
         status: "success", summary: "Test", deliverables: [], modifiedFiles: [],

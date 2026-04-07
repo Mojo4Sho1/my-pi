@@ -37,8 +37,8 @@ describe("orchestrator team delegation", () => {
   it("delegates to build-team when teamHint is provided", async () => {
     const mockSpawn = vi.fn()
       .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Planned", deliverables: ["s1"], modifiedFiles: [] }))
-      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Reviewed", deliverables: ["ok"], modifiedFiles: [] }))
       .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Built", deliverables: ["done"], modifiedFiles: ["a.ts"] }))
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Reviewed", deliverables: ["ok"], modifiedFiles: [] }))
       .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Tested", deliverables: ["pass"], modifiedFiles: [] }));
 
     const tool = await setupOrchestrator(mockSpawn);
@@ -82,8 +82,8 @@ describe("orchestrator team delegation", () => {
   it("teamHint bypasses specialist selection entirely", async () => {
     const mockSpawn = vi.fn()
       .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Planned", deliverables: ["s1"], modifiedFiles: [] }))
-      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Reviewed", deliverables: ["ok"], modifiedFiles: [] }))
       .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Built", deliverables: ["done"], modifiedFiles: ["a.ts"] }))
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Reviewed", deliverables: ["ok"], modifiedFiles: [] }))
       .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Tested", deliverables: ["pass"], modifiedFiles: [] }));
 
     const tool = await setupOrchestrator(mockSpawn);
