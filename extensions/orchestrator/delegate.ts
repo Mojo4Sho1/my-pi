@@ -5,7 +5,7 @@
  * spawning, result parsing) into a single delegation call.
  */
 
-import type { TaskPacket, ResultPacket, TeamDefinition } from "../shared/types.js";
+import type { TaskPacket, ResultPacket } from "../shared/types.js";
 import type { SpecialistPromptConfig } from "../shared/specialist-prompt.js";
 import { buildSpecialistSystemPrompt, buildSpecialistTaskPrompt } from "../shared/specialist-prompt.js";
 import { spawnSpecialistAgent } from "../shared/subprocess.js";
@@ -17,6 +17,10 @@ import { createResultPacket, validateResultPacket } from "../shared/packets.js";
 import { validateInputContract } from "../shared/contracts.js";
 import type { DelegationLogger } from "../shared/logging.js";
 import type { HookRegistry } from "../shared/hooks.js";
+import {
+  GLOBAL_RUN_REGISTRY,
+  linkAbortSignal,
+} from "../shared/run-registry.js";
 import {
   buildDefaultEnvelope,
   validateEnvelope,
@@ -49,6 +53,8 @@ export interface DelegationInput {
   modelOverride?: string;
   /** Project-level model config for this specialist */
   projectModelConfig?: string;
+  /** Optional parent run for registry ownership */
+  parentRunId?: string;
 }
 
 export interface DelegationOutput {
@@ -100,6 +106,29 @@ export async function delegateToSpecialist(input: DelegationInput): Promise<Dele
   const agentId = promptConfig.id;
   const hookRegistry = input.hookRegistry;
   let policyEnvelope: import("../shared/types.js").PolicyEnvelope | undefined;
+  const runController = new AbortController();
+  const unlinkAbort = linkAbortSignal(signal, runController);
+  const delegationRunId = GLOBAL_RUN_REGISTRY.registerRun({
+    parentRunId: input.parentRunId,
+    kind: "delegation",
+    owner: agentId,
+    cwd: process.cwd(),
+    label: `${agentId} delegation`,
+    taskId: taskPacket.id,
+    initialState: "starting",
+    handlers: {
+      gracefulStop: () => {
+        GLOBAL_RUN_REGISTRY.markCanceling(delegationRunId);
+        runController.abort("delegation_teardown");
+      },
+      forceStop: () => {
+        GLOBAL_RUN_REGISTRY.markCanceling(delegationRunId);
+        runController.abort("delegation_force_teardown");
+      },
+    },
+  }).id;
+  GLOBAL_RUN_REGISTRY.markActive(delegationRunId);
+  let finalState: "settled" | "failed" | "canceled" = "settled";
 
   const emitAfterDelegation = (
     resultStatus: ResultPacket["status"],
@@ -114,12 +143,13 @@ export async function delegateToSpecialist(input: DelegationInput): Promise<Dele
     });
   };
 
-  // 1. Build prompts
-  const systemPrompt = buildSpecialistSystemPrompt(promptConfig);
-  const taskPrompt = buildSpecialistTaskPrompt(taskPacket);
+  try {
+    // 1. Build prompts
+    const systemPrompt = buildSpecialistSystemPrompt(promptConfig);
+    const taskPrompt = buildSpecialistTaskPrompt(taskPacket);
 
-  // 1.5 Pre-flight contract validation
-  if (promptConfig.inputContract) {
+    // 1.5 Pre-flight contract validation
+    if (promptConfig.inputContract) {
     const preflightErrors = validateInputContract(
       taskPacket.context as Record<string, unknown> | undefined,
       promptConfig.inputContract
@@ -143,12 +173,13 @@ export async function delegateToSpecialist(input: DelegationInput): Promise<Dele
         modifiedFiles: [],
         sourceAgent: agentId,
       });
+      finalState = runController.signal.aborted ? "canceled" : "failed";
       return { resultPacket: failurePacket, success: false, policyEnvelope };
     }
-  }
+    }
 
-  // 2. Log delegation start
-  logger?.log({
+    // 2. Log delegation start
+    logger?.log({
     timestamp: new Date().toISOString(),
     level: "info",
     event: "delegation_start",
@@ -156,24 +187,24 @@ export async function delegateToSpecialist(input: DelegationInput): Promise<Dele
     targetAgent: agentId,
     taskId: taskPacket.id,
     summary: taskPacket.objective,
-  });
+    });
 
-  // 2.5 Resolve model
-  const resolvedModel = resolveModel({
+    // 2.5 Resolve model
+    const resolvedModel = resolveModel({
     runtimeOverride: input.modelOverride,
     projectConfig: input.projectModelConfig,
     specialistDefault: input.promptConfig.preferredModel,
-  });
+    });
 
   // TODO(5a.1): Check token thresholds before delegation
   // When session-level cumulative usage is available, call checkThresholds()
   // and handle warn (log) / split (signal orchestrator) / deny (return failure)
 
   // 2.7 Build and validate policy envelope (5a.1c)
-  policyEnvelope = buildDefaultEnvelope(agentId, taskPacket);
-  const sessionId = hookRegistry?.getSessionId() ?? "unknown_session";
-  const envelopeErrors = validateEnvelope(policyEnvelope);
-  if (envelopeErrors.length > 0) {
+    policyEnvelope = buildDefaultEnvelope(agentId, taskPacket);
+    const sessionId = hookRegistry?.getSessionId() ?? "unknown_session";
+    const envelopeErrors = validateEnvelope(policyEnvelope);
+    if (envelopeErrors.length > 0) {
     const spawnRecord = createSpawnRecord(
       agentId,
       policyEnvelope,
@@ -194,6 +225,7 @@ export async function delegateToSpecialist(input: DelegationInput): Promise<Dele
       modifiedFiles: [],
       sourceAgent: agentId,
     });
+    finalState = "failed";
     logger?.log({
       timestamp: new Date().toISOString(),
       level: "warn",
@@ -207,13 +239,13 @@ export async function delegateToSpecialist(input: DelegationInput): Promise<Dele
     });
     emitAfterDelegation(deniedPacket.status);
     return { resultPacket: deniedPacket, success: false, policyEnvelope };
-  }
+    }
 
-  const writeViolations = checkWritePaths(taskPacket.allowedWriteSet, policyEnvelope, {
-    sessionId,
-    invocationId: taskPacket.id,
-  });
-  if (writeViolations.length > 0) {
+    const writeViolations = checkWritePaths(taskPacket.allowedWriteSet, policyEnvelope, {
+      sessionId,
+      invocationId: taskPacket.id,
+    });
+    if (writeViolations.length > 0) {
     for (const violation of writeViolations) {
       hookRegistry?.dispatchObserver("onPolicyViolation", violation);
     }
@@ -239,6 +271,7 @@ export async function delegateToSpecialist(input: DelegationInput): Promise<Dele
       modifiedFiles: [],
       sourceAgent: agentId,
     });
+    finalState = "failed";
     logger?.log({
       timestamp: new Date().toISOString(),
       level: "warn",
@@ -252,22 +285,22 @@ export async function delegateToSpecialist(input: DelegationInput): Promise<Dele
     });
     emitAfterDelegation(deniedPacket.status);
     return { resultPacket: deniedPacket, success: false, policyEnvelope };
-  }
+    }
 
-  const spawnRecord = createSpawnRecord(agentId, policyEnvelope, "spawned", undefined, sessionId);
-  hookRegistry?.dispatchObserver("onArtifactWritten", {
+    const spawnRecord = createSpawnRecord(agentId, policyEnvelope, "spawned", undefined, sessionId);
+    hookRegistry?.dispatchObserver("onArtifactWritten", {
     artifactType: "spawn_record",
     taskId: taskPacket.id,
     artifact: spawnRecord,
-  });
+    });
 
-  const beforeDelegationPayload = {
-    specialistId: agentId,
-    taskId: taskPacket.id,
-    sourceAgent: taskPacket.sourceAgent,
-  };
-  const policyResult = hookRegistry?.dispatchPolicy("beforeDelegation", beforeDelegationPayload);
-  if (policyResult && !policyResult.allowed) {
+    const beforeDelegationPayload = {
+      specialistId: agentId,
+      taskId: taskPacket.id,
+      sourceAgent: taskPacket.sourceAgent,
+    };
+    const policyResult = hookRegistry?.dispatchPolicy("beforeDelegation", beforeDelegationPayload);
+    if (policyResult && !policyResult.allowed) {
     hookRegistry?.dispatchObserver("onPolicyViolation", {
       specialistId: agentId,
       taskId: taskPacket.id,
@@ -282,6 +315,7 @@ export async function delegateToSpecialist(input: DelegationInput): Promise<Dele
       modifiedFiles: [],
       sourceAgent: agentId,
     });
+    finalState = "failed";
     logger?.log({
       timestamp: new Date().toISOString(),
       level: "warn",
@@ -295,19 +329,31 @@ export async function delegateToSpecialist(input: DelegationInput): Promise<Dele
     });
     emitAfterDelegation(deniedPacket.status);
     return { resultPacket: deniedPacket, success: false, policyEnvelope };
-  }
+    }
 
-  hookRegistry?.dispatchObserver("beforeDelegation", beforeDelegationPayload);
-  hookRegistry?.dispatchObserver("beforeSubprocessSpawn", {
+    hookRegistry?.dispatchObserver("beforeDelegation", beforeDelegationPayload);
+    hookRegistry?.dispatchObserver("beforeSubprocessSpawn", {
     specialistId: agentId,
     taskId: taskPacket.id,
-  });
+    });
 
-  // 3. Spawn the specialist sub-agent
-  let subAgentResult;
-  try {
-    subAgentResult = await spawnSpecialistAgent(systemPrompt, taskPrompt, signal, undefined, resolvedModel);
-  } catch (err) {
+    // 3. Spawn the specialist sub-agent
+    let subAgentResult;
+    try {
+      subAgentResult = await spawnSpecialistAgent(
+        systemPrompt,
+        taskPrompt,
+        runController.signal,
+        undefined,
+        resolvedModel,
+        {
+          parentRunId: delegationRunId,
+          cwd: process.cwd(),
+          label: `${agentId} subprocess`,
+          taskId: taskPacket.id,
+        }
+      );
+    } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
     const failurePacket = createResultPacket({
       taskId: taskPacket.id,
@@ -317,6 +363,7 @@ export async function delegateToSpecialist(input: DelegationInput): Promise<Dele
       modifiedFiles: [],
       sourceAgent: agentId,
     });
+    finalState = runController.signal.aborted ? "canceled" : "failed";
     logger?.log({
       timestamp: new Date().toISOString(),
       level: "error",
@@ -335,17 +382,17 @@ export async function delegateToSpecialist(input: DelegationInput): Promise<Dele
       tokenUsage: subAgentResult?.tokenUsage,
       policyEnvelope,
     };
-  }
+    }
 
-  hookRegistry?.dispatchObserver("afterSubprocessExit", {
+    hookRegistry?.dispatchObserver("afterSubprocessExit", {
     specialistId: agentId,
     taskId: taskPacket.id,
     exitCode: subAgentResult.exitCode,
     tokenUsage: subAgentResult.tokenUsage,
-  });
+    });
 
   // 4. Handle process-level failures
-  if (subAgentResult.exitCode !== 0 && !subAgentResult.finalText) {
+    if (subAgentResult.exitCode !== 0 && !subAgentResult.finalText) {
     const failurePacket = createResultPacket({
       taskId: taskPacket.id,
       status: "failure",
@@ -354,6 +401,7 @@ export async function delegateToSpecialist(input: DelegationInput): Promise<Dele
       modifiedFiles: [],
       sourceAgent: agentId,
     });
+    finalState = runController.signal.aborted ? "canceled" : "failed";
     logger?.log({
       timestamp: new Date().toISOString(),
       level: "error",
@@ -372,13 +420,13 @@ export async function delegateToSpecialist(input: DelegationInput): Promise<Dele
       tokenUsage: subAgentResult.tokenUsage,
       policyEnvelope,
     };
-  }
+    }
 
   // 5. Parse specialist output
-  const { result: parsed, rawJson } = parseSpecialistOutput(subAgentResult.finalText, agentId);
+    const { result: parsed, rawJson } = parseSpecialistOutput(subAgentResult.finalText, agentId);
 
   // 5.25 Semantic adequacy gate
-  if (promptConfig.adequacyChecks && promptConfig.adequacyChecks.length > 0 && parsed.status === "success") {
+    if (promptConfig.adequacyChecks && promptConfig.adequacyChecks.length > 0 && parsed.status === "success") {
     // Build a temporary result packet for adequacy checking
     const tempResult = createResultPacket({
       taskId: taskPacket.id,
@@ -408,16 +456,16 @@ export async function delegateToSpecialist(input: DelegationInput): Promise<Dele
         failures: adequacyResult.failures,
       });
     }
-  }
+    }
 
   // 5.5 Extract structured review output for reviewer results
-  let reviewOutput: StructuredReviewOutput | undefined;
-  if (promptConfig.id === "specialist_reviewer" && rawJson) {
+    let reviewOutput: StructuredReviewOutput | undefined;
+    if (promptConfig.id === "specialist_reviewer" && rawJson) {
     reviewOutput = parseReviewOutput(parsed, rawJson);
-  }
+    }
 
   // 6. Create and validate result packet
-  const resultPacket = createResultPacket({
+    const resultPacket = createResultPacket({
     taskId: taskPacket.id,
     status: parsed.status,
     summary: parsed.summary,
@@ -425,10 +473,10 @@ export async function delegateToSpecialist(input: DelegationInput): Promise<Dele
     modifiedFiles: parsed.modifiedFiles,
     escalation: parsed.escalation,
     sourceAgent: parsed.sourceAgent,
-  });
+    });
 
-  const validationErrors = validateResultPacket(resultPacket);
-  if (validationErrors.length > 0) {
+    const validationErrors = validateResultPacket(resultPacket);
+    if (validationErrors.length > 0) {
     const fallbackPacket = createResultPacket({
       taskId: taskPacket.id,
       status: "failure",
@@ -437,6 +485,7 @@ export async function delegateToSpecialist(input: DelegationInput): Promise<Dele
       modifiedFiles: [],
       sourceAgent: agentId,
     });
+    finalState = runController.signal.aborted ? "canceled" : "failed";
     logger?.log({
       timestamp: new Date().toISOString(),
       level: "error",
@@ -455,10 +504,10 @@ export async function delegateToSpecialist(input: DelegationInput): Promise<Dele
       tokenUsage: subAgentResult.tokenUsage,
       policyEnvelope,
     };
-  }
+    }
 
   // 7. Log delegation complete
-  logger?.log({
+    logger?.log({
     timestamp: new Date().toISOString(),
     level: resultPacket.status === "failure" || resultPacket.status === "escalation" ? "warn" : "info",
     event: "delegation_complete",
@@ -467,17 +516,30 @@ export async function delegateToSpecialist(input: DelegationInput): Promise<Dele
     taskId: taskPacket.id,
     status: resultPacket.status,
     summary: resultPacket.summary,
-  });
+    });
 
-  emitAfterDelegation(resultPacket.status, subAgentResult.tokenUsage);
+    emitAfterDelegation(resultPacket.status, subAgentResult.tokenUsage);
 
-  return {
-    resultPacket,
-    success: parsed.status === "success",
-    reviewOutput,
-    tokenUsage: subAgentResult.tokenUsage,
-    policyEnvelope,
-  };
+    finalState = runController.signal.aborted ? "canceled" : "settled";
+    return {
+      resultPacket,
+      success: parsed.status === "success",
+      reviewOutput,
+      tokenUsage: subAgentResult.tokenUsage,
+      policyEnvelope,
+    };
+  } finally {
+    unlinkAbort();
+    if (runController.signal.aborted) {
+      GLOBAL_RUN_REGISTRY.markCanceling(delegationRunId);
+      await GLOBAL_RUN_REGISTRY.waitForDescendantsToSettle(delegationRunId);
+      GLOBAL_RUN_REGISTRY.markCanceled(delegationRunId);
+    } else if (finalState === "failed") {
+      GLOBAL_RUN_REGISTRY.markFailed(delegationRunId);
+    } else {
+      GLOBAL_RUN_REGISTRY.markSettled(delegationRunId);
+    }
+  }
 }
 
 /**
@@ -564,6 +626,7 @@ export async function delegateToTeam(input: {
   signal?: AbortSignal;
   logger?: DelegationLogger;
   hookRegistry?: HookRegistry;
+  parentRunId?: string;
 }): Promise<DelegationOutput> {
   const { TEAM_REGISTRY } = await import("../teams/definitions.js");
   const team = TEAM_REGISTRY[input.teamId];
@@ -586,7 +649,7 @@ export async function delegateToTeam(input: {
     input.taskPacket,
     input.signal,
     input.logger,
-    input.hookRegistry
+    input.hookRegistry,
   );
 
   return {

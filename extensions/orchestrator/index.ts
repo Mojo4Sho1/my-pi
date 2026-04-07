@@ -27,6 +27,7 @@ import { createWorklist, appendItem, updateItemStatus, getWorklistSummary } from
 import type { Worklist } from "../worklist/index.js";
 import type { ResultPacket, StructuredReviewOutput } from "../shared/types.js";
 import { aggregateTokenUsage } from "../shared/tokens.js";
+import { GLOBAL_RUN_REGISTRY, linkAbortSignal } from "../shared/run-registry.js";
 
 const OrchestrateParams = Type.Object({
   task: Type.String({ description: "What needs to be done" }),
@@ -147,7 +148,28 @@ export default function orchestratorExtension(pi: ExtensionAPI) {
       const relevantFiles = await inferFilePaths(task, explicitFiles);
       const logger = createPiLogger(pi);
       const hookRegistry = createHookRegistry();
+      const runController = new AbortController();
+      const unlinkAbort = linkAbortSignal(signal, runController);
+      const orchestrationRunId = GLOBAL_RUN_REGISTRY.registerRun({
+        kind: "orchestration",
+        owner: "orchestrator",
+        cwd: ctx.cwd,
+        label: task.slice(0, 120),
+        initialState: "starting",
+        handlers: {
+          gracefulStop: () => {
+            GLOBAL_RUN_REGISTRY.markCanceling(orchestrationRunId);
+            runController.abort("orchestration_teardown");
+          },
+          forceStop: () => {
+            GLOBAL_RUN_REGISTRY.markCanceling(orchestrationRunId);
+            runController.abort("orchestration_force_teardown");
+          },
+        },
+      }).id;
+      GLOBAL_RUN_REGISTRY.markActive(orchestrationRunId);
       let sessionTokenUsage: import("../shared/types.js").TokenUsage | undefined;
+      let finalState: "settled" | "failed" | "canceled" = "settled";
 
       hookRegistry.dispatchObserver("onCommandInvoked", {
         commandName: "orchestrate",
@@ -176,9 +198,10 @@ export default function orchestratorExtension(pi: ExtensionAPI) {
           const { resultPacket, success, sessionArtifact } = await delegateToTeam({
             teamId: teamHint,
             taskPacket: teamTaskPacket,
-            signal,
+            signal: runController.signal,
             logger,
             hookRegistry,
+            parentRunId: orchestrationRunId,
           });
 
           // Log team session artifact
@@ -295,10 +318,11 @@ export default function orchestratorExtension(pi: ExtensionAPI) {
           const delegationOutput = await delegateToSpecialist({
             promptConfig,
             taskPacket,
-            signal,
+            signal: runController.signal,
             logger,
             modelOverride,
             hookRegistry,
+            parentRunId: orchestrationRunId,
           });
 
           collectedResults.push(delegationOutput.resultPacket);
@@ -362,7 +386,20 @@ export default function orchestratorExtension(pi: ExtensionAPI) {
             worklistSummary: synthesized.worklistSummary,
           },
         };
+      } catch (error) {
+        finalState = runController.signal.aborted ? "canceled" : "failed";
+        throw error;
       } finally {
+        unlinkAbort();
+        if (runController.signal.aborted) {
+          GLOBAL_RUN_REGISTRY.markCanceling(orchestrationRunId);
+          await GLOBAL_RUN_REGISTRY.waitForDescendantsToSettle(orchestrationRunId);
+          GLOBAL_RUN_REGISTRY.markCanceled(orchestrationRunId);
+        } else if (finalState === "failed") {
+          GLOBAL_RUN_REGISTRY.markFailed(orchestrationRunId);
+        } else {
+          GLOBAL_RUN_REGISTRY.markSettled(orchestrationRunId);
+        }
         hookRegistry.dispatchObserver("onSessionEnd", {
           sessionId: hookRegistry.getSessionId(),
           totalTokenUsage: sessionTokenUsage,

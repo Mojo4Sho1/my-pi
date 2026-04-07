@@ -50,23 +50,22 @@ For handoff routing, start with `docs/handoff/_HANDOFF_INDEX.md`. For validation
 
 | ID | Status | Task | Specs to Read | Acceptance Criteria |
 |----|--------|------|---------------|---------------------|
-| T-09 | active | Implement panic and teardown system | `docs/design/PANIC_AND_TEARDOWN_DESIGN.md` | Run registry, abort propagation, settled-state barrier, `/panic` command; no orphaned subprocesses; typecheck + tests pass |
+| T-09 | done | Implement panic and teardown system | `docs/design/PANIC_AND_TEARDOWN_DESIGN.md` | Run registry, abort propagation, settled-state barrier, `/panic` command; no orphaned subprocesses; typecheck + tests pass |
 
-## Phase: Post-Teardown (blocked on T-09)
+## Phase: Post-Teardown
 
 | ID | Status | Task | Specs to Read | Acceptance Criteria |
 |----|--------|------|---------------|---------------------|
-| T-10 | blocked | Team state machine e2e validation (5a.3b) | `docs/IMPLEMENTATION_PLAN.md` (5a.3b) | Clean build-team run via teamHint with no errors |
-| T-11 | blocked | Tester specialist role redesign (5a.3c) | `docs/IMPLEMENTATION_PLAN.md` (5a.3c), Decision #40 | Tester is test author; build-team flow updated |
-| T-12 | blocked | Specialist invocation patterns (5a.3d) | `docs/IMPLEMENTATION_PLAN.md` (5a.3d), Decision #41 | Verified build + parallel scout patterns working |
-| T-13 | blocked | Token logging and observability (5a.3e) | `docs/IMPLEMENTATION_PLAN.md` (5a.3e) | Per-specialist token counts in orchestrator output |
-| T-14 | blocked | Dashboard real-time monitoring (5a.4) | `docs/IMPLEMENTATION_PLAN.md` (5a.4) | Dashboard consumes run registry for live monitoring |
+| T-10 | active | Team state machine e2e validation (5a.3b) | `docs/IMPLEMENTATION_PLAN.md` (5a.3b) | Clean build-team run via teamHint with no errors |
+| T-11 | queued | Tester specialist role redesign (5a.3c) | `docs/IMPLEMENTATION_PLAN.md` (5a.3c), Decision #40 | Tester is test author; build-team flow updated |
+| T-12 | queued | Specialist invocation patterns (5a.3d) | `docs/IMPLEMENTATION_PLAN.md` (5a.3d), Decision #41 | Verified build + parallel scout patterns working |
+| T-13 | queued | Token logging and observability (5a.3e) | `docs/IMPLEMENTATION_PLAN.md` (5a.3e) | Per-specialist token counts in orchestrator output |
+| T-14 | queued | Dashboard real-time monitoring (5a.4) | `docs/IMPLEMENTATION_PLAN.md` (5a.4) | Dashboard consumes run registry for live monitoring |
 
 ---
 
 ## Notes
 
 - Stage 5a.3 validation is complete. All 8 tasks done, 617 tests passing.
-- T-09 (panic/teardown) is BLOCKING — no further orchestration work until it's implemented.
-- T-10 through T-14 are blocked on T-09.
-- T-09 should NOT use the orchestrator (it modifies the orchestrator itself). Implement directly.
+- T-09 is complete. T-10 is now the active handoff target.
+- Restart Pi before running T-10 so the live extension session picks up the new teardown code.

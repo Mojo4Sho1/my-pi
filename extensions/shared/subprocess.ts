@@ -7,6 +7,7 @@
 
 import { spawn, type ChildProcess } from "child_process";
 import type { TokenUsage } from "./types.js";
+import { GLOBAL_RUN_REGISTRY } from "./run-registry.js";
 
 export interface SubAgentResult {
   exitCode: number;
@@ -17,6 +18,13 @@ export interface SubAgentResult {
 }
 
 const DEFAULT_TIMEOUT_MS = 600_000; // 10 minutes — specialists run tools, edit files, and invoke builds
+
+export interface SpawnSpecialistAgentOptions {
+  parentRunId?: string;
+  cwd?: string;
+  label?: string;
+  taskId?: string;
+}
 
 /**
  * Spawn a Pi sub-agent with the given system and task prompts.
@@ -33,7 +41,8 @@ export function spawnSpecialistAgent(
   taskPrompt: string,
   signal?: AbortSignal,
   timeoutMs: number = DEFAULT_TIMEOUT_MS,
-  model?: string
+  model?: string,
+  options?: SpawnSpecialistAgentOptions,
 ): Promise<SubAgentResult> {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) {
@@ -42,6 +51,7 @@ export function spawnSpecialistAgent(
     }
 
     let child: ChildProcess;
+    let runId: string | undefined;
     try {
       // --mode json: emit JSONL events on stdout (required for parsing)
       // --print: run once and exit (non-interactive)
@@ -70,6 +80,26 @@ export function spawnSpecialistAgent(
     let currentMessageText = "";
     let tokenUsage: TokenUsage | undefined;
     let settled = false;
+    let gracefulStopRequested = false;
+    let forceStopRequested = false;
+
+    const requestGracefulStop = () => {
+      if (settled || gracefulStopRequested) return;
+      gracefulStopRequested = true;
+      if (runId) {
+        GLOBAL_RUN_REGISTRY.markCanceling(runId);
+      }
+      child.kill("SIGTERM");
+    };
+
+    const requestForceStop = () => {
+      if (settled || forceStopRequested) return;
+      forceStopRequested = true;
+      if (runId) {
+        GLOBAL_RUN_REGISTRY.markCanceling(runId);
+      }
+      child.kill("SIGKILL");
+    };
 
     const settle = (result: SubAgentResult) => {
       if (settled) return;
@@ -78,13 +108,32 @@ export function spawnSpecialistAgent(
       resolve(result);
     };
 
+    runId = GLOBAL_RUN_REGISTRY.registerRun({
+      parentRunId: options?.parentRunId,
+      kind: "subprocess",
+      owner: "pi",
+      cwd: options?.cwd,
+      label: options?.label ?? "pi specialist subprocess",
+      taskId: options?.taskId,
+      initialState: "starting",
+      handlers: {
+        gracefulStop: () => {
+          requestGracefulStop();
+        },
+        forceStop: () => {
+          requestForceStop();
+        },
+      },
+    }).id;
+    GLOBAL_RUN_REGISTRY.markActive(runId);
+
     // Timeout handling: SIGTERM, then SIGKILL after 5s
     const timer = setTimeout(() => {
       if (settled) return;
-      child.kill("SIGTERM");
+      requestGracefulStop();
       setTimeout(() => {
         if (!settled) {
-          child.kill("SIGKILL");
+          requestForceStop();
         }
       }, 5000);
     }, timeoutMs);
@@ -92,9 +141,9 @@ export function spawnSpecialistAgent(
     // Abort signal forwarding
     const onAbort = () => {
       if (!settled) {
-        child.kill("SIGTERM");
+        requestGracefulStop();
         setTimeout(() => {
-          if (!settled) child.kill("SIGKILL");
+          if (!settled) requestForceStop();
         }, 5000);
       }
     };
@@ -192,6 +241,9 @@ export function spawnSpecialistAgent(
     });
 
     child.on("error", (err) => {
+      if (runId) {
+        GLOBAL_RUN_REGISTRY.markFailed(runId, err.message);
+      }
       settle({
         exitCode: -1,
         finalText: "",
@@ -210,6 +262,17 @@ export function spawnSpecialistAgent(
           processEvent(JSON.parse(remaining));
         } catch {
           // Non-JSON remnant — skip
+        }
+      }
+      if (runId) {
+        if (forceStopRequested) {
+          GLOBAL_RUN_REGISTRY.markKilled(runId);
+        } else if (gracefulStopRequested) {
+          GLOBAL_RUN_REGISTRY.markCanceled(runId);
+        } else if ((code ?? -1) === 0) {
+          GLOBAL_RUN_REGISTRY.markSettled(runId);
+        } else {
+          GLOBAL_RUN_REGISTRY.markFailed(runId, stderrBuffer || `exit code ${code ?? -1}`);
         }
       }
       settle({

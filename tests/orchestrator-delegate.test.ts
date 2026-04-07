@@ -155,9 +155,12 @@ describe("delegateToSpecialist", () => {
     expect(mockSpawn).toHaveBeenCalledWith(
       expect.any(String),
       expect.any(String),
-      controller.signal,
+      expect.any(AbortSignal),
       undefined,
-      undefined
+      undefined,
+      expect.objectContaining({
+        label: "specialist_builder subprocess",
+      })
     );
   });
 

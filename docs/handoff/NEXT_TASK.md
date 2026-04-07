@@ -5,75 +5,67 @@
 
 ## Task summary
 
-Implement the panic and teardown system (Stage 5a.6): run registry, abort propagation, settled-state barrier, `/panic` extension command, and graceful-then-forced teardown. This is a BLOCKING prerequisite for all further orchestration work.
+Re-run Stage 5a.3b live team validation now that teardown safety is in place. The immediate target is a clean `build-team` execution through `teamHint` with a fresh Pi restart so the runtime is using the new panic/teardown code.
 
 ## Why this task is next
 
-- During Stage 5a.3 validation, a canceled orchestration task left orphaned sub-agent subprocesses consuming tokens invisibly
-- This is a safety and cost control issue that must be fixed before adding any orchestration complexity
-- Decision #43 and the full design are in `docs/design/PANIC_AND_TEARDOWN_DESIGN.md`
+- Stage 5a.6 is complete and no longer blocks orchestration work.
+- The last live build-team attempt was inconclusive because the session was using stale extension code.
+- We need one trustworthy live team run before moving on to more orchestration changes.
 
 ## Scope (in)
 
-- Create `extensions/shared/run-registry.ts` — parent-owned run registry with lifecycle states
-- Create `extensions/shared/teardown.ts` — graceful-then-forced teardown logic
-- Create `extensions/panic/index.ts` — `/panic` extension command
-- Update `extensions/shared/subprocess.ts` — register spawned sub-agents in run registry
-- Update `extensions/orchestrator/delegate.ts` — register delegations, propagate abort
-- Update `extensions/teams/router.ts` — register team executions, propagate abort
-- Add tests for run registry, teardown, abort propagation, and `/panic`
-- Update `package.json` to register the panic extension
+- Restart Pi so the loaded extensions include the Stage 5a.6 teardown changes.
+- Re-run the live build-team validation scenario that previously exposed the stale-code/routing confusion.
+- Capture whether the team run now completes cleanly through `teamHint`.
+- If the live run exposes new runtime defects, fix them if they are small and local; otherwise document them precisely and queue them.
+- Update the relevant validation result artifact and handoff docs with the outcome.
 
 ## Scope (out)
 
-- Full widget/dashboard implementation (consumes this work later)
-- Repo-local policy files (`.pi/policies/teardown.yaml`) — design must be compatible but not implemented
-- Rich historical telemetry
-- Distributed/multi-host teardown
+- New dashboard features
+- Additional specialist redesign work beyond what is required to get a clean live validation run
+- Broad architecture replanning
 
 ## Specialist flow
 
-This task should NOT use the orchestrator — it modifies the orchestrator itself. Implement directly.
+Use the actual team/orchestrator path being validated. This task is about proving the live runtime behavior, not only local unit coverage.
 
 ## Relevant files
 
-- Design doc: `docs/design/PANIC_AND_TEARDOWN_DESIGN.md`
-- Modifies: `extensions/shared/subprocess.ts`, `extensions/orchestrator/delegate.ts`, `extensions/teams/router.ts`, `package.json`
-- Creates: `extensions/shared/run-registry.ts`, `extensions/shared/teardown.ts`, `extensions/panic/index.ts`, `tests/run-registry.test.ts`, `tests/teardown.test.ts`, `tests/panic.test.ts`
+- `docs/IMPLEMENTATION_PLAN.md` (Stage 5a.3b)
+- `docs/validation/results/RESULT_08_DASHBOARD_CMD.md`
+- `extensions/teams/router.ts`
+- `extensions/orchestrator/index.ts`
+- `extensions/shared/run-registry.ts`
+- `extensions/shared/teardown.ts`
 
 ## Dependencies / prerequisites
 
-- Stage 5a.3 complete (all spawn paths identified through validation)
-- Design document exists: `docs/design/PANIC_AND_TEARDOWN_DESIGN.md`
+- Stage 5a.6 complete
+- Pi session restarted before live validation
 
 ## Acceptance criteria (definition of done)
 
-- All nested work registered in parent-owned run registry
-- Parent abort automatically triggers descendant teardown
-- Cancellation not reported complete until all descendants are terminal
-- Graceful-then-forced teardown escalation works
-- `/panic` extension command exists and reports what it stopped
-- No orphaned subprocess survives parent cancellation
-- Validated with scenarios: normal completion, parent cancel, panic, ignored graceful stop, repeated panic
+- Live build-team run completes with no stale-code confusion and no routing errors
+- The run does not leave orphaned subprocesses behind
+- Outcome is documented in the validation results and handoff files
 - `make typecheck` passes
 - `make test` passes
 
 ## Verification checklist
 
-- [ ] Run registry tracks all spawned sub-agents and subprocesses
-- [ ] Parent abort propagates to all descendants
-- [ ] Settled-state barrier prevents premature completion
-- [ ] `/panic` command works and reports results
-- [ ] Graceful-then-forced escalation tested
-- [ ] All 5 validation scenarios pass
+- [ ] Restart Pi before running live validation
+- [ ] Clean build-team run via `teamHint`
+- [ ] No orphaned descendants after completion/cancel
+- [ ] Validation result artifact updated
 - [ ] `make typecheck` passes
 - [ ] `make test` passes
-- [ ] Update `docs/handoff/CURRENT_STATUS.md` with results
+- [ ] Update `docs/handoff/CURRENT_STATUS.md`
 - [ ] Update `docs/handoff/TASK_QUEUE.md`
-- [ ] Update `docs/handoff/NEXT_TASK.md` with next task
+- [ ] Update `docs/handoff/NEXT_TASK.md`
 
 ## Risks / rollback notes
 
-- This modifies core subprocess and delegation infrastructure — high blast radius
-- Must not break existing specialist delegation or team routing
-- Test thoroughly before considering complete
+- Live Pi sessions can still mislead if the extension host was not restarted.
+- If the run fails, preserve exact symptoms; the next fix should target the runtime defect rather than re-opening teardown work blindly.
