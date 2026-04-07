@@ -41,7 +41,7 @@ describe("spawnSpecialistAgent", () => {
 
     expect(mockSpawn).toHaveBeenCalledWith(
       "pi",
-      ["--print", "-s", "system", "-p", "task"],
+      ["--mode", "json", "--print", "--system-prompt", "system", "task"],
       expect.objectContaining({ stdio: ["ignore", "pipe", "pipe"] })
     );
     expect(result.exitCode).toBe(0);

@@ -56,18 +56,30 @@ The reference pattern (from pi-mono's subagent example) spawns isolated Pi proce
 import { spawn } from "child_process";
 
 const child = spawn("pi", [
-  "--print",           // Non-interactive JSON output mode
-  "-s", systemPrompt,  // Inject system prompt (working style, constraints)
-  "-p", taskPrompt,    // The task to execute
+  "--mode", "json",            // Emit JSONL events on stdout
+  "--print",                   // Run once and exit (non-interactive)
+  "--system-prompt", systemPrompt,  // Inject system prompt
+  taskPrompt,                  // Positional arg: the task to execute
 ], { signal });
 
 // Parse JSON events from stdout for messages, tool calls, results
 // Handle SIGTERM → 5s wait → SIGKILL for cleanup
 ```
 
+**CLI flag reference:**
+- `--mode json` — emit structured JSONL events on stdout (required for programmatic parsing)
+- `--mode text` — plain text output (default)
+- `--mode rpc` — RPC protocol over stdin/stdout
+- `--print` / `-p` — process prompt and exit (non-interactive)
+- `--system-prompt` — inject a system prompt
+- `--model` — override the model
+- Prompt text is a **positional argument**, not a flag
+
+**JSONL event types:** `session`, `agent_start`, `turn_start`, `message_start`, `message_update`, `message_end`, `tool_execution_start`, `tool_execution_update`, `tool_execution_end`, `turn_end`, `agent_end`
+
 Key properties:
 - Each sub-agent gets an **isolated context window** and tool configuration
-- Communicates via **JSON-formatted events on stdout**
+- Communicates via **JSON-formatted events on stdout** (requires `--mode json`)
 - Supports **abort signal** for cancellation
 - Agent definitions from `~/.pi/agent/agents/` or `.pi/agents/` are discoverable
 

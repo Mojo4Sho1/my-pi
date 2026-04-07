@@ -33,6 +33,8 @@ Supporting directories: `agents/` (definition specs), `docs/` (architectural ref
 
 **Extension loading gotcha:** Only `extensions/orchestrator/index.ts` and `extensions/dashboard/index.ts` are Pi extensions (they export default factory functions). Everything else under `extensions/` — `shared/`, `specialists/`, `teams/`, `worklist/` — are internal libraries imported by code. The `package.json` explicitly lists the two extension files to prevent Pi from trying to auto-discover and load library modules as extensions. Do not change `pi.extensions` back to `["./extensions"]` or add new entries without ensuring the file exports a valid Pi extension factory.
 
+**Sub-agent CLI gotcha:** Pi's `--print` flag means "run once and exit" — it does NOT produce JSON output. For structured JSONL event parsing, you must use `--mode json --print`. The system prompt uses `--system-prompt`, and the task prompt is a positional argument (not `-p`). See `extensions/shared/subprocess.ts` for the correct invocation.
+
 ## Development context
 
 See `CLAUDE.md` for development guidance, reading order, and current project state.

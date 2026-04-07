@@ -43,10 +43,15 @@ export function spawnSpecialistAgent(
 
     let child: ChildProcess;
     try {
-      const args = ["--print", "-s", systemPrompt, "-p", taskPrompt];
+      // --mode json: emit JSONL events on stdout (required for parsing)
+      // --print: run once and exit (non-interactive)
+      // --system-prompt: inject specialist system prompt
+      // positional arg: the task prompt
+      const args = ["--mode", "json", "--print", "--system-prompt", systemPrompt];
       if (model) {
         args.push("--model", model);
       }
+      args.push(taskPrompt);
       child = spawn(
         "pi",
         args,
