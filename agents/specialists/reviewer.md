@@ -82,7 +82,8 @@
 
 - `related_docs`:
   - `agents/AGENT_DEFINITION_CONTRACT.md`
-  - `agents/PRIMITIVE_LAYER_PLAN.md`
+  - `docs/_IMPLEMENTATION_PLAN_INDEX.md`
+  - `docs/IMPLEMENTATION_PLAN.md`
   - `agents/specialists/_SPECIALISTS_INDEX.md`
 - `related_definitions`:
   - `agents/specialists/planner.md`

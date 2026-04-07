@@ -375,3 +375,22 @@ The system prefers explicit runtime policies, visible boundaries, and hard enfor
 **Why:** Learned permissioning creates opaque, non-reproducible security boundaries. In a system with bounded delegation and explicit contracts, deterministic enforcement is both feasible and preferable. The system already thinks in terms of narrow specialists and bounded authority — runtime enforcement should match that architectural intent.
 
 **Source:** `docs/archive/design/runtime_additions.md`
+
+### 39. Index-first context routing with a root `INDEX.md` exception (2026-04-07) [active]
+
+Routine repository navigation should route through local index files before broad documentation reads. The default startup path is:
+
+1. `AGENTS.md`
+2. root `INDEX.md`
+3. the nearest relevant local index
+4. only the specific file or section needed for the task
+
+**Implementation-plan rule:** Agents should use `docs/_IMPLEMENTATION_PLAN_INDEX.md` first and then read only the smallest relevant section of `docs/IMPLEMENTATION_PLAN.md`. A full-plan read is reserved for architecture-wide replanning, implementation-plan maintenance, cross-stage design work, or explicit user instruction.
+
+**Naming rule:** Local index files use explicit underscore-prefixed names such as `_DOCS_INDEX.md` and `_VALIDATION_INDEX.md`. The root `INDEX.md` remains the single bootstrap exception to that naming convention.
+
+**Decision-record rule:** `DECISION_LOG.md` remains the canonical decision ledger. ADRs may be added as durable companion records, but they do not replace this file as the source of active/superseded decision status.
+
+**Why:** This reduces unnecessary context loading, keeps routing aligned with the repo's narrow-context orchestration model, and makes fresh-agent startup more consistent.
+
+**Companion ADR:** `docs/adr/0001_INDEX_FIRST_CONTEXT_ROUTING.md`

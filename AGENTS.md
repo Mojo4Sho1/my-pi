@@ -78,6 +78,10 @@ Supporting: `agents/` (definition specs), `docs/` (architectural reference), `te
 
 | Document | Purpose |
 |---|---|
+| `INDEX.md` | Root bootstrap router for the repo |
+| `docs/REPO_CONVENTIONS.md` | Repo navigation rules, index naming, and truthfulness conventions |
+| `docs/_DOCS_INDEX.md` | Router for the docs tree |
+| `docs/_IMPLEMENTATION_PLAN_INDEX.md` | Router for the staged implementation plan |
 | `STATUS.md` | Current project state and queued work |
 | `DECISION_LOG.md` | Durable project decisions (single source of truth) |
 | `docs/IMPLEMENTATION_PLAN.md` | Staged build strategy and current roadmap |
@@ -90,9 +94,10 @@ Supporting: `agents/` (definition specs), `docs/` (architectural reference), `te
 
 ## How to Implement the Next Stage
 
-**Before exploring the codebase, read `docs/IMPLEMENTATION_PLAN.md` for the target stage.** It contains pre-resolved design decisions, exact type definitions, function signatures, file lists, and often code snippets. Start from the plan, not from scratch exploration.
+**Before broad documentation reads, route through `INDEX.md` and the nearest local index.** For staged work, start with `docs/_IMPLEMENTATION_PLAN_INDEX.md`, then read only the relevant section of `docs/IMPLEMENTATION_PLAN.md`.
 
-- If the implementation plan already has detailed specs, **execute directly** rather than spending tokens on planning.
+- Read the full `docs/IMPLEMENTATION_PLAN.md` only when doing architecture-wide replanning, plan maintenance, cross-stage design work, or an explicitly requested full-plan review.
+- If the implementation plan section already has detailed specs, **execute directly** rather than spending tokens on planning.
 - If the plan is vague or leaves open questions, plan first to resolve them.
 - Always check `STATUS.md` for the current state and `DECISION_LOG.md` for relevant decisions before starting.
 - If the task touches Pi versions, package loading, extension lifecycle behavior, or spawned `pi` CLI behavior, also read `docs/UPSTREAM_PI_POLICY.md` before making compatibility-sensitive changes.

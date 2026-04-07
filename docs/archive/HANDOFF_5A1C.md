@@ -1,11 +1,13 @@
 # Stage 5a.1c — Deterministic Sandboxing and Path Protection: Execution Guide
 
+Archived historical execution guide. This file is not part of the active handoff flow; active handoff docs live under `docs/handoff/`.
+
 ## Read First
 
 - `STATUS.md` — current project state
 - `DECISION_LOG.md` — Decision #38 (deterministic guardrails outrank learned permissioning)
-- `docs/IMPLEMENTATION_PLAN.md` — Stage 5a.1c section
-- `docs/HANDOFF_5A1B.md` — predecessor stage (hook substrate), to understand what was added
+- `docs/_IMPLEMENTATION_PLAN_INDEX.md` — route to the Stage 5a.1c section before opening the plan
+- `docs/archive/HANDOFF_5A1B.md` — predecessor stage (hook substrate), to understand what was added
 
 ## What This Stage Does
 

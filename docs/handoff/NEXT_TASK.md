@@ -34,13 +34,13 @@ build-team
 
 ## Relevant files
 
-- Reads from: `docs/IMPLEMENTATION_PLAN.md`, `docs/PI_EXTENSION_API.md`, `extensions/dashboard/index.ts`, `extensions/dashboard/projections.ts`, `extensions/dashboard/types.ts`, `tests/dashboard-widget.test.ts`, `docs/validation/TASK_08_DASHBOARD_CMD.md`
+- Reads from: `docs/handoff/_HANDOFF_INDEX.md`, `docs/validation/_VALIDATION_INDEX.md`, `docs/_IMPLEMENTATION_PLAN_INDEX.md`, `docs/PI_EXTENSION_API.md`, `extensions/dashboard/index.ts`, `extensions/dashboard/projections.ts`, `extensions/dashboard/types.ts`, `tests/dashboard-widget.test.ts`, `docs/validation/TASK_08_DASHBOARD_CMD.md`
 - Creates: `extensions/dashboard/command.ts`, `extensions/dashboard/panels/overview.ts`, `tests/dashboard-command.test.ts`
 
 ## Dependencies / prerequisites
 
 - Existing dashboard projection layer is implemented under `extensions/dashboard/`
-- Stage 5a.4 specification exists in `docs/IMPLEMENTATION_PLAN.md`
+- Stage 5a.4 specification exists in `docs/IMPLEMENTATION_PLAN.md` and should be reached through `docs/_IMPLEMENTATION_PLAN_INDEX.md`
 - Pi command API reference exists in `docs/PI_EXTENSION_API.md`
 - Execute this task through team delegation with `teamHint: "build-team"` so the build-team state machine router handles the real task
 
@@ -75,4 +75,4 @@ build-team
 
 - The command API details must match Pi’s current extension surface exactly
 - The task should stay additive; avoid destabilizing existing dashboard widget behavior
-- `TASK_QUEUE.md` currently references `TASK_08_DASHBOARD_COMMAND.md`, but the existing validation spec file is `docs/validation/TASK_08_DASHBOARD_CMD.md`; use the file that exists in the repo
+- Use the handoff and validation indexes first so the task stays scoped to the active validation flow and the Stage 5a.4 section it actually needs

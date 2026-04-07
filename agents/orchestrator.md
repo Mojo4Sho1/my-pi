@@ -38,10 +38,12 @@
 - `context_scope`: broad
 - `default_read_set`:
   - `AGENTS.md` (auto-read first by platform behavior)
-  - `INDEX.md` (directory map)
+  - `INDEX.md` (root bootstrap router)
+  - `docs/_DOCS_INDEX.md` when routing through the docs tree
   - `STATUS.md` (current project state)
   - `DECISION_LOG.md` (durable decisions)
-  - `docs/IMPLEMENTATION_PLAN.md` (staged build strategy)
+  - `docs/_IMPLEMENTATION_PLAN_INDEX.md` before reading any implementation-plan section
+  - targeted sections of `docs/IMPLEMENTATION_PLAN.md` only when stage detail is required
   - `docs/ORCHESTRATION_MODEL.md` when architectural vocabulary is needed
   - `docs/PROJECT_FOUNDATION.md` when deeper project intent is needed
   - relevant specs, agent definitions, and task-relevant repo files
@@ -51,7 +53,7 @@
 ## Inputs And Outputs
 - `required_inputs`:
   - active task request
-  - startup route context (`AGENTS.md` then `INDEX.md`)
+  - startup route context (`AGENTS.md` then `INDEX.md` then the nearest local index)
   - current work state (`STATUS.md`)
   - task-specific files and constraints
 - `expected_outputs`:
@@ -88,6 +90,9 @@
 - `related_docs`:
   - `AGENTS.md`
   - `INDEX.md`
+  - `docs/REPO_CONVENTIONS.md`
+  - `docs/_DOCS_INDEX.md`
+  - `docs/_IMPLEMENTATION_PLAN_INDEX.md`
   - `STATUS.md`
   - `DECISION_LOG.md`
   - `docs/ORCHESTRATION_MODEL.md`
@@ -108,11 +113,13 @@
 ## Orchestrator-Specific Fields
 - `startup_read_order`:
   1. `AGENTS.md` (auto-read first by platform behavior)
-  2. `INDEX.md` (directory map)
-  3. `STATUS.md` (current project state)
-  4. `DECISION_LOG.md` (recent decisions)
-  5. `docs/IMPLEMENTATION_PLAN.md` (what stage is active)
-  6. other task-required docs only as needed
+  2. `INDEX.md` (root bootstrap router)
+  3. nearest relevant local index (for example `docs/_DOCS_INDEX.md` or `agents/_AGENTS_INDEX.md`)
+  4. `STATUS.md` (current project state)
+  5. `DECISION_LOG.md` (recent decisions)
+  6. `docs/_IMPLEMENTATION_PLAN_INDEX.md` when staged roadmap context is needed
+  7. targeted section(s) of `docs/IMPLEMENTATION_PLAN.md` only when required
+  8. other task-required docs only as needed
 - `delegation_modes`:
   - direct specialist delegation
   - multi-specialist delegation

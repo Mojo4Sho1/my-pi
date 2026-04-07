@@ -1,11 +1,13 @@
 # Stage 5a.2 - Dashboard Substrate + Persistent Widget: Execution Guide
 
+Archived historical execution guide. This file is not part of the active handoff flow; active handoff docs live under `docs/handoff/`.
+
 ## Read First
 
 - `STATUS.md` - current project state (`5a.2` complete, `5a.3` next)
 - `DECISION_LOG.md` - Decision #36 (dashboard design: artifact-backed observability with staged delivery)
-- `docs/IMPLEMENTATION_PLAN.md` - Stage `5a.2` section
-- `docs/HANDOFF_5A1C.md` - predecessor stage (deterministic sandboxing), to understand the current hook and artifact surfaces
+- `docs/_IMPLEMENTATION_PLAN_INDEX.md` - route to the Stage `5a.2` section before opening the plan
+- `docs/archive/HANDOFF_5A1C.md` - predecessor stage (deterministic sandboxing), to understand the current hook and artifact surfaces
 - `docs/archive/design/dashboard.md` - source design document for the staged dashboard rollout
 
 ## What This Stage Does
@@ -546,7 +548,7 @@ Extend integration coverage to verify the live artifact payload standardization.
 
 ## Exit Criteria
 
-- [ ] `docs/HANDOFF_5A2.md` exists and is implementation-ready, matching the Stage `5a.1b` / `5a.1c` execution-guide style
+- [ ] `docs/archive/HANDOFF_5A2.md` exists and is implementation-ready, matching the Stage `5a.1b` / `5a.1c` execution-guide style
 - [ ] `extensions/dashboard/types.ts` defines `WidgetState`, `ActivePrimitivePath`, `WorklistProgressView`, and `DashboardSessionSnapshot`
 - [ ] `extensions/dashboard/projections.ts` provides pure widget projections from structured inputs
 - [ ] `extensions/dashboard/widget.ts` renders the persistent widget using `ctx.ui.setWidget()` with line arrays

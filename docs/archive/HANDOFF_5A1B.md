@@ -1,10 +1,12 @@
 # Stage 5a.1b — Hook Substrate: Execution Guide
 
+Archived historical execution guide. This file is not part of the active handoff flow; active handoff docs live under `docs/handoff/`.
+
 ## Read First
 
 - `STATUS.md` — current project state
 - `DECISION_LOG.md` — Decision #38 (deterministic guardrails outrank learned permissioning)
-- `docs/IMPLEMENTATION_PLAN.md` — Stage 5a.1b section
+- `docs/_IMPLEMENTATION_PLAN_INDEX.md` — route to the Stage 5a.1b section before opening the plan
 - Predecessor context: Stage 5a.1 token tracking is now part of the live codebase and reflected in `STATUS.md`
 
 ## What This Stage Does

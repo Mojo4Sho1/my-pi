@@ -21,7 +21,7 @@ Create the `/dashboard` command skeleton with the overview panel, giving a head 
 >
 > Reuse existing projection functions from `extensions/dashboard/projections.ts` and types from `extensions/dashboard/types.ts`. Do not duplicate projection logic. Do not implement the other 4 panels yet.
 >
-> Reference: `docs/IMPLEMENTATION_PLAN.md` Stage 5a.4 for the full specification. `docs/PI_EXTENSION_API.md` for Pi command registration API.
+> Reference: use `docs/_IMPLEMENTATION_PLAN_INDEX.md` to route to Stage 5a.4 in `docs/IMPLEMENTATION_PLAN.md`. Use `docs/PI_EXTENSION_API.md` for Pi command registration API.
 
 ## Expected Specialist Flow
 

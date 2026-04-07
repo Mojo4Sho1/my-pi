@@ -4,7 +4,9 @@
 
 Stage 5a.3 validates the full orchestration stack by running the build-team on real implementation tasks. This is not a code-delivery stage — it is an **operational validation pass**. The deliverables are observations, bug fixes, and substrate iterations.
 
-See Decision #36 and `docs/IMPLEMENTATION_PLAN.md` Stage 5a.3.
+Start with `docs/validation/_VALIDATION_INDEX.md` for routing within this directory. For roadmap context, use `docs/_IMPLEMENTATION_PLAN_INDEX.md` to route to Stage 5a.3 instead of reading the full plan by default.
+
+See Decision #36 and the Stage 5a.3 section of `docs/IMPLEMENTATION_PLAN.md`.
 
 ## Two-Layer Verification
 
@@ -101,7 +103,7 @@ For example: `RESULT_01_JSDOC.md`, `RESULT_04_CONTRACT_VALIDATION.md`.
 
 ## Exit Criteria (Stage 5a.3)
 
-From `docs/IMPLEMENTATION_PLAN.md`:
+From the Stage 5a.3 section of `docs/IMPLEMENTATION_PLAN.md`:
 
 - [ ] Build-team has completed at least one real implementation task end-to-end
 - [ ] Token tracking data is being captured and displayed in the widget

@@ -10,6 +10,8 @@ Prioritized backlog of discrete, agent-executable tasks. After completing assign
 2. Update `CURRENT_STATUS.md` with what was accomplished.
 3. Update `NEXT_TASK.md` to point at the next `queued` task(s).
 
+For handoff routing, start with `docs/handoff/_HANDOFF_INDEX.md`. For validation task routing, use `docs/validation/_VALIDATION_INDEX.md` before opening individual task specs.
+
 ## Status key
 
 - `done` — completed and verified
@@ -33,8 +35,8 @@ Prioritized backlog of discrete, agent-executable tasks. After completing assign
 
 | ID | Status | Task | Specs to Read | Acceptance Criteria |
 |----|--------|------|---------------|---------------------|
-| T-04 | done | Contract validation tests | `docs/validation/TASK_04_CONTRACT_COMPLETENESS.md` | `tests/contract-completeness.test.ts` validates all 9 specialists; typecheck + tests pass |
-| T-05 | done | Extract shared constants | `docs/validation/TASK_05_SHARED_CONSTANTS.md` | `extensions/shared/constants.ts` exists; imports updated; typecheck + tests pass |
+| T-04 | done | Contract validation tests | `docs/validation/TASK_04_CONTRACT_VALIDATION.md` | `tests/contract-completeness.test.ts` validates all 9 specialists; typecheck + tests pass |
+| T-05 | done | Extract shared constants | `docs/validation/TASK_05_CONSTANTS.md` | `extensions/shared/constants.ts` exists; imports updated; typecheck + tests pass |
 | T-06 | done | Widget rendering snapshots | `docs/validation/TASK_06_WIDGET_SNAPSHOTS.md` | 8-state snapshot tests with inline assertions; typecheck + tests pass |
 
 ### Tier 3 — High Complexity, Full Build-Team

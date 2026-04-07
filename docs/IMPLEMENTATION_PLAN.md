@@ -1,5 +1,7 @@
 # IMPLEMENTATION_PLAN.md
 
+> Routing note: Do not read this file end-to-end for routine work. Start with `docs/_IMPLEMENTATION_PLAN_INDEX.md`, identify the smallest relevant stage or section, and read only that portion of this document. Full-plan reads are for architecture-wide replanning, implementation-plan maintenance, cross-stage design decisions, or explicit user instruction.
+
 ## Purpose
 
 This document defines the staged implementation plan for building my-pi as an extension-powered orchestration system.

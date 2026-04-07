@@ -4,8 +4,13 @@ My custom Pi package for extension-powered orchestration, package-local skills, 
 
 Current implementation includes orchestrator-driven specialist/team execution plus artifact-backed dashboard observability with a persistent session widget.
 
+Routine repo navigation should start at [`INDEX.md`](/Users/josephcaldwell/Documents/dev/my-pi/INDEX.md), then route into [`docs/_DOCS_INDEX.md`](/Users/josephcaldwell/Documents/dev/my-pi/docs/_DOCS_INDEX.md) or [`agents/_AGENTS_INDEX.md`](/Users/josephcaldwell/Documents/dev/my-pi/agents/_AGENTS_INDEX.md) before opening broader documentation sets.
+
 Additional repo guidance lives in the docs set:
 
+- [`docs/REPO_CONVENTIONS.md`](/Users/josephcaldwell/Documents/dev/my-pi/docs/REPO_CONVENTIONS.md) for repo navigation rules and index-first reading conventions
+- [`docs/_DOCS_INDEX.md`](/Users/josephcaldwell/Documents/dev/my-pi/docs/_DOCS_INDEX.md) for routing through the docs tree
+- [`docs/_IMPLEMENTATION_PLAN_INDEX.md`](/Users/josephcaldwell/Documents/dev/my-pi/docs/_IMPLEMENTATION_PLAN_INDEX.md) for routing into the staged roadmap without reading the full plan by default
 - [`docs/IMPLEMENTATION_PLAN.md`](/Users/josephcaldwell/Documents/dev/my-pi/docs/IMPLEMENTATION_PLAN.md) for staged build strategy and current roadmap
 - [`docs/PI_EXTENSION_API.md`](/Users/josephcaldwell/Documents/dev/my-pi/docs/PI_EXTENSION_API.md) for Pi extension/package mechanics used by this repo
 - [`docs/UPSTREAM_PI_POLICY.md`](/Users/josephcaldwell/Documents/dev/my-pi/docs/UPSTREAM_PI_POLICY.md) for how this project evaluates upstream Pi changes, version bumps, and compatibility risk

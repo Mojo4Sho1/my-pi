@@ -40,7 +40,8 @@
   - assigned task packet
   - files explicitly listed in the packet
   - `agents/AGENT_DEFINITION_CONTRACT.md`
-  - `docs/IMPLEMENTATION_PLAN.md` when planning context requires build-stage awareness
+  - `docs/_IMPLEMENTATION_PLAN_INDEX.md` when planning context requires build-stage awareness
+  - targeted section(s) of `docs/IMPLEMENTATION_PLAN.md` only after routing through the index
 - `forbidden_by_default`:
   - `DECISION_LOG.md`
   - `STATUS.md`
@@ -84,7 +85,8 @@
 
 - `related_docs`:
   - `agents/AGENT_DEFINITION_CONTRACT.md`
-  - `agents/PRIMITIVE_LAYER_PLAN.md`
+  - `docs/_IMPLEMENTATION_PLAN_INDEX.md`
+  - `docs/IMPLEMENTATION_PLAN.md`
   - `agents/specialists/_SPECIALISTS_INDEX.md`
 - `related_definitions`:
   - `agents/specialists/reviewer.md`
