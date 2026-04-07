@@ -109,16 +109,36 @@ export function spawnSpecialistAgent(
         if (!line) continue;
         try {
           const event = JSON.parse(line);
-          // Collect final text from message_end events with assistant role
-          if (
-            event.type === "message_end" &&
-            event.message?.role === "assistant" &&
-            Array.isArray(event.message.content)
-          ) {
-            for (const block of event.message.content) {
-              if (block.type === "text" && typeof block.text === "string") {
-                finalText = block.text; // Keep last assistant text
+          // Collect final text from assistant messages across multiple event types.
+          // Pi emits: message_end (per-message), turn_end (per-turn), agent_end (session summary).
+          // A multi-turn specialist (tool calls + final answer) may only have the final text
+          // in the last message_end, turn_end, or agent_end event.
+          const extractText = (msg: Record<string, unknown>): string | undefined => {
+            if (msg?.role !== "assistant" || !Array.isArray(msg.content)) return undefined;
+            for (const block of msg.content) {
+              if (block.type === "text" && typeof block.text === "string" && block.text.trim()) {
+                return block.text;
               }
+            }
+            return undefined;
+          };
+
+          if (event.type === "message_end" && event.message) {
+            const text = extractText(event.message);
+            if (text) finalText = text;
+          }
+
+          // turn_end carries the last assistant message for that turn
+          if (event.type === "turn_end" && event.message) {
+            const text = extractText(event.message);
+            if (text) finalText = text;
+          }
+
+          // agent_end carries all messages — use the last assistant message
+          if (event.type === "agent_end" && Array.isArray(event.messages)) {
+            for (const msg of event.messages) {
+              const text = extractText(msg as Record<string, unknown>);
+              if (text) finalText = text;
             }
           }
 
