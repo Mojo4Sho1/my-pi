@@ -22,6 +22,8 @@ Stage 5a.3 — Build-team validation on real tasks.
   - Task 03 (Format Helpers) — builder created `extensions/shared/format.ts`, tester validated
   - Task 04 (Contract Completeness) — builder created `tests/contract-completeness.test.ts`, fixed typecheck issues
   - Task 05 (Extract Shared Constants) — builder created `extensions/shared/constants.ts`, imports updated across `sandbox.ts`, `widget.ts`, `select.ts`
+  - Task 06 (Widget Rendering Snapshot Tests) — builder created `tests/dashboard-widget-snapshots.test.ts` covering all 8 widget states with exact inline string-array assertions; tester validated
+  - Task 07 (Build a New Specialist) — created read-only `doc-formatter` specialist definition, extension, and tests in `agents/`, `extensions/`, and `tests/`; logged results in `docs/validation/results/RESULT_07_NEW_SPECIALIST.md`
 - Added `inferFilePaths()` to orchestrator — reads `.md` files from `relevantFiles` and extracts file paths from content
 - Restructured docs: AGENTS.md is single source of truth for all AI agents, CLAUDE.md is pointer + Claude-specific guidance
 - Added Stage 5a.5 (Convention-Aware Orchestrator), 5i (Task Relay), 5j (Self-Respawn) to implementation plan
@@ -31,12 +33,12 @@ Stage 5a.3 — Build-team validation on real tasks.
 
 - Run timestamp: `2026-04-07`
 - `make typecheck`: PASS
-- `make test`: PASS — 593 tests, 43 test files, all passing
+- `make test`: PASS — 612 tests, 45 test files, all passing
 
 ## Known gaps / blockers
 
 - Tasks 01 and 02 (Tier 1) were not run through the orchestrator — low priority, can be done later
-- Validation results not yet formally logged per METHODOLOGY.md template (substrate verification layer)
+- Task 07 exposed a flow mismatch: the requested `planner,reviewer,builder,tester` specialist sequence blocked at reviewer because it looked for built artifacts before the builder ran
 
 ## Decision notes for next session
 
@@ -47,10 +49,11 @@ Stage 5a.3 — Build-team validation on real tasks.
 
 ## Next task (single target)
 
-Task 06 — Widget Rendering Snapshot Tests (see `NEXT_TASK.md`)
+Task 08 — /dashboard command skeleton (see `NEXT_TASK.md`)
 
 ## Definition of done for next task
 
-- Snapshot tests for all 8 widget states using inline string assertions
+- Create `extensions/dashboard/command.ts`, `extensions/dashboard/panels/overview.ts`, and `tests/dashboard-command.test.ts`
+- Reuse existing dashboard projections/types without duplicating logic
 - `make typecheck` and `make test` pass
-- Additive only — no existing test modifications
+- Keep the task additive and overview-only

@@ -248,7 +248,8 @@ Methodology and task catalog: `docs/validation/METHODOLOGY.md`
 
 - [x] Define validation methodology (two-layer: task verification + substrate verification)
 - [x] Define 8 validation tasks across 3 tiers (see `docs/validation/`)
-- [ ] **Tier 1:** Task 01 (JSDoc), Task 02 (test README), Task 03 (format helpers)
+- [ ] **Tier 1:** Task 02 (test README), Task 03 (format helpers)
+- [x] **Tier 1:** Task 01 (JSDoc) — verified 2026-04-07; `extensions/shared/types.ts` already satisfies the task and full validation passed (`docs/validation/results/RESULT_01_JSDOC.md`)
 - [ ] **Tier 2:** Task 04 (contract validation), Task 05 (constants extraction), Task 06 (widget snapshots)
 - [ ] **Tier 3:** Task 07 (new specialist), Task 08 (/dashboard command skeleton)
 - [ ] Fix substrate bugs discovered during validation

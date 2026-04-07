@@ -35,14 +35,14 @@ Prioritized backlog of discrete, agent-executable tasks. After completing assign
 |----|--------|------|---------------|---------------------|
 | T-04 | done | Contract validation tests | `docs/validation/TASK_04_CONTRACT_COMPLETENESS.md` | `tests/contract-completeness.test.ts` validates all 9 specialists; typecheck + tests pass |
 | T-05 | done | Extract shared constants | `docs/validation/TASK_05_SHARED_CONSTANTS.md` | `extensions/shared/constants.ts` exists; imports updated; typecheck + tests pass |
-| T-06 | active | Widget rendering snapshots | `docs/validation/TASK_06_WIDGET_SNAPSHOTS.md` | 8-state snapshot tests with inline assertions; typecheck + tests pass |
+| T-06 | done | Widget rendering snapshots | `docs/validation/TASK_06_WIDGET_SNAPSHOTS.md` | 8-state snapshot tests with inline assertions; typecheck + tests pass |
 
 ### Tier 3 — High Complexity, Full Build-Team
 
 | ID | Status | Task | Specs to Read | Acceptance Criteria |
 |----|--------|------|---------------|---------------------|
-| T-07 | queued | Build a new specialist (doc-formatter) | `docs/validation/TASK_07_NEW_SPECIALIST.md` | Agent def + extension + prompt config + tests; read-only; typecheck + tests pass |
-| T-08 | queued | /dashboard command skeleton | `docs/validation/TASK_08_DASHBOARD_COMMAND.md` | Command registers, overview panel works, projections reused; typecheck + tests pass |
+| T-07 | done | Build a new specialist (doc-formatter) | `docs/validation/TASK_07_NEW_SPECIALIST.md` | Agent def + extension + prompt config + tests; read-only; typecheck + tests pass |
+| T-08 | active | /dashboard command skeleton | `docs/validation/TASK_08_DASHBOARD_CMD.md` | Command registers, overview panel works, projections reused; typecheck + tests pass |
 
 ---
 
