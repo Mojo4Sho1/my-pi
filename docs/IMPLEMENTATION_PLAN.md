@@ -43,8 +43,12 @@ Live execution state belongs in `STATUS.md`. This document defines the sequence 
    - 5a.1b: Hook substrate
    - 5a.1c: Deterministic sandboxing and path protection
    - 5a.2: Dashboard substrate + persistent widget
-   - 5a.3: Build-team validation on real tasks
-   - 5a.4: `/dashboard` command (detailed inspector)
+   - 5a.3: Build-team validation on real tasks (specialist chains)
+   - 5a.3b: Team state machine end-to-end validation
+   - 5a.3c: Tester specialist role redesign (test author, not runner — Decision #40)
+   - 5a.3d: Specialist invocation patterns (verified build, parallel scout — Decision #41)
+   - 5a.3e: Orchestrator observability: live token logging and per-specialist cost surfacing
+   - 5a.4: `/dashboard` command (detailed inspector) — priority bumped for real-time orchestration monitoring
    - 5b: Specialist-creator team (first meta-team)
    - 5c: Team-creator team
    - 5d: Sequence definition and execution
@@ -3760,6 +3764,127 @@ See Decision #36.
 
 ---
 
+## Stage 5a.3b — Team State Machine End-to-End Validation
+
+### Purpose
+
+Validate that the build-team state machine works end-to-end with real Pi subprocess specialist invocations. Stage 5a.3 validated specialist chains (sequential delegation via `delegationHint`); this stage validates the team router (`teamHint`) with its state machine transitions, revision loops, and session artifacts.
+
+### Key deliverables
+
+- At least one clean build-team run on a real task via `teamHint: "build-team"` with no errors
+- Verify state machine transitions execute in correct order (planning → building → review → testing → done)
+- Verify team session artifact is produced with complete state trace
+- Verify `partial` status transitions work (fixed in 5a.3 but not yet validated live)
+- Document any additional substrate bugs found
+
+### Exit criteria
+
+- Build-team completes a real task end-to-end via the team router
+- State trace in session artifact matches expected transition sequence
+- No missing-transition errors
+
+### Dependencies
+
+- Stage 5a.3 complete (specialist delegation proven)
+- `partial` status transitions fixed in team definitions
+
+---
+
+## Stage 5a.3c — Tester Specialist Role Redesign
+
+### Purpose
+
+Redefine the tester specialist from "test runner" to "test author." Running `make test` is a commodity operation any agent can do — it doesn't warrant a specialist invocation. The tester's value is writing tests independently from the implementation, keeping the builder honest. See Decision #40.
+
+### Key deliverables
+
+- Update tester agent definition (`agents/specialists/tester.md`) — role is test authorship, not execution
+- Update tester prompt config (`extensions/specialists/tester/prompt.ts`) — working style, output contract, and system prompt reflect test-writing focus
+- Update build-team state machine to support the new flow: planner → builder (code) → tester (writes tests) → builder (runs tests, fixes) → reviewer → done
+- Update build-team definition in `extensions/teams/definitions.ts`
+- Update tests to reflect new tester behavior
+
+### Exit criteria
+
+- Tester specialist's identity is "test author" across agent def, prompt config, and working style
+- Build-team state machine supports builder → tester → builder loop
+- All existing tests pass with updated definitions
+- At least one end-to-end validation with the new flow
+
+### Dependencies
+
+- Stage 5a.3b complete (team state machine proven before redesigning roles)
+
+---
+
+## Stage 5a.3d — Specialist Invocation Patterns
+
+### Purpose
+
+Define lightweight orchestrator-managed invocation patterns for tasks that don't need full team machinery. These are not teams (no state machine, no routing) — they are structured patterns the orchestrator executes directly. See Decision #41.
+
+### Design
+
+**Verified build pattern:**
+1. Orchestrator calls builder specialist
+2. Orchestrator runs `make typecheck && make test` as a verification gate
+3. On failure: loop back to builder with error output (up to N retries)
+4. On success: return result
+5. No tester or reviewer specialist invoked — cheapest possible structured execution
+
+**Parallel scout pattern:**
+1. Orchestrator spawns multiple read-only specialist instances in parallel
+2. Each scout reads a bounded file set and reports findings (codebase exploration, pattern discovery, dependency mapping)
+3. Orchestrator merges results into a unified report
+4. Useful for large codebases where sequential exploration is too slow/expensive
+
+### Key deliverables
+
+- Orchestrator support for named invocation patterns (not just `delegationHint` and `teamHint`)
+- `patternHint` parameter on the `orchestrate` tool (e.g., `"verified-build"`, `"parallel-scout"`)
+- Verified build implementation with configurable retry count
+- Parallel scout implementation with configurable parallelism and file partitioning
+- Tests for both patterns
+
+### Exit criteria
+
+- `orchestrate` tool accepts `patternHint` and executes the named pattern
+- Verified build loops on test failure and succeeds on retry
+- Parallel scout merges results from concurrent specialist invocations
+- Both patterns are cheaper (fewer tokens) than equivalent team flows
+
+### Dependencies
+
+- Stage 5a.3b complete (team validation, so patterns are a proven alternative)
+
+---
+
+## Stage 5a.3e — Orchestrator Observability: Live Token Logging
+
+### Purpose
+
+Surface per-specialist token counts and costs in the orchestrator's output so users can monitor efficiency and identify wasteful invocations. Currently token data is tracked internally but buried in session artifacts.
+
+### Key deliverables
+
+- Per-specialist token counts in orchestrator result output (input tokens, output tokens, total)
+- Running total across the specialist chain
+- Token summary in the synthesized result text (not just `details`)
+- Dashboard widget updated to show token consumption per specialist during live orchestration
+
+### Exit criteria
+
+- After each orchestration, the result text includes a token summary table
+- Dashboard widget shows per-specialist token usage during and after orchestration
+- Users can identify which specialist consumed the most tokens
+
+### Dependencies
+
+- Stage 5a.1 complete (token tracking substrate)
+
+---
+
 ## Stage 5a.5 — Convention-Aware Orchestrator
 
 ### Purpose
@@ -4359,8 +4484,10 @@ Stage 1 (types)
           → Stage 5a (bootstrap: spec-writer, schema-designer, routing-designer, critic, boundary-auditor)
             → Stage 5a.1 (token tracking substrate)
               → Stage 5a.2 (dashboard substrate + persistent widget)
-                → Stage 5a.3 (build-team validation on real tasks)
-                → Stage 5a.4 (/dashboard command)
+                → Stage 5a.3 (specialist chain validation)
+                  → Stage 5a.3b (team state machine e2e) → 5a.3c (tester redesign) → 5a.3d (invocation patterns)
+                  → Stage 5a.3e (token logging)
+                → Stage 5a.4 (/dashboard command — priority: real-time orchestration monitoring)
               → Stage 5b (specialist-creator team) → 5c (team-creator team)
           → Stage 5d (sequences) → 5e (sequence-creator team)
           → Stage 5f (seed-creator team) [depends on 5b]

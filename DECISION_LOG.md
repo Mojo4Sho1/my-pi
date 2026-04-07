@@ -394,3 +394,35 @@ Routine repository navigation should route through local index files before broa
 **Why:** This reduces unnecessary context loading, keeps routing aligned with the repo's narrow-context orchestration model, and makes fresh-agent startup more consistent.
 
 **Companion ADR:** `docs/adr/0001_INDEX_FIRST_CONTEXT_ROUTING.md`
+
+### 40. Tester specialist role: test author, not test runner (2026-04-07) [active]
+
+The tester specialist's role is to **write tests**, not to run them. Any agent (or the orchestrator itself) can run `make test` — that's a commodity operation that doesn't warrant a specialist invocation. The tester's value is authoring tests that keep the builder honest: it writes tests independently from the implementation, ensuring the builder can't write weak tests that conveniently pass.
+
+**Build-team flow with this change:** planner → builder (writes code) → tester (writes tests) → builder (runs tests, fixes if needed) → reviewer (reviews everything) → done.
+
+**Why:** Specialist invocations are expensive (subprocess spawn, full LLM call). Running `make test` costs near-zero tokens. The tester-as-author pattern preserves separation of concerns without wasting tokens on a specialist that just runs a shell command.
+
+### 41. Specialist invocation patterns: lightweight orchestrator-managed flows (2026-04-07) [active]
+
+Not every task needs a team. The orchestrator should support lightweight **specialist invocation patterns** — single-specialist calls with orchestrator-level verification gates. These are not teams (no state machine, no routing) but structured patterns the orchestrator knows how to execute.
+
+**Known patterns:**
+- **Verified build:** Call builder, orchestrator runs `make typecheck && make test`, loop back to builder on failure. No tester or reviewer specialist needed. For straightforward, well-specified tasks.
+- **Parallel scout:** Spawn multiple read-only specialist instances in parallel to explore a large codebase quickly. Each scout reads a bounded file set and reports findings. Orchestrator merges results.
+
+**Why:** Teams add token overhead (state machine, multiple specialist invocations, session artifacts). Many tasks don't need that complexity. Lightweight patterns give the orchestrator a cheaper tool for simpler work without sacrificing structure.
+
+**Implementation:** These patterns should be first-class orchestrator capabilities, not ad-hoc. They need defined names, clear semantics, and orchestrator code paths — but not the full team machinery.
+
+### 42. Handoff-driven task relay for bounded agent execution (2026-04-07) [active]
+
+Agents execute bounded tasks from structured handoff documents. The relay pattern:
+1. Agent reads `docs/handoff/NEXT_TASK.md` on start
+2. Executes the task per acceptance criteria
+3. Updates all handoff docs (`CURRENT_STATUS.md`, `TASK_QUEUE.md`, `NEXT_TASK.md`, `DECISIONS_NEEDED.md`)
+4. Exits
+
+Human authors the campaign plan and detailed specs. Agents execute and hand off. `DECISIONS_NEEDED.md` is the escalation path when requirements are underspecified.
+
+**Why:** Agents perform best with bounded scope and clear exit criteria. Fresh context per task avoids compaction/drift. Handoff docs are the checkpoint — if an agent fails, the chain doesn't break. See Stages 5i and 5j in the implementation plan for the full relay system and self-respawn design.
