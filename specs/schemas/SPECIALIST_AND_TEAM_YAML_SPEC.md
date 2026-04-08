@@ -9,7 +9,7 @@ It defines the initial V1 authoring shape for specialist specs and team specs in
 ## Authority And Relationship To Other Docs
 
 - This file is the durable concrete schema/spec reference for YAML authoring structure.
-- It is a companion to `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`.
+- It is a companion to `docs/archive/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`.
 - The Stage 5a.7 redesign doc remains the broad architectural source for the contract/artifact redesign.
 - This schema/spec doc owns the concrete YAML structure decisions for the `specs/` tree.
 - YAML is not yet runtime authority.

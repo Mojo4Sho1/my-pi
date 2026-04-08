@@ -443,4 +443,4 @@ A `/panic` extension command provides emergency stop: it traverses the run regis
 - `/panic` works even when other activity is ongoing
 - Observability (future widget) consumes teardown state, not the reverse
 
-**Implementation priority:** This must be implemented before additional orchestration complexity is added. See Stage 5a.6 in the implementation plan. Full design: `docs/design/PANIC_AND_TEARDOWN_DESIGN.md`.
+**Implementation priority:** This must be implemented before additional orchestration complexity is added. See Stage 5a.6 in the implementation plan. Historical design: `docs/archive/design/PANIC_AND_TEARDOWN_DESIGN.md`.

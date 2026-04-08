@@ -77,7 +77,7 @@ Supporting: `agents/` (definition specs), `docs/` (architectural reference), `te
 
 **JSONL event parsing:** Pi delivers assistant content via `message_update` events (streamed incrementally), NOT in `message_end`. The `agent_end` event carries the full message history. The last JSONL line may lack a trailing newline. See `subprocess.ts` for the parser that handles all of this.
 
-**Sub-agent teardown history:** Parent-task cancellation previously risked orphaning spawned specialist subprocesses. Stage 5a.6 implemented the panic and teardown fix; if you need teardown semantics or historical context, start with `docs/design/PANIC_AND_TEARDOWN_DESIGN.md` and the current runtime implementation before assuming the old behavior still applies.
+**Sub-agent teardown history:** Parent-task cancellation previously risked orphaning spawned specialist subprocesses. Stage 5a.6 implemented the panic and teardown fix; if you need teardown semantics or historical context, start with `docs/archive/design/PANIC_AND_TEARDOWN_DESIGN.md` and the current runtime implementation before assuming the old behavior still applies.
 
 ## Key Documents
 

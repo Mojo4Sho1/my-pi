@@ -41,7 +41,7 @@ For ordinary work, route to the smallest relevant section below and read only th
 | Stage 5a.1c — Deterministic sandboxing and path protection | Adds policy envelopes and path checks | touching authority enforcement or sandbox policy | task is unrelated to delegation policy | `extensions/shared/sandbox.ts`, `docs/archive/HANDOFF_5A1C.md` |
 | Stage 5a.2 — Dashboard substrate and persistent widget | Adds projection layer and widget | touching dashboard types, projections, or widget lifecycle | task is unrelated to dashboard observability | `extensions/dashboard/`, `docs/archive/HANDOFF_5A2.md` |
 | Stage 5a.3 — Build-team validation on real tasks | Defines the live validation pass | working on validation methodology, tasks, or bugs found during validation | task is not part of validation work | `docs/validation/_VALIDATION_INDEX.md`, `STATUS.md` |
-| Stage 5a.7 — Contract-driven specialists, team artifacts, and packet routing | Reorients the runtime around canonical machine-first artifacts, router-owned packet construction, and tester/build-team reconciliation | working on the current redesign priority or any task sourced from the new contract/artifact design doc | task is limited to older deferred validation or dashboard follow-ons | `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`, `STATUS.md`, `extensions/shared/result-parser.ts`, `extensions/shared/contracts.ts`, `extensions/orchestrator/delegate.ts`, `extensions/teams/router.ts` |
+| Stage 5a.7 — Contract-driven specialists, team artifacts, and packet routing | Reorients the runtime around canonical machine-first artifacts, router-owned packet construction, and tester/build-team reconciliation | reviewing the completed redesign or tracing its historical rationale | task is limited to current live validation or unrelated follow-ons | `docs/archive/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`, `STATUS.md`, `extensions/shared/result-parser.ts`, `extensions/shared/contracts.ts`, `extensions/orchestrator/delegate.ts`, `extensions/teams/router.ts` |
 | Stage 5a.4 — `/dashboard` command | Defines the detailed inspector command | touching `/dashboard` command behavior or panels | task is only about the widget or non-dashboard code | `extensions/dashboard/`, `docs/PI_EXTENSION_API.md` |
 | Stage 5a.5 — Convention-aware orchestrator | Adds project-convention scanning/injection | touching convention scanning or prompt injection rules | task is unrelated to repo convention forwarding | `AGENTS.md`, `package.json`, `Makefile`, shared prompt/orchestrator files |
 | Stage 5b — Specialist-creator team | First meta-team for creating specialists | working on creator-team outputs or proposal governance | task is not about meta-teams | creator-team specs, typed deliverables work |
@@ -59,21 +59,19 @@ For ordinary work, route to the smallest relevant section below and read only th
 
 ## Current Working Bias
 
-The repo is currently operating in Stage 5a.7 design-driven work. For most current tasks, start with:
+The repo is currently operating in resumed Stage 5a.3b live-validation work. For most current tasks, start with:
 
 1. `STATUS.md`
 2. `DECISION_LOG.md`
 3. this index
-4. `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md` when the task is part of the redesign
+4. `docs/handoff/NEXT_TASK.md`
 5. task-local docs such as `docs/validation/` or `docs/handoff/`
 
-For the current active task family (`T-16` through `T-21`), a good implementation read order is:
+For the current active task family (`T-10` and its immediate follow-ons), a good read order is:
 
 1. `docs/handoff/NEXT_TASK.md`
-2. `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`
-3. Stage 5a.7 in `docs/IMPLEMENTATION_PLAN.md`
-4. `extensions/shared/result-parser.ts`
-5. `extensions/shared/contracts.ts`
-6. `extensions/orchestrator/delegate.ts`
-7. `extensions/teams/router.ts`
-8. the closest regression tests
+2. Stage 5a.3b in `docs/IMPLEMENTATION_PLAN.md`
+3. `docs/validation/METHODOLOGY.md`
+4. `docs/validation/_VALIDATION_INDEX.md`
+5. the smallest relevant validation result artifact
+6. runtime files only if the live run exposes a concrete substrate issue

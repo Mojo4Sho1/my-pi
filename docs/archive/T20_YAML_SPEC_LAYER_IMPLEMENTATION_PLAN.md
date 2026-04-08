@@ -16,7 +16,7 @@ T-20 itself is the introduction of a durable `specs/` authoring layer plus the i
 - structural schema references live in `specs/schemas/`
 - YAML templates and concrete specs live in `specs/specialists/` and `specs/teams/`
 - the durable YAML schema/spec reference is `specs/schemas/SPECIALIST_AND_TEAM_YAML_SPEC.md`
-- that schema/spec file is a companion to `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`, not a replacement
+- that schema/spec file is a companion to `docs/archive/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`, not a replacement
 - current runtime authority remains in TypeScript during T-20
 - T-20 does not add runtime YAML loading
 - YAML keys use `snake_case`
@@ -332,11 +332,10 @@ Required acceptance checks:
 
 T-20 is done only when all of the following are true:
 
-- the handoff implementation brief exists in `docs/handoff/T20_YAML_SPEC_LAYER_IMPLEMENTATION_PLAN.md`
+- the handoff implementation brief exists in `docs/archive/T20_YAML_SPEC_LAYER_IMPLEMENTATION_PLAN.md`
 - the new `specs/` tree exists with the five required files
 - `specs/schemas/SPECIALIST_AND_TEAM_YAML_SPEC.md` contains the locked schema decisions
 - the two template YAML files match that schema
 - `specs/teams/build-team.yaml` matches the canonical reconciled build-team flow
 - repo routing/handoff/status docs all point agents to the new durable `specs/` layer truthfully
 - T-21 is promoted as the next queued/active follow-on in handoff docs
-

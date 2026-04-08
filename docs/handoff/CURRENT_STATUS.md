@@ -33,7 +33,7 @@ Stage 5a.3b live build-team validation follow-on — Stage 5a.7 is complete and 
 
 - Treat Stage 5a.7 as the landed baseline. The canonical runtime flow is `planner -> builder -> tester -> builder -> reviewer -> done`.
 - Keep the layer distinction explicit:
-  - `docs/design/` explains redesign intent and rationale
+  - `docs/archive/design/` preserves the historical redesign rationale for completed proposal-driven work
   - `specs/` owns durable YAML authoring structure
   - TypeScript runtime files remain the current execution authority
 - T-21 added direct parity protection between `specs/teams/build-team.yaml` and `extensions/teams/definitions.ts`; if either changes, update the other in the same pass.

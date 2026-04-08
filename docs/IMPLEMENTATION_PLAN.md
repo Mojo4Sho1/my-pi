@@ -3776,7 +3776,7 @@ See Decision #36.
 
 Prevent runaway token consumption and orphaned sub-agent processes by implementing a deterministic teardown model for nested agent execution. During Stage 5a.3 validation, a canceled orchestration task continued consuming tokens via orphaned subprocess specialists. This must be fixed before additional orchestration complexity is added. See Decision #43.
 
-**Full design document:** `docs/design/PANIC_AND_TEARDOWN_DESIGN.md`
+**Historical design document:** `docs/archive/design/PANIC_AND_TEARDOWN_DESIGN.md`
 
 ### Key deliverables
 
@@ -3832,7 +3832,7 @@ Prevent runaway token consumption and orphaned sub-agent processes by implementi
 
 Rework the specialist/team execution model around strict machine-readable contracts, canonical machine-first artifacts, router-owned packet construction, and a fully reconciled tester/build-team flow.
 
-**Source of truth:** `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`
+**Historical design document:** `docs/archive/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`
 
 ### Key deliverables
 

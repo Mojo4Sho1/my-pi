@@ -50,7 +50,7 @@ Read in this order:
 
 1. `docs/handoff/NEXT_TASK.md`
 2. this file
-3. `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`
+3. `docs/archive/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`
 4. Stage 5a.7 in `docs/IMPLEMENTATION_PLAN.md`
 5. `specs/schemas/SPECIALIST_AND_TEAM_YAML_SPEC.md`
 6. `specs/teams/build-team.yaml`
@@ -108,7 +108,7 @@ Audit the smallest durable surface that could still contradict Stage 5a.7:
 - `docs/_DOCS_INDEX.md`
 - `docs/REPO_CONVENTIONS.md`
 - `docs/IMPLEMENTATION_PLAN.md` only for the Stage 5a.7-related passages touched by this task
-- `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md` only if a touched statement is now stale
+- `docs/archive/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md` only if a touched statement is now stale
 - `specs/schemas/SPECIALIST_AND_TEAM_YAML_SPEC.md`
 - `specs/teams/build-team.yaml`
 
@@ -119,6 +119,7 @@ The audit goal is not "read the whole repo." The audit goal is "remove contradic
 Keep these distinctions explicit:
 
 - `docs/design/` explains architecture and redesign intent
+- `docs/archive/design/` preserves the historical architecture and redesign intent for completed proposal-driven work
 - `specs/` owns concrete YAML authoring structure decisions
 - TypeScript runtime files still govern actual execution today
 

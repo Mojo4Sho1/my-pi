@@ -267,7 +267,7 @@ Near-full-screen read-only session inspector. See Decision #36.
 - [ ] Tests for panel projections and command registration
 
 #### 5a.7 — Contract-Driven Specialists, Team Artifacts, and Packet Routing [COMPLETE]
-Top-priority redesign pass driven by `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`.
+Completed redesign pass. Historical design rationale lives in `docs/archive/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`.
 
 - [x] Documentation and roadmap realignment (T-15)
 - [x] Preserve structured specialist outputs end-to-end and validate named output fields directly (T-16)
