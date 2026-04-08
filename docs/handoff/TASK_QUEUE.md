@@ -46,17 +46,18 @@ For handoff routing, start with `docs/handoff/_HANDOFF_INDEX.md`. For validation
 | T-07 | done | Build a new specialist (doc-formatter) | `docs/validation/TASK_07_NEW_SPECIALIST.md` | Agent def + extension + prompt config + tests; read-only; typecheck + tests pass |
 | T-08 | done | /dashboard command skeleton | `docs/validation/TASK_08_DASHBOARD_CMD.md` | Command registers, overview panel works, projections reused; typecheck + tests pass |
 
-## Phase: Stage 5a.6 Panic and Teardown (BLOCKING)
+## Phase: Stage 5a.6 Panic and Teardown (COMPLETE)
 
 | ID | Status | Task | Specs to Read | Acceptance Criteria |
 |----|--------|------|---------------|---------------------|
 | T-09 | done | Implement panic and teardown system | `docs/design/PANIC_AND_TEARDOWN_DESIGN.md` | Run registry, abort propagation, settled-state barrier, `/panic` command; no orphaned subprocesses; typecheck + tests pass |
 
-## Phase: Post-Teardown
+## Phase: Post-Teardown — Observability First
 
 | ID | Status | Task | Specs to Read | Acceptance Criteria |
 |----|--------|------|---------------|---------------------|
-| T-10 | active | Team state machine e2e validation (5a.3b) | `docs/IMPLEMENTATION_PLAN.md` (5a.3b) | Clean build-team run via teamHint with no errors |
+| T-09b | active | Live orchestration widget | See NEXT_TASK.md | Widget shows active specialist, chain progress, token count, elapsed time during orchestration; uses existing setWidget() + hook observers |
+| T-10 | queued | Team state machine e2e validation (5a.3b) | `docs/IMPLEMENTATION_PLAN.md` (5a.3b) | Clean build-team run via teamHint with no errors |
 | T-11 | queued | Tester specialist role redesign (5a.3c) | `docs/IMPLEMENTATION_PLAN.md` (5a.3c), Decision #40 | Tester is test author; build-team flow updated |
 | T-12 | queued | Specialist invocation patterns (5a.3d) | `docs/IMPLEMENTATION_PLAN.md` (5a.3d), Decision #41 | Verified build + parallel scout patterns working |
 | T-13 | queued | Token logging and observability (5a.3e) | `docs/IMPLEMENTATION_PLAN.md` (5a.3e) | Per-specialist token counts in orchestrator output |
@@ -67,5 +68,5 @@ For handoff routing, start with `docs/handoff/_HANDOFF_INDEX.md`. For validation
 ## Notes
 
 - Stage 5a.3 validation is complete. All 8 tasks done, 617 tests passing.
-- T-09 is complete. T-10 is now the active handoff target.
+- T-09 is complete. T-09b (live widget) is the active handoff target — must be done before T-10 so the user can monitor live orchestration.
 - Restart Pi before running T-10 so the live extension session picks up the new teardown code.

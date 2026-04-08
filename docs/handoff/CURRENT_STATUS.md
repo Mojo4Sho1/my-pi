@@ -5,16 +5,12 @@
 
 ## Current focus
 
-Post-teardown validation restart. Stage 5a.6 is complete; the next active task is Stage 5a.3b live team state machine validation.
+Live orchestration widget (T-09b) — give the user real-time visibility into orchestration before running further live validation.
 
 ## Completed in current focus
 
-- Stage 5a.6 panic and teardown system implemented.
-- Added parent-owned run registry in [run-registry.ts](/Users/josephcaldwell/Documents/dev/my-pi/extensions/shared/run-registry.ts) with explicit parent/child ownership, lifecycle states, and settled-state waits.
-- Added graceful-then-forced teardown engine in [teardown.ts](/Users/josephcaldwell/Documents/dev/my-pi/extensions/shared/teardown.ts).
-- Added `/panic` extension command in [index.ts](/Users/josephcaldwell/Documents/dev/my-pi/extensions/panic/index.ts) and registered it in [package.json](/Users/josephcaldwell/Documents/dev/my-pi/package.json).
-- Wired tracked run ownership into orchestrator, team routing, and subprocess spawning so parent abort propagates and waits for descendants to settle before final cancellation.
-- Added regression coverage for run registry, teardown escalation, abort propagation, and `/panic`.
+- Stage 5a.6 panic and teardown system implemented (run registry, abort propagation, `/panic` command)
+- 625 tests passing across 49 test files
 
 ## Passing checks
 
@@ -24,23 +20,23 @@ Post-teardown validation restart. Stage 5a.6 is complete; the next active task i
 
 ## Known gaps / blockers
 
-- Live build-team validation still needs a clean re-run now that teardown safety exists (Stage 5a.3b).
+- Orchestration is a black box — no visibility into which specialist is running or whether progress is being made. T-09b fixes this.
 - `/next` skill not loading in Pi — skill discovery issue under investigation.
-- Teardown documentation outside the handoff set is not yet fully propagated into all durable architecture docs.
 
 ## Decision notes for next session
 
-- Stage 5a.6 is complete; proceed with 5a.3b live team validation next.
-- Pi extensions reload only on restart — restart Pi before trusting live validation against the new teardown code.
-- Tester specialist should write tests, not run them (Decision #40).
-- Specialist invocation patterns (verified build, parallel scout) are cheaper alternatives to teams (Decision #41).
+- T-09b (live widget) must be done BEFORE T-10 (live team validation) — the user needs to see what's happening during orchestration
+- T-09b should NOT use the orchestrator — it modifies the dashboard extension that observes the orchestrator
+- The widget infrastructure already exists (5a.2): `ctx.ui.setWidget()`, hook observers, projection layer
+- Hook events `beforeDelegation`, `afterDelegation`, `beforeSubprocessSpawn`, `afterSubprocessExit` are already defined — just need to wire them to widget updates
+- Pi extensions reload only on restart — restart Pi after implementing T-09b
 
 ## Next task (single target)
 
-Stage 5a.3b — Team state machine e2e validation (see `NEXT_TASK.md`)
+T-09b — Live orchestration widget (see `NEXT_TASK.md`)
 
 ## Definition of done for next task
 
-- Clean build-team run via `teamHint` completes after restart with no routing or stale-code errors.
-- Live validation result is documented and attached to the validation results set.
-- Any remaining runtime issues exposed by the live run are either fixed or queued explicitly.
+- Widget shows active specialist, chain progress, token count, elapsed time during orchestration
+- Widget shows state machine state during team runs
+- Existing widget behavior preserved
