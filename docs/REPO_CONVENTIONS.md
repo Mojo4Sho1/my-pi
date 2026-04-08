@@ -61,6 +61,14 @@ Design docs are working proposals. In this repo they live under `docs/design/`.
 - They may be updated to reflect implementation status.
 - They are not the canonical source of durable accepted decisions.
 
+### Durable specs
+
+Durable authoring/spec files live under `specs/`.
+
+- They own concrete YAML structure decisions for the future specialist/team authoring layer.
+- They are companions to the relevant design docs, not replacements for architectural rationale.
+- Until runtime YAML loading exists, they do not override live TypeScript runtime behavior.
+
 ### ADRs
 
 ADRs are durable architectural decision records. In this repo they live under `docs/adr/`.

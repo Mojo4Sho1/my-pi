@@ -28,6 +28,7 @@ If the queue shows deferred work, treat it as intentionally parked. Do not reviv
 | `TASK_QUEUE.md` | backlog and task state | checking queue order, readiness, or task ids | you only need the active task |
 | `DECISIONS_NEEDED.md` | unresolved human decisions | blocked by a genuine authority gap | no open decision is blocking work |
 | `T20_YAML_SPEC_LAYER_IMPLEMENTATION_PLAN.md` | task-specific execution brief for T-20 | the active task is T-20 and you need the locked implementation details | the active task is not T-20 |
+| `T21_VALIDATION_AND_CONTRADICTION_AUDIT_IMPLEMENTATION_PLAN.md` | task-specific execution brief for T-21 | the active task is T-21 and you need the locked implementation details | the active task is not T-21 |
 | `templates/` | handoff-system maintenance only | editing or recreating handoff docs/templates | ordinary task execution |
 
 ## Common Access Patterns
@@ -42,10 +43,10 @@ If the queue shows deferred work, treat it as intentionally parked. Do not reviv
 For the current active queue state, the fastest path is:
 
 1. `docs/handoff/NEXT_TASK.md`
-2. `docs/handoff/T20_YAML_SPEC_LAYER_IMPLEMENTATION_PLAN.md` when the active task is T-20
+2. `docs/handoff/T21_VALIDATION_AND_CONTRADICTION_AUDIT_IMPLEMENTATION_PLAN.md` when the active task is T-21
 3. `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`
 4. Stage 5a.7 in `docs/IMPLEMENTATION_PLAN.md`
-5. the code and tests named in `NEXT_TASK.md`
+5. the code, specs, and tests named in `NEXT_TASK.md`
 
 ### Updating handoff state after finishing a task
 

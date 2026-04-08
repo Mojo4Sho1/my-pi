@@ -1,6 +1,6 @@
 # STATUS.md
 
-Last updated: 2026-04-08 (T-19 tester/build-team reconciliation complete; T-20 YAML template/spec work active)
+Last updated: 2026-04-08 (T-20 YAML template/spec layer complete; T-21 validation/audit work active)
 
 ## Progress Checklist
 
@@ -274,8 +274,8 @@ Top-priority redesign pass driven by `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TE
 - [x] Add router-owned team session artifacts and downstream packet construction from validated artifacts only (T-17)
 - [x] Enforce ownership/edit scope and explicit `partial` routing semantics (T-18)
 - [x] Reconcile tester/build-team behavior across prompts, team definitions, and durable docs (T-19)
-- [ ] Add YAML specialist/team templates plus a `build-team` starter spec (T-20, active)
-- [ ] Add validation coverage and run a contradiction audit for the redesigned flow (T-21)
+- [x] Add YAML specialist/team templates plus a `build-team` starter spec (T-20)
+- [ ] Add validation coverage and run a contradiction audit for the redesigned flow (T-21, active)
 
 #### 5b — Specialist-Creator Team
 The first meta-team. Its output is a fully working new specialist: agent definition markdown, TypeScript extension, prompt config, and tests. See Decisions #16, #33, #34.

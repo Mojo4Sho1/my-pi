@@ -1,0 +1,200 @@
+# Reusable team authoring template.
+# This is a future source-of-truth authoring input, not an active runtime loader.
+schema_version: "v1"
+team_id: example-team
+display_name: Example Team
+purpose: Describe the end-to-end outcome this team is responsible for producing.
+members:
+  - specialist_planner
+  - specialist_builder
+  - specialist_reviewer
+entry_contract:
+  fields:
+    - name: objective
+      type: string
+      required: true
+      description: The primary task objective for the team.
+    - name: relevant_files
+      type: string[]
+      required: false
+      description: Optional initial file scope for the team.
+state_machine:
+  start_state: planning
+  terminal_states:
+    - done
+    - failed
+  states:
+    planning:
+      transitions:
+        - on: success
+          to: implementation
+        - on: partial
+          to: failed
+        - on: failure
+          to: failed
+        - on: escalation
+          to: failed
+    implementation:
+      transitions:
+        - on: success
+          to: review
+        - on: partial
+          to: planning
+          max_iterations: 1
+        - on: failure
+          to: planning
+          max_iterations: 1
+        - on: escalation
+          to: failed
+    review:
+      transitions:
+        - on: success
+          to: done
+        - on: partial
+          to: implementation
+          max_iterations: 1
+        - on: failure
+          to: implementation
+          max_iterations: 1
+        - on: escalation
+          to: failed
+    done:
+      transitions: []
+    failed:
+      transitions: []
+state_to_specialist_mapping:
+  planning: specialist_planner
+  implementation: specialist_builder
+  review: specialist_reviewer
+  done: orchestrator
+  failed: orchestrator
+per_state_expected_artifact:
+  planning:
+    consumes:
+      - objective
+      - relevant_files
+    produces:
+      - steps
+      - dependencies
+      - risks
+    editable_fields:
+      - steps
+      - dependencies
+      - risks
+    read_only_fields:
+      - artifactId
+      - teamSessionId
+  implementation:
+    consumes:
+      - steps
+      - dependencies
+      - risks
+    produces:
+      - modifiedFiles
+      - changeDescription
+    editable_fields:
+      - modifiedFiles
+      - changeDescription
+    read_only_fields:
+      - artifactId
+      - teamSessionId
+  review:
+    consumes:
+      - modifiedFiles
+      - changeDescription
+    produces:
+      - verdict
+      - findings
+      - summary
+    editable_fields:
+      - verdict
+      - findings
+      - summary
+    read_only_fields:
+      - artifactId
+      - teamSessionId
+  done:
+    consumes:
+      - verdict
+      - findings
+      - summary
+    produces:
+      - passed
+      - modifiedFiles
+    editable_fields: []
+    read_only_fields:
+      - prior_step_artifacts
+  failed:
+    consumes:
+      - failure_reason
+    produces:
+      - passed
+      - modifiedFiles
+    editable_fields: []
+    read_only_fields:
+      - prior_step_artifacts
+transition_rules:
+  planning:
+    success: Move to the first implementation state once a plan artifact exists.
+    partial: Stop as failed because the starter flow does not accept advisory planning output.
+    failure: Stop as failed because no executable plan artifact was produced.
+    escalation: Stop as failed and surface the escalation.
+  implementation:
+    success: Move forward once implementation artifacts satisfy the next state's contract.
+    partial: Loop upstream for replanning within the declared iteration limit.
+    failure: Loop upstream for replanning within the declared iteration limit.
+    escalation: Stop as failed and surface the escalation.
+  review:
+    success: Finish the team run.
+    partial: Loop back for another implementation pass within the declared iteration limit.
+    failure: Loop back for another implementation pass within the declared iteration limit.
+    escalation: Stop as failed and surface the escalation.
+  done:
+    success: Terminal state; no further routing.
+    partial: Not applicable.
+    failure: Not applicable.
+    escalation: Not applicable.
+  failed:
+    success: Not applicable.
+    partial: Not applicable.
+    failure: Terminal state; no further routing.
+    escalation: Terminal state; no further routing.
+partial_handling:
+  planning: Treat partial output as terminal failure for this team.
+  implementation: Route partial output to planning with the explicit loop limit.
+  review: Route partial output to implementation with the explicit loop limit.
+loop_limits:
+  - from: implementation
+    to: planning
+    on: partial
+    max_iterations: 1
+  - from: implementation
+    to: planning
+    on: failure
+    max_iterations: 1
+  - from: review
+    to: implementation
+    on: partial
+    max_iterations: 1
+  - from: review
+    to: implementation
+    on: failure
+    max_iterations: 1
+exit_contract:
+  fields:
+    - name: passed
+      type: boolean
+      required: true
+      description: Whether the team completed successfully.
+    - name: modifiedFiles
+      type: string[]
+      required: true
+      description: Final changed files surfaced from the implementation path.
+final_result_requirements:
+  required_fields:
+    - passed
+    - modifiedFiles
+  derived_from_states:
+    - implementation
+    - review
+  success_condition: The team reaches done with the required exit fields present.

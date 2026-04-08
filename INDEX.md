@@ -18,6 +18,7 @@ Use this file to choose the next smallest routing document. Do not treat it as a
 | If you need... | Read next | Notes |
 |---|---|---|
 | documentation routing | `docs/_DOCS_INDEX.md` | Main router for the docs tree |
+| YAML authoring specs | `specs/_SPECS_INDEX.md` | Durable authoring/spec route for specialist and team YAML |
 | agent-definition routing | `agents/_AGENTS_INDEX.md` | Main router for orchestrator/specialist/team definitions |
 | current project state | `STATUS.md` | Live execution and roadmap state |
 | durable decisions | `DECISION_LOG.md` | Canonical decision ledger |
@@ -39,6 +40,7 @@ Use this file to choose the next smallest routing document. Do not treat it as a
 | Directory | Purpose | Read first |
 |---|---|---|
 | `extensions/` | Pi extensions and internal TypeScript libraries. Main build target. | task-relevant source files only |
+| `specs/` | Durable YAML authoring/spec layer for specialists and teams. Current runtime still loads TypeScript. | `specs/_SPECS_INDEX.md` |
 | `agents/` | Agent definition specs that the extensions implement. | `agents/_AGENTS_INDEX.md` |
 | `docs/` | Architecture, roadmap, validation, and handoff docs. | `docs/_DOCS_INDEX.md` |
 | `skills/` | Pi skills (future) | task-relevant files only |

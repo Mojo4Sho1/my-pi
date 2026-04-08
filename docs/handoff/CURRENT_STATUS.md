@@ -5,7 +5,7 @@
 
 ## Current focus
 
-Stage 5a.7 contract-and-artifact redesign implementation — T-19 is complete and T-20 is now the active target.
+Stage 5a.7 contract-and-artifact redesign implementation — T-20 is complete and T-21 is now the active target.
 
 ## Completed in current focus
 
@@ -36,19 +36,23 @@ Stage 5a.7 contract-and-artifact redesign implementation — T-19 is complete an
   - builder and reviewer now consume tester-authored artifact fields through contract-driven context only: test strategy, authored cases, test files, execution commands, pass conditions, coverage notes, and builder-reported test execution results
   - `extensions/teams/definitions.ts` now encodes the canonical runtime order `planner -> builder -> tester -> builder -> reviewer -> done` with an explicit post-tester builder pass (`rebuilding`)
   - regression coverage now proves the tester-author handoff, the builder repair loop after tester output, and the updated team/session artifact ordering
+- T-20 YAML authoring/spec layer completed:
+  - `specs/_SPECS_INDEX.md` now routes the durable `specs/` tree
+  - `specs/schemas/SPECIALIST_AND_TEAM_YAML_SPEC.md` now owns the concrete YAML structure decisions for specialist/team authoring
+  - reusable YAML templates now exist at `specs/specialists/SPECIALIST_TEMPLATE.yaml` and `specs/teams/TEAM_TEMPLATE.yaml`
+  - `specs/teams/build-team.yaml` now captures the canonical future authoring spec for `planner -> builder -> tester -> builder -> reviewer -> done`
+  - touched routing docs now distinguish proposal docs (`docs/design/`), durable specs (`specs/`), and current runtime authority (TypeScript)
 
 ## Passing checks
 
 - Run timestamp: `2026-04-08`
-- `make typecheck`: PASS
-- `make test`: PASS
+- T-20 verification scope: doc/YAML-only
+- `make typecheck`: not rerun
+- `make test`: not rerun
 
 ## Known gaps / blockers
 
-- T-20 is now the next Stage 5a.7 deliverable:
-  - YAML specialist/team templates do not exist yet under `specs/`
-  - the future source-of-truth `build-team` starter spec has not been authored yet
-- T-21 remains downstream and should stay bounded to validation coverage plus contradiction audit after the template/spec pass lands.
+- T-21 is now the next Stage 5a.7 deliverable and should stay bounded to validation coverage plus contradiction audit for the redesigned flow.
 - T-10 through T-14 are intentionally deferred until the Stage 5a.7 redesign lands.
 - `/next` skill not loading in Pi remains a separate background issue.
 
@@ -68,13 +72,14 @@ Stage 5a.7 contract-and-artifact redesign implementation — T-19 is complete an
 - The documented future source-of-truth paths are still intended interfaces only at this point:
   - `specs/specialists/<specialist-id>.yaml`
   - `specs/teams/<team-id>.yaml`
+  - `specs/schemas/SPECIALIST_AND_TEAM_YAML_SPEC.md` is the durable schema/reference, but runtime execution still reads TypeScript today
 
 ## Next task (single target)
 
-T-20 — Add YAML specialist/team templates and a `build-team` starter spec (see `NEXT_TASK.md`)
+T-21 — Add validation coverage and run a contradiction audit for the redesigned flow (see `NEXT_TASK.md`)
 
 ## Definition of done for next task
 
-- `specs/specialists/` and `specs/teams/` template files exist
-- A starter `build-team` spec reflects the canonical `planner -> builder -> tester -> builder -> reviewer -> done` flow
-- Touched docs stay truthful about the template/spec layer being future source-of-truth authoring input, not yet runtime execution authority
+- Validation covers artifact preservation, ownership guardrails, and explicit `partial` routing semantics for the redesigned flow
+- Durable docs remain free of contradictions about tester/build-team behavior and the contract/artifact routing model
+- Any contradictions found during the audit are resolved in the touched files

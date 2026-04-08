@@ -1,0 +1,114 @@
+# Reusable specialist authoring template.
+# This is a future source-of-truth authoring input, not an active runtime loader.
+schema_version: "v1"
+specialist_id: specialist_example
+display_name: Example Specialist
+role: example-role
+purpose: Describe the bounded responsibility this specialist owns.
+when_to_use:
+  activation_conditions:
+    - Use when the task needs this specialist's bounded capability.
+    - Use when upstream artifacts satisfy the listed input contract.
+  escalation_conditions:
+    - Escalate when required context is missing or authority is insufficient.
+    - Escalate when success would require work outside the declared boundary.
+boundaries:
+  scope:
+    - Own a narrow, well-defined slice of the workflow.
+    - Produce only the artifact fields listed below.
+  non_goals:
+    - Do not perform work owned by other specialists.
+    - Do not mutate router-owned metadata or orchestration state.
+  routing_class: specialist
+  context_scope: Narrow-by-default packet context plus declared contract fields.
+  default_read_set:
+    - task packet objective
+    - relevant files named in packet scope
+  forbidden_by_default:
+    - broad repository rewrites
+    - hidden orchestration decisions
+    - router-owned artifact fields
+  task_boundary: Execute only the task packet objective inside declared scope.
+  deliverable_boundary: Return only specialist-owned artifact fields and summary text.
+  failure_boundary: Use failure or escalation when the objective cannot be completed truthfully.
+  authority_flags:
+    can_delegate: false
+    can_synthesize: false
+    can_update_handoff: false
+    can_update_workflow_docs: false
+    can_request_broader_context: true
+allowed_actions:
+  - Read packet-scoped context and directly related references.
+  - Produce the declared artifact fields.
+  - Escalate when constraints prevent truthful completion.
+input_contract:
+  fields:
+    - name: upstream_field
+      type: string
+      required: true
+      description: Example required upstream input for this specialist.
+      source_specialist: specialist_planner
+    - name: optional_supporting_list
+      type: string[]
+      required: false
+      description: Example optional supporting context.
+      source_specialist: specialist_builder
+output_contract:
+  fields:
+    - name: primary_output
+      type: string
+      required: true
+      description: Primary machine-readable field this specialist owns.
+    - name: supporting_items
+      type: string[]
+      required: false
+      description: Optional supporting machine-readable details.
+status_semantics:
+  success: All required artifact fields were produced and the objective was completed inside scope.
+  partial: Some useful structured output was produced, but downstream routing should expect follow-up work.
+  failure: The task could not be completed and no truthful in-scope completion is available.
+  escalation: Human or orchestrator intervention is needed before safe progress can continue.
+artifact_template:
+  artifact_type: example_artifact
+  summary_guidance: Summarize the outcome in one or two sentences derived from the structured fields.
+  fields:
+    - name: primary_output
+      type: string
+      required: true
+      description: Core artifact field owned by this specialist.
+    - name: supporting_items
+      type: string[]
+      required: false
+      description: Supplemental artifact details owned by this specialist.
+editable_fields:
+  - primary_output
+  - supporting_items
+read_only_fields:
+  - artifactId
+  - teamSessionId
+  - taskPacketId
+transition_notes:
+  success: Downstream routing may consume the declared output fields directly.
+  partial: Downstream routing must inspect the structured fields that are present and follow explicit team rules.
+  failure: Do not infer missing required fields; route according to team failure handling.
+  escalation: Preserve the reason and suggested action for orchestrator or human review.
+prompt_requirements:
+  role_description: One-sentence description of how this specialist should frame its work.
+  working_style:
+    reasoning: Describe the default reasoning pattern this specialist should follow.
+    communication: Describe the expected output style and evidence level.
+    risk: Describe the specialist's risk posture.
+    default_bias: Describe the specialist's default optimization bias.
+  constraints:
+    - Constraint one for bounded execution.
+    - Constraint two for truthful structured output.
+  anti_patterns:
+    - Anti-pattern one to avoid.
+    - Anti-pattern two to avoid.
+validation_requirements:
+  contract_rules:
+    - Required output fields must match the declared types.
+    - Input and output names should align with runtime vocabulary where practical.
+  adequacy_checks:
+    - Summary text should be derivable from the structured artifact.
+    - Produced fields should remain inside the declared editable field list.

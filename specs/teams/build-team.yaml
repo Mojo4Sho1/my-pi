@@ -1,0 +1,304 @@
+# Canonical starter build-team authoring spec for Stage 5a.7.
+# This is a future source-of-truth authoring input, not current runtime authority.
+schema_version: "v1"
+team_id: build-team
+display_name: Build Team
+purpose: Plan, implement, author focused tests, run and fix against those tests, then review the final result.
+members:
+  - specialist_planner
+  - specialist_builder
+  - specialist_tester
+  - specialist_reviewer
+entry_contract:
+  fields:
+    - name: objective
+      type: string
+      required: true
+      description: Primary implementation objective for the team.
+    - name: relevantFiles
+      type: string[]
+      required: false
+      description: Initial file scope supplied to the team.
+state_machine:
+  start_state: planning
+  terminal_states:
+    - done
+    - failed
+  states:
+    planning:
+      transitions:
+        - on: success
+          to: building
+        - on: partial
+          to: failed
+        - on: failure
+          to: failed
+        - on: escalation
+          to: failed
+    building:
+      transitions:
+        - on: success
+          to: testing
+        - on: partial
+          to: planning
+          max_iterations: 2
+        - on: failure
+          to: planning
+          max_iterations: 2
+        - on: escalation
+          to: failed
+    testing:
+      transitions:
+        - on: success
+          to: rebuilding
+        - on: partial
+          to: rebuilding
+          max_iterations: 2
+        - on: failure
+          to: rebuilding
+          max_iterations: 2
+        - on: escalation
+          to: failed
+    rebuilding:
+      transitions:
+        - on: success
+          to: review
+        - on: partial
+          to: rebuilding
+          max_iterations: 2
+        - on: failure
+          to: rebuilding
+          max_iterations: 2
+        - on: escalation
+          to: failed
+    review:
+      transitions:
+        - on: success
+          to: done
+        - on: partial
+          to: rebuilding
+          max_iterations: 2
+        - on: failure
+          to: rebuilding
+          max_iterations: 2
+        - on: escalation
+          to: failed
+    done:
+      transitions: []
+    failed:
+      transitions: []
+state_to_specialist_mapping:
+  planning: specialist_planner
+  building: specialist_builder
+  testing: specialist_tester
+  rebuilding: specialist_builder
+  review: specialist_reviewer
+  done: orchestrator
+  failed: orchestrator
+per_state_expected_artifact:
+  planning:
+    consumes:
+      - objective
+      - relevantFiles
+    produces:
+      - steps
+      - dependencies
+      - risks
+    editable_fields:
+      - steps
+      - dependencies
+      - risks
+    read_only_fields:
+      - artifactId
+      - teamSessionId
+      - taskPacketId
+  building:
+    consumes:
+      - steps
+      - dependencies
+      - risks
+    produces:
+      - modifiedFiles
+      - changeDescription
+    editable_fields:
+      - modifiedFiles
+      - changeDescription
+    read_only_fields:
+      - artifactId
+      - teamSessionId
+      - taskPacketId
+  testing:
+    consumes:
+      - modifiedFiles
+      - changeDescription
+    produces:
+      - testStrategy
+      - testCasesAuthored
+      - executionCommands
+      - expectedPassConditions
+      - coverageNotes
+    editable_fields:
+      - testStrategy
+      - testCasesAuthored
+      - executionCommands
+      - expectedPassConditions
+      - coverageNotes
+    read_only_fields:
+      - artifactId
+      - teamSessionId
+      - taskPacketId
+  rebuilding:
+    consumes:
+      - testStrategy
+      - testCasesAuthored
+      - executionCommands
+      - expectedPassConditions
+      - coverageNotes
+    produces:
+      - modifiedFiles
+      - changeDescription
+      - testExecutionResults
+    editable_fields:
+      - modifiedFiles
+      - changeDescription
+      - testExecutionResults
+    read_only_fields:
+      - artifactId
+      - teamSessionId
+      - taskPacketId
+  review:
+    consumes:
+      - modifiedFiles
+      - changeDescription
+      - testExecutionResults
+      - testStrategy
+      - testCasesAuthored
+      - executionCommands
+      - expectedPassConditions
+      - coverageNotes
+    produces:
+      - verdict
+      - findings
+      - summary
+    editable_fields:
+      - verdict
+      - findings
+      - summary
+    read_only_fields:
+      - artifactId
+      - teamSessionId
+      - taskPacketId
+  done:
+    consumes:
+      - verdict
+      - findings
+      - summary
+    produces:
+      - passed
+      - modifiedFiles
+    editable_fields: []
+    read_only_fields:
+      - prior_step_artifacts
+  failed:
+    consumes:
+      - failure_reason
+    produces:
+      - passed
+      - modifiedFiles
+    editable_fields: []
+    read_only_fields:
+      - prior_step_artifacts
+transition_rules:
+  planning:
+    success: Produce the plan artifact, then hand off to the first builder pass.
+    partial: Treat partial planning output as terminal failure for this team.
+    failure: Stop in failed because no executable plan artifact was produced.
+    escalation: Stop in failed and surface the planner escalation.
+  building:
+    success: Use the first builder artifact to hand off into tester authorship.
+    partial: Return to planning for replanning within the declared loop limit.
+    failure: Return to planning for replanning within the declared loop limit.
+    escalation: Stop in failed and surface the builder escalation.
+  testing:
+    success: Hand the tester-authored artifact to rebuilding for execution and fixes.
+    partial: Still move to rebuilding so the builder can act on authored tests and coverage guidance.
+    failure: Still move to rebuilding so the builder can attempt repair against the authored test package.
+    escalation: Stop in failed and surface the tester escalation.
+  rebuilding:
+    success: Move to review after the second builder verification/fix pass.
+    partial: Stay in rebuilding within the declared loop limit.
+    failure: Stay in rebuilding within the declared loop limit.
+    escalation: Stop in failed and surface the builder escalation.
+  review:
+    success: Finish the team run after final review approval or success-level comment.
+    partial: Route back to rebuilding for follow-up changes within the declared loop limit.
+    failure: Route back to rebuilding for follow-up changes within the declared loop limit.
+    escalation: Stop in failed and surface the reviewer escalation.
+  done:
+    success: Terminal state; no further routing.
+    partial: Not applicable.
+    failure: Not applicable.
+    escalation: Not applicable.
+  failed:
+    success: Not applicable.
+    partial: Not applicable.
+    failure: Terminal state; no further routing.
+    escalation: Terminal state; no further routing.
+partial_handling:
+  planning: Partial planning output is not accepted; route to failed.
+  building: Partial implementation output routes upstream to planning for replanning.
+  testing: Partial tester output still routes to rebuilding because testing is tester-authorship, not generic validation-running.
+  rebuilding: Partial rebuilding output stays in rebuilding for another verification/fix pass.
+  review: Partial review output routes back to rebuilding for follow-up changes.
+loop_limits:
+  - from: building
+    to: planning
+    on: partial
+    max_iterations: 2
+  - from: building
+    to: planning
+    on: failure
+    max_iterations: 2
+  - from: testing
+    to: rebuilding
+    on: partial
+    max_iterations: 2
+  - from: testing
+    to: rebuilding
+    on: failure
+    max_iterations: 2
+  - from: rebuilding
+    to: rebuilding
+    on: partial
+    max_iterations: 2
+  - from: rebuilding
+    to: rebuilding
+    on: failure
+    max_iterations: 2
+  - from: review
+    to: rebuilding
+    on: partial
+    max_iterations: 2
+  - from: review
+    to: rebuilding
+    on: failure
+    max_iterations: 2
+exit_contract:
+  fields:
+    - name: passed
+      type: boolean
+      required: true
+      description: Whether the full build-team flow completed successfully.
+    - name: modifiedFiles
+      type: string[]
+      required: true
+      description: Files changed by the builder passes and surfaced in the final result.
+final_result_requirements:
+  required_fields:
+    - passed
+    - modifiedFiles
+  derived_from_states:
+    - building
+    - rebuilding
+    - review
+  success_condition: Reach done after planner, builder, tester, rebuilding, and reviewer artifacts satisfy the canonical flow.

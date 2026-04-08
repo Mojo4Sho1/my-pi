@@ -19,6 +19,7 @@ Use this file to decide which documentation area is authoritative for the curren
 | repo navigation rules | `docs/REPO_CONVENTIONS.md` | Naming, index-first behavior, truthfulness rules |
 | implementation stage routing | `docs/_IMPLEMENTATION_PLAN_INDEX.md` | Smallest path into the implementation plan |
 | active contract/artifact redesign | `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md` | Current source of truth for Stage 5a.7 redesign work |
+| durable YAML authoring specs | `specs/_SPECS_INDEX.md` | Cross-tree route into the durable `specs/` authoring layer |
 | stable architecture | `docs/PROJECT_FOUNDATION.md` | Durable scope, principles, platform posture |
 | system vocabulary/hierarchy | `docs/ORCHESTRATION_MODEL.md` | Definitions for orchestrator, specialists, teams, sequences, artifacts |
 | current validation work | `docs/validation/_VALIDATION_INDEX.md` | Methodology, task specs, result artifacts |
@@ -49,6 +50,13 @@ Use this file to decide which documentation area is authoritative for the curren
 | `docs/design/` | target design doc only | active proposals driving a change; for current redesign work, start with the contract/artifact design doc | you only need accepted durable decisions |
 | `docs/archive/` | nothing by default | historical background only when a live doc points there | routine work |
 | `docs/adr/` | target ADR only | durable architectural decision records | the decision log already answers the question |
+
+## Cross-Tree Durable Specs
+
+The durable YAML authoring/spec layer lives in `specs/`, not under `docs/`.
+
+- Start with `specs/_SPECS_INDEX.md` when the task is about YAML authoring structure or concrete specialist/team specs.
+- Use the design doc for architectural rationale and `specs/` for concrete YAML structure decisions.
 
 ## Historical Execution Guides
 

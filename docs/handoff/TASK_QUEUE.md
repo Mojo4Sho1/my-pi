@@ -63,8 +63,8 @@ For handoff routing, start with `docs/handoff/_HANDOFF_INDEX.md`. For validation
 | T-17 | done | Add router-owned team session artifacts and downstream packet construction from validated artifacts only | `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`, `docs/IMPLEMENTATION_PLAN.md` (Stage 5a.7) | Router persists canonical team/specialist artifacts and builds downstream TaskPackets from validated artifact fields only |
 | T-18 | done | Enforce ownership/edit scope and explicit `partial` routing semantics | `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`, `docs/IMPLEMENTATION_PLAN.md` (Stage 5a.7) | Unauthorized field writes are rejected, `partial` handling is explicit per state, and routing stays deterministic |
 | T-19 | done | Reconcile tester/build-team behavior across prompts, team definitions, and durable docs | `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`, Decision #40 | Canonical build-team flow is `planner -> builder -> tester -> builder -> reviewer -> done` across code-facing and durable docs |
-| T-20 | active | Add YAML specialist/team templates and a `build-team` starter spec | `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`, `docs/IMPLEMENTATION_PLAN.md` (Stage 5a.7) | `specs/specialists/` and `specs/teams/` templates exist and a `build-team` starter spec reflects the canonical flow |
-| T-21 | queued | Add validation coverage and run a contradiction audit for the redesigned flow | `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`, `docs/IMPLEMENTATION_PLAN.md` (Stage 5a.7) | Validation covers artifact preservation, ownership guardrails, partial handling, and no durable docs contradict the redesigned flow |
+| T-20 | done | Add YAML specialist/team templates and a `build-team` starter spec | `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`, `docs/IMPLEMENTATION_PLAN.md` (Stage 5a.7) | `specs/specialists/` and `specs/teams/` templates exist and a `build-team` starter spec reflects the canonical flow |
+| T-21 | active | Add validation coverage and run a contradiction audit for the redesigned flow | `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`, `docs/IMPLEMENTATION_PLAN.md` (Stage 5a.7) | Validation covers artifact preservation, ownership guardrails, partial handling, and no durable docs contradict the redesigned flow |
 
 ## Phase: Deferred Follow-On Work After Stage 5a.7
 
@@ -86,5 +86,6 @@ For handoff routing, start with `docs/handoff/_HANDOFF_INDEX.md`. For validation
 - T-17 completed the router-owned artifact pass: team sessions now carry canonical step artifacts, artifact refs, and packet lineage, and downstream routing reads validated artifact fields only.
 - T-18 completed the ownership/edit-scope guardrail pass: router-owned artifact fields are now protected, unauthorized structured-output fields are rejected, and non-terminal team states must define explicit `partial` handling.
 - T-19 completed the tester/build-team reconciliation pass: tester is now modeled as a test author in runtime code, `build-team` runs `planner -> builder -> tester -> builder -> reviewer`, and regression coverage proves tester-authored artifact routing plus the post-tester builder repair loop.
-- T-20 is now the single active target.
+- T-20 completed the durable specs-layer pass: `specs/` now contains the schema/reference doc, reusable templates, and a starter `build-team` spec aligned to the canonical flow.
+- T-21 is now the single active target.
 - T-10 through T-14 remain visible but are intentionally deferred until the Stage 5a.7 redesign lands.

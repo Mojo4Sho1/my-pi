@@ -8,6 +8,8 @@ my-pi is a Pi package (pi.dev) that implements extension-powered multi-agent orc
 
 Agent definitions in `agents/` are the specs. TypeScript extensions in `extensions/` are the implementations.
 
+Durable YAML authoring specs for specialists and teams now live under `specs/`, but current runtime authority still lives in TypeScript.
+
 ## Architecture
 
 **Orchestrator-first control model.** Only the orchestrator has broad context by default. All downstream actors (specialists, teams, sequences) are narrow-by-default and work from task packets.
@@ -60,6 +62,7 @@ make test-watch # Run tests in watch mode
 
 This repo is a Pi package (`package.json` with `pi` key):
 - `extensions/` -- TypeScript extensions (orchestrator, specialists, shared types) -- **main build target**
+- `specs/` -- durable YAML authoring/spec layer for specialists and teams; not runtime-loaded yet
 - `skills/` -- Pi skills (future)
 - `prompts/` -- Pi prompts (future)
 - `themes/` -- Pi themes
@@ -74,7 +77,7 @@ Supporting: `agents/` (definition specs), `docs/` (architectural reference), `te
 
 **JSONL event parsing:** Pi delivers assistant content via `message_update` events (streamed incrementally), NOT in `message_end`. The `agent_end` event carries the full message history. The last JSONL line may lack a trailing newline. See `subprocess.ts` for the parser that handles all of this.
 
-**Sub-agent orphaning (CRITICAL):** Canceling a parent orchestration task does NOT currently guarantee that spawned sub-agent subprocesses are terminated. Orphaned specialists can continue consuming tokens invisibly after the parent stops. This is a known issue (Decision #43) and Stage 5a.6 (Panic and Teardown) is the blocking fix. Until 5a.6 is implemented: (1) be aware that canceling orchestration may leave background work running, (2) check system processes manually after cancellation if token usage continues, (3) do not add additional nesting depth to orchestration flows. See `docs/design/PANIC_AND_TEARDOWN_DESIGN.md` for the full design.
+**Sub-agent teardown history:** Parent-task cancellation previously risked orphaning spawned specialist subprocesses. Stage 5a.6 implemented the panic and teardown fix; if you need teardown semantics or historical context, start with `docs/design/PANIC_AND_TEARDOWN_DESIGN.md` and the current runtime implementation before assuming the old behavior still applies.
 
 ## Key Documents
 
@@ -112,7 +115,7 @@ See `STATUS.md` for live project state. The project follows a staged implementat
 2. **First specialist extension (builder)** (complete)
 3. **Remaining specialists + orchestrator** (complete)
 4. **Team routing and validation** (complete)
-5. **Meta-teams and expansion** (5a.2 complete, 5a.3 in progress)
+5. **Meta-teams and expansion** (5a.7 active; 5a.3 is a deferred follow-on)
 6. **Reflective expertise layer** (future)
 7. **Command surface** (future)
 

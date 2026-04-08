@@ -5,34 +5,46 @@
 
 ## Task summary
 
-Implement T-20 from Stage 5a.7 by adding YAML specialist/team templates plus a starter `build-team` spec that reflects the now-reconciled canonical flow. The outcome of this task should be a future source-of-truth authoring layer under `specs/` without yet changing runtime loading to consume those YAML files directly.
+Implement T-21 from Stage 5a.7 by adding validation coverage and running a contradiction audit for the redesigned contract/artifact flow. The outcome of this task should be stronger regression protection around the redesigned routing model plus durable docs that no longer contradict the canonical tester/build-team semantics or the new `specs/` authoring layer.
 
 ## Why this task is next
 
-- T-19 is complete, so the runtime tester/build-team flow is now reconciled to Decision #40 and ready to be templated
-- The design doc explicitly calls for YAML authoring specs after the contract/artifact routing substrate is in place
-- T-21 depends on having concrete template/spec files to validate and audit
+- T-20 is complete, so the durable YAML authoring/spec layer now exists and can be audited instead of guessed at
+- Stage 5a.7 still requires validation coverage and contradiction cleanup before the redesign can be considered fully landed
+- T-10 through T-14 remain intentionally deferred until this redesign pass is internally consistent and validated
 
 ## Scope (in)
 
-- Add a reusable specialist YAML template under `specs/specialists/`
-- Add a reusable team YAML template under `specs/teams/`
-- Add a starter `build-team` spec that reflects `planner -> builder -> tester -> builder -> reviewer -> done`
-- Document only the minimum needed to keep touched files truthful about these YAML specs being future source-of-truth authoring inputs
+- Add or update regression coverage for the redesigned flow where it is still thin:
+  - structured artifact preservation
+  - ownership/edit-scope guardrails
+  - explicit `partial` handling in team routing
+  - canonical tester/build-team artifact handoffs
+- Audit durable docs and routing docs for contradictions against the current Stage 5a.7 model
+- Keep touched docs truthful about proposal docs vs durable specs vs current runtime authority
 
 ## Scope (out)
 
 - Runtime loading of YAML specs instead of TypeScript definitions
-- Code generation or scaffolding from the YAML specs
-- Broad contradiction audit beyond touched docs (that is T-21)
+- New YAML schema design work unless the audit exposes a real contradiction in the files just added
 - New live Pi validation reruns and deferred `/dashboard` follow-on work (T-10 through T-14)
+- Broad roadmap replanning beyond the contradictions discovered while landing T-21
 
 ## Relevant files
 
-- References: `docs/handoff/T20_YAML_SPEC_LAYER_IMPLEMENTATION_PLAN.md`
-- References: `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md` (YAML source-of-truth sections)
+- References: `docs/handoff/T21_VALIDATION_AND_CONTRADICTION_AUDIT_IMPLEMENTATION_PLAN.md`
+- References: `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`
 - References: `docs/IMPLEMENTATION_PLAN.md` (Stage 5a.7)
+- References: `specs/schemas/SPECIALIST_AND_TEAM_YAML_SPEC.md`
+- References: `specs/teams/build-team.yaml`
 - References: `extensions/teams/definitions.ts`
+- References: `extensions/shared/contracts.ts`
+- References: `extensions/teams/router.ts`
+- References: `extensions/shared/result-parser.ts`
+- References: `tests/team-router.test.ts`
+- References: `tests/session-artifact.test.ts`
+- References: `tests/contracts.test.ts`
+- References: `tests/review-findings.test.ts`
 - References: `extensions/specialists/tester/prompt.ts`
 - References: `extensions/specialists/builder/prompt.ts`
 - References: `extensions/specialists/reviewer/prompt.ts`
@@ -41,50 +53,47 @@ Implement T-20 from Stage 5a.7 by adding YAML specialist/team templates plus a s
 
 ## Recommended first reads
 
-1. `docs/handoff/T20_YAML_SPEC_LAYER_IMPLEMENTATION_PLAN.md`
-2. `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md` (YAML Source-of-Truth Specs)
+1. `docs/handoff/T21_VALIDATION_AND_CONTRADICTION_AUDIT_IMPLEMENTATION_PLAN.md`
+2. `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`
 3. `docs/IMPLEMENTATION_PLAN.md` (Stage 5a.7 only)
-4. `extensions/teams/definitions.ts`
-5. `extensions/specialists/tester/prompt.ts`
-6. `extensions/specialists/builder/prompt.ts`
-7. `extensions/specialists/reviewer/prompt.ts`
+4. `specs/schemas/SPECIALIST_AND_TEAM_YAML_SPEC.md`
+5. `specs/teams/build-team.yaml`
+6. `extensions/teams/definitions.ts`
+7. the closest regression tests covering contracts, artifacts, and team routing
 
 ## Likely implementation hotspots
 
-- `docs/handoff/T20_YAML_SPEC_LAYER_IMPLEMENTATION_PLAN.md` is now the decision-complete execution brief for T-20 and should be followed directly
-- `specs/specialists/` and `specs/teams/` do not exist yet, so the directory structure and file naming need to be established
-- The starter `build-team` spec needs to reflect the canonical runtime order and artifact-driven handoffs without implying that YAML is already the runtime authority
-- Touched handoff/status docs should stay explicit that these specs are future source-of-truth authoring inputs
+- Contract and router regressions should confirm that Stage 5a.7 behavior remains artifact-driven and explicit on `partial`
+- The new `specs/` files should be included in the contradiction audit because they are now part of the durable authoring surface
+- Touched docs should stay explicit that YAML specs are future authoring inputs while TypeScript remains the active runtime layer
 
 ## Dependencies / prerequisites
 
-- T-19 complete
+- T-20 complete
 - Stage 4a through 4d substrate available as the runtime reference point
-- T-21 remains downstream; keep this task bounded to template/spec creation rather than full validation audit
+- Stage 5a.7 remains the active priority over deferred T-10 through T-14 follow-on work
 
 ## Acceptance criteria (definition of done)
 
-- `specs/specialists/` template exists
-- `specs/teams/` template exists
-- A starter `build-team` YAML spec reflects `planner -> builder -> tester -> builder -> reviewer -> done`
-- Touched docs remain truthful about the relationship between YAML specs and the current TypeScript runtime
+- Regression coverage proves the redesigned artifact preservation, ownership guardrails, and explicit `partial` semantics are still enforced
+- The canonical `build-team` flow remains aligned across runtime code, tests, and durable docs/specs
+- No touched durable doc contradicts the Stage 5a.7 tester/build-team and contract/artifact model
 - Update `docs/handoff/CURRENT_STATUS.md`
 - Update `docs/handoff/TASK_QUEUE.md`
 - Update `docs/handoff/NEXT_TASK.md`
 
 ## Verification checklist
 
-- [ ] Add specialist and team YAML template files under `specs/`
-- [ ] Add starter `build-team` spec reflecting the canonical Stage 5a.7 flow
-- [ ] Check that the spec language matches current runtime contracts/handoffs closely enough to serve as future source-of-truth authoring input
+- [ ] Add or tighten regression coverage where Stage 5a.7 enforcement is still under-specified
+- [ ] Audit touched durable docs and specs for contradictions against the canonical runtime flow
 - [ ] Keep touched docs truthful about YAML being future authoring input, not current runtime execution authority
-- [ ] Run `make typecheck` if code paths change
-- [ ] Run `make test` if code paths or runtime-facing docs/tests change
+- [ ] Run `make typecheck`
+- [ ] Run `make test`
 - [ ] Update `CURRENT_STATUS.md`
 - [ ] Update `TASK_QUEUE.md` and promote the next queued Stage 5a.7 task
 
 ## Risks / rollback notes
 
-- Avoid drifting into runtime YAML loading or scaffolding generation; this task is template/spec creation only
-- Keep the starter `build-team` spec aligned to the implemented canonical flow, not older review-before-test descriptions
-- If the template design exposes larger schema/open-question issues, record them clearly but keep implementation bounded to the initial spec layer
+- Avoid drifting into new runtime design or YAML loading work; this task is validation plus contradiction cleanup only
+- Keep the audit bounded to files touched while making T-21 land; broader cleanup should be recorded, not silently expanded
+- If tests expose deeper behavioral drift, fix the smallest truthful slice needed to re-establish Stage 5a.7 consistency
