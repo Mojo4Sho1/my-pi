@@ -42,6 +42,7 @@ export const BUILD_TEAM: TeamDefinition = {
         agent: "specialist_planner",
         transitions: [
           { on: "success", to: "building" },
+          { on: "partial", to: "failed" },
           { on: "failure", to: "failed" },
           { on: "escalation", to: "failed" },
         ],
@@ -50,6 +51,7 @@ export const BUILD_TEAM: TeamDefinition = {
         agent: "specialist_builder",
         transitions: [
           { on: "success", to: "review" },
+          { on: "partial", to: "planning", maxIterations: 2 },
           { on: "failure", to: "planning", maxIterations: 2 },
           { on: "escalation", to: "failed" },
         ],
@@ -58,6 +60,7 @@ export const BUILD_TEAM: TeamDefinition = {
         agent: "specialist_reviewer",
         transitions: [
           { on: "success", to: "testing" },
+          { on: "partial", to: "building", maxIterations: 2 },
           { on: "failure", to: "building", maxIterations: 2 },
           { on: "escalation", to: "failed" },
         ],
@@ -66,6 +69,7 @@ export const BUILD_TEAM: TeamDefinition = {
         agent: "specialist_tester",
         transitions: [
           { on: "success", to: "done" },
+          { on: "partial", to: "building", maxIterations: 2 },
           { on: "failure", to: "building", maxIterations: 2 },
           { on: "escalation", to: "failed" },
         ],

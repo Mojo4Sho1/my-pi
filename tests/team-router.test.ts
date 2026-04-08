@@ -251,6 +251,33 @@ describe("executeTeam", () => {
     expect(result.iterationsUsed["review->building"]).toBe(1);
   });
 
+  it("handles tester partial results by looping back to building", async () => {
+    const mockSpawn = vi.fn()
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Plan", deliverables: ["s1"], modifiedFiles: [] }))
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Built", deliverables: ["done"], modifiedFiles: ["x.ts"] }))
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Reviewed", deliverables: ["ok"], modifiedFiles: [] }))
+      .mockResolvedValueOnce(makeOutput({ status: "partial", summary: "Some checks still pending", deliverables: ["rerun targeted tests"], modifiedFiles: [] }))
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Built 2", deliverables: ["done"], modifiedFiles: ["x.ts"] }))
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Reviewed 2", deliverables: ["ok"], modifiedFiles: [] }))
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Tested", deliverables: ["pass"], modifiedFiles: [] }));
+
+    const { executeTeam } = await setupTeamRouter(mockSpawn);
+    const result = await executeTeam(BUILD_TEAM, makeTeamTaskPacket());
+
+    expect(result.success).toBe(true);
+    expect(result.statesVisited).toEqual([
+      "planning",
+      "building",
+      "review",
+      "testing",
+      "building",
+      "review",
+      "testing",
+      "done",
+    ]);
+    expect(result.iterationsUsed["testing->building"]).toBe(1);
+  });
+
   it("handles subprocess spawn failure", async () => {
     const mockSpawn = vi.fn().mockRejectedValueOnce(new Error("ENOENT"));
 
