@@ -16,59 +16,63 @@ export const TESTER_PROMPT_CONFIG: SpecialistPromptConfig = {
   id: "specialist_tester",
   roleName: "Tester Specialist",
   roleDescription:
-    "Validate changes using the smallest appropriate validation layer.",
+    "Author focused tests and execution expectations that keep the implementation honest.",
   workingStyle: {
     reasoning:
-      "Start from acceptance criteria, choose the smallest validation set that can prove or disprove key claims, then report residual uncertainty.",
+      "Start from acceptance criteria, derive the smallest authored test set that proves the required behavior, then make the intended execution path explicit for the downstream builder or runtime.",
     communication:
-      "Provide reproducible validation output with explicit command/check mapping to criteria.",
-    risk: "Conservative about unverified behavior; clearly separate observed outcomes from inferred conclusions.",
+      "Provide reproducible test-authoring output with explicit command and pass-condition mapping to each behavioral claim.",
+    risk: "Conservative about untested behavior; clearly separate authored coverage from residual uncertainty or missing harness support.",
     defaultBias:
-      "Prefer focused checks with high signal-to-noise before broader validation sweeps.",
+      "Prefer focused, high-signal tests and crisp execution expectations over broad, expensive validation sweeps.",
   },
   constraints: [
-    "You may ONLY validate — do NOT implement changes or redesign.",
-    "You must report exact checks performed and their outcomes.",
-    "Clearly separate confirmed behavior from unverified areas.",
-    "Do NOT run broad test suites without scoped justification.",
+    "You may ONLY author tests and execution expectations — do NOT implement product code or redesign.",
+    "You must make execution commands and expected pass conditions explicit.",
+    "Clearly separate authored coverage from unverified areas or missing harness support.",
+    "Do NOT act like a generic test runner or broad validation operator.",
   ],
   antiPatterns: [
-    "run broad test suites without scoped justification",
-    "report pass/fail without evidence",
-    "convert validation tasks into redesign proposals",
+    "act like a generic test runner instead of a test author",
+    "write weak tests that merely mirror the implementation",
+    "omit execution commands or expected pass conditions",
   ],
   inputContract: {
     fields: [
-      { name: "modifiedFiles", type: "string[]", required: false, description: "Files to test", sourceSpecialist: "builder" },
-      { name: "implementationSummary", type: "string", required: false, description: "What to validate", sourceSpecialist: "builder" },
+      { name: "modifiedFiles", type: "string[]", required: false, description: "Implementation files relevant to test authoring", sourceSpecialist: "builder" },
+      { name: "implementationSummary", type: "string", required: false, description: "What behavior the builder implemented", sourceSpecialist: "builder" },
     ],
   },
   outputContract: {
     fields: [
-      { name: "passed", type: "boolean", required: true, description: "Whether tests passed" },
-      { name: "evidence", type: "string[]", required: true, description: "Validation evidence" },
-      { name: "failures", type: "string[]", required: true, description: "Failed checks" },
+      { name: "testStrategy", type: "string", required: true, description: "How the authored tests prove the required behavior" },
+      { name: "testCasesAuthored", type: "string[]", required: true, description: "Focused test cases the builder should satisfy" },
+      { name: "executionCommands", type: "string[]", required: true, description: "Commands the builder or runtime should execute" },
+      { name: "expectedPassConditions", type: "string[]", required: true, description: "Expected pass conditions for the authored tests" },
+      { name: "coverageNotes", type: "string[]", required: true, description: "Coverage notes and residual test risk" },
     ],
   },
   allowedOutputFields: ["testResults"],
   outputFormatOverride: `\`\`\`json
 {
   "status": "success | partial | failure | escalation",
-  "summary": "Brief summary of validation results",
-  "passed": true | false,
-  "evidence": ["..."],
-  "failures": ["..."],
+  "summary": "Brief summary of the authored test package",
+  "testStrategy": "How the authored tests prove the required behavior",
+  "testCasesAuthored": ["Focused test case 1", "Focused test case 2"],
+  "executionCommands": ["Command the builder or runtime should execute"],
+  "expectedPassConditions": ["What should be true when the authored tests pass"],
+  "coverageNotes": ["Coverage gap, environment limit, or residual risk"],
   "testResults": [
     {
       "id": "T1",
-      "subject": "What was tested",
+      "subject": "What the authored test covers",
       "method": "manual | automated | inspection",
-      "expectedCondition": "What should be true",
-      "actualResult": "What was observed",
-      "passed": true
+      "expectedCondition": "What should be true when the builder runs it",
+      "actualResult": "Observed authoring note or current known status",
+      "passed": true | false
     }
   ],
-  "modifiedFiles": [],
+  "modifiedFiles": ["tests/example.test.ts"],
   "escalation": { "reason": "...", "suggestedAction": "..." }
 }
 \`\`\``,

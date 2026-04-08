@@ -123,24 +123,35 @@ describe("validateStructuredOutputOwnership", () => {
     const result = validateStructuredOutputOwnership(
       {
         status: "partial",
-        summary: "Checks drafted",
-        passed: false,
-        evidence: [],
-        failures: ["still drafting"],
+        summary: "Authored tests drafted",
+        testStrategy: "Target the error path first",
+        testCasesAuthored: [],
+        executionCommands: ["make test -- tests/auth.test.ts"],
+        expectedPassConditions: ["error branch returns typed failure"],
+        coverageNotes: ["harness still missing one seam"],
         testResults: [],
       },
       {
         fields: [
-          { name: "passed", type: "boolean", required: true, description: "Pass flag" },
-          { name: "evidence", type: "string[]", required: true, description: "Evidence" },
-          { name: "failures", type: "string[]", required: true, description: "Failures" },
+          { name: "testStrategy", type: "string", required: true, description: "Strategy" },
+          { name: "testCasesAuthored", type: "string[]", required: true, description: "Cases" },
+          { name: "executionCommands", type: "string[]", required: true, description: "Commands" },
+          { name: "expectedPassConditions", type: "string[]", required: true, description: "Conditions" },
+          { name: "coverageNotes", type: "string[]", required: true, description: "Coverage" },
         ],
       },
       { allowedOutputFields: ["testResults"] }
     );
 
     expect(result.errors).toEqual([]);
-    expect(result.editableFields).toEqual(["evidence", "failures", "passed", "testResults"]);
+    expect(result.editableFields).toEqual([
+      "coverageNotes",
+      "executionCommands",
+      "expectedPassConditions",
+      "testCasesAuthored",
+      "testResults",
+      "testStrategy",
+    ]);
   });
 });
 
@@ -283,6 +294,25 @@ describe("buildContextFromContract", () => {
     sourceAgent: "specialist_builder",
   });
 
+  const testerResult = createResultPacket({
+    taskId: "t3",
+    status: "success",
+    summary: "Authored focused auth tests",
+    deliverables: ["add unhappy-path auth test"],
+    modifiedFiles: ["tests/auth.test.ts"],
+    structuredOutput: {
+      status: "success",
+      summary: "Authored focused auth tests",
+      modifiedFiles: ["tests/auth.test.ts"],
+      testStrategy: "Cover the auth failure path first",
+      testCasesAuthored: ["reject invalid token with typed error"],
+      executionCommands: ["make test -- tests/auth.test.ts"],
+      expectedPassConditions: ["auth failure test passes"],
+      coverageNotes: ["token refresh flow still untested"],
+    },
+    sourceAgent: "specialist_tester",
+  });
+
   const plannerArtifact: TeamStepArtifact = {
     schemaVersion: "team-artifact.v1",
     artifactId: "team_step_1",
@@ -377,5 +407,22 @@ describe("buildContextFromContract", () => {
       planSteps: ["step-1: write tests", "step-2: run tests"],
     });
     expect(context?.planSteps).not.toEqual(["fallback plan deliverable"]);
+  });
+
+  it("extracts tester-authored fields from matching prior results", () => {
+    const input: InputContract = {
+      fields: [
+        { name: "testStrategy", type: "string", required: false, description: "Strategy", sourceSpecialist: "tester" },
+        { name: "testFiles", type: "string[]", required: false, description: "Test files", sourceSpecialist: "tester" },
+        { name: "executionCommands", type: "string[]", required: false, description: "Commands", sourceSpecialist: "tester" },
+      ],
+    };
+
+    const context = buildContextFromContract(input, [plannerResult, builderResult, testerResult]);
+    expect(context).toEqual({
+      testStrategy: "Cover the auth failure path first",
+      testFiles: ["tests/auth.test.ts"],
+      executionCommands: ["make test -- tests/auth.test.ts"],
+    });
   });
 });

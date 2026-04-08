@@ -40,7 +40,7 @@ const OrchestrateParams = Type.Object({
         "Available specialists:\n" +
         "- planner: decompose tasks, map dependencies, identify risks\n" +
         "- builder: implement code, fix bugs, create files, refactor\n" +
-        "- tester: write tests, validate changes, run verification\n" +
+        "- tester: write tests, define execution commands, frame pass conditions\n" +
         "- reviewer: review code for correctness, compliance, quality\n" +
         "- spec-writer: write prose specifications and agent definitions\n" +
         "- schema-designer: design TypeScript interfaces, packet shapes, I/O contracts\n" +

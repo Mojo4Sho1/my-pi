@@ -39,7 +39,7 @@ describe("executeTeam", () => {
     return { executeTeam };
   }
 
-  it("executes full happy path: planning → building → review → testing → done", async () => {
+  it("executes full happy path: planning → building → testing → rebuilding → review → done", async () => {
     const mockSpawn = vi.fn()
       .mockResolvedValueOnce(makeOutput({
         status: "success",
@@ -59,20 +59,30 @@ describe("executeTeam", () => {
       }))
       .mockResolvedValueOnce(makeOutput({
         status: "success",
+        summary: "Authored focused tests",
+        deliverables: ["Added auth error-path assertions"],
+        modifiedFiles: ["tests/index.test.ts"],
+        testStrategy: "Cover the error-path before broad regression",
+        testCasesAuthored: ["returns typed auth error"],
+        executionCommands: ["make test -- tests/index.test.ts"],
+        expectedPassConditions: ["auth error-path test passes"],
+        coverageNotes: ["success-path smoke coverage remains unchanged"],
+      }))
+      .mockResolvedValueOnce(makeOutput({
+        status: "success",
+        summary: "Ran tester-authored checks and fixed edge handling",
+        deliverables: ["Implemented final fix pass"],
+        modifiedFiles: ["src/index.ts"],
+        changeDescription: "Ran tester-authored checks and fixed edge handling",
+        testExecutionResults: ["make test -- tests/index.test.ts -> pass"],
+      }))
+      .mockResolvedValueOnce(makeOutput({
+        status: "success",
         summary: "Review passed",
         deliverables: ["No issues found"],
         modifiedFiles: [],
         verdict: "approve",
         findings: [],
-      }))
-      .mockResolvedValueOnce(makeOutput({
-        status: "success",
-        summary: "Tests pass",
-        deliverables: ["All checks pass"],
-        modifiedFiles: [],
-        passed: true,
-        evidence: ["targeted tests green"],
-        failures: [],
       }));
 
     const { executeTeam } = await setupTeamRouter(mockSpawn);
@@ -81,8 +91,8 @@ describe("executeTeam", () => {
     expect(result.success).toBe(true);
     expect(result.resultPacket.status).toBe("success");
     expect(result.resultPacket.sourceAgent).toBe("team_build-team");
-    expect(result.statesVisited).toEqual(["planning", "building", "review", "testing", "done"]);
-    expect(mockSpawn).toHaveBeenCalledTimes(4);
+    expect(result.statesVisited).toEqual(["planning", "building", "testing", "rebuilding", "review", "done"]);
+    expect(mockSpawn).toHaveBeenCalledTimes(5);
     expect(result.sessionArtifact?.specialistSummaries.every((summary) => summary.contractSatisfied)).toBe(true);
   });
 
@@ -106,20 +116,30 @@ describe("executeTeam", () => {
       }))
       .mockResolvedValueOnce(makeOutput({
         status: "success",
+        summary: "Authored focused tests",
+        deliverables: ["fallback tester summary"],
+        modifiedFiles: ["tests/index.test.ts"],
+        testStrategy: "Exercise the scoped feature path first",
+        testCasesAuthored: ["feature path returns scoped result"],
+        executionCommands: ["make test -- tests/index.test.ts"],
+        expectedPassConditions: ["feature test passes"],
+        coverageNotes: ["integration path still manual"],
+      }))
+      .mockResolvedValueOnce(makeOutput({
+        status: "success",
+        summary: "Ran tester-authored checks and finalized the implementation",
+        deliverables: ["fallback rebuild summary"],
+        modifiedFiles: ["src/index.ts"],
+        changeDescription: "Ran tester-authored checks and finalized the implementation",
+        testExecutionResults: ["make test -- tests/index.test.ts -> pass"],
+      }))
+      .mockResolvedValueOnce(makeOutput({
+        status: "success",
         summary: "Review passed",
         deliverables: [],
         modifiedFiles: [],
         verdict: "approve",
         findings: [],
-      }))
-      .mockResolvedValueOnce(makeOutput({
-        status: "success",
-        summary: "Tests pass",
-        deliverables: [],
-        modifiedFiles: [],
-        passed: true,
-        evidence: ["targeted checks pass"],
-        failures: [],
       }));
 
     const { executeTeam } = await setupTeamRouter(mockSpawn);
@@ -130,18 +150,37 @@ describe("executeTeam", () => {
     expect(builderTaskPrompt).toContain("step-1: scaffold");
     expect(builderTaskPrompt).not.toContain("fallback step");
 
-    const reviewTaskPrompt: string = mockSpawn.mock.calls[2][1];
-    expect(reviewTaskPrompt).toContain("implementationSummary");
-    expect(reviewTaskPrompt).toContain("Implemented the feature with scoped edits");
-
-    const testerTaskPrompt: string = mockSpawn.mock.calls[3][1];
+    const testerTaskPrompt: string = mockSpawn.mock.calls[2][1];
     expect(testerTaskPrompt).toContain("implementationSummary");
     expect(testerTaskPrompt).toContain("Implemented the feature with scoped edits");
+
+    const rebuildingTaskPrompt: string = mockSpawn.mock.calls[3][1];
+    expect(rebuildingTaskPrompt).toContain("testStrategy");
+    expect(rebuildingTaskPrompt).toContain("Exercise the scoped feature path first");
+    expect(rebuildingTaskPrompt).toContain("executionCommands");
+    expect(rebuildingTaskPrompt).toContain("make test -- tests/index.test.ts");
+    expect(rebuildingTaskPrompt).toContain("testFiles");
+    expect(rebuildingTaskPrompt).toContain("tests/index.test.ts");
+
+    const reviewTaskPrompt: string = mockSpawn.mock.calls[4][1];
+    expect(reviewTaskPrompt).toContain("implementationSummary");
+    expect(reviewTaskPrompt).toContain("Ran tester-authored checks and finalized the implementation");
+    expect(reviewTaskPrompt).toContain("testExecutionResults");
+    expect(reviewTaskPrompt).toContain("make test -- tests/index.test.ts -> pass");
+    expect(reviewTaskPrompt).toContain("executionCommands");
+
     expect(result.sessionArtifact?.stepArtifacts[0].validatedOutput.steps).toEqual([
       "step-1: scaffold",
       "step-2: implement",
     ]);
-    expect(result.sessionArtifact?.taskPacketLineage).toHaveLength(5);
+    expect(result.sessionArtifact?.stepArtifacts[2].validatedOutput).toEqual({
+      testStrategy: "Exercise the scoped feature path first",
+      testCasesAuthored: ["feature path returns scoped result"],
+      executionCommands: ["make test -- tests/index.test.ts"],
+      expectedPassConditions: ["feature test passes"],
+      coverageNotes: ["integration path still manual"],
+    });
+    expect(result.sessionArtifact?.taskPacketLineage).toHaveLength(6);
   });
 
   it("rejects unauthorized specialist field writes before routing can continue", async () => {
@@ -180,11 +219,13 @@ describe("executeTeam", () => {
       // Re-plan
       .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Plan 2", deliverables: ["s2"], modifiedFiles: [] }))
       // Build succeeds
-      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Built", deliverables: ["done"], modifiedFiles: ["x.ts"] }))
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Built", deliverables: ["done"], modifiedFiles: ["x.ts"], changeDescription: "Implemented the requested fix" }))
+      // Tester authors tests
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Authored tests", deliverables: ["pass"], modifiedFiles: ["tests/x.test.ts"], testStrategy: "Target the regression path", testCasesAuthored: ["regression stays fixed"], executionCommands: ["make test -- tests/x.test.ts"], expectedPassConditions: ["regression test passes"], coverageNotes: ["full suite not rerun"] }))
+      // Builder verification pass
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Verified build", deliverables: ["pass"], modifiedFiles: ["x.ts"], changeDescription: "Ran the authored regression and verified the fix", testExecutionResults: ["make test -- tests/x.test.ts -> pass"] }))
       // Review passes
-      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Review ok", deliverables: ["ok"], modifiedFiles: [] }))
-      // Test passes
-      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Tests pass", deliverables: ["pass"], modifiedFiles: [] }));
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Review ok", deliverables: ["ok"], modifiedFiles: [], verdict: "approve", findings: [] }));
 
     const { executeTeam } = await setupTeamRouter(mockSpawn);
     const result = await executeTeam(BUILD_TEAM, makeTeamTaskPacket());
@@ -192,7 +233,7 @@ describe("executeTeam", () => {
     expect(result.success).toBe(true);
     expect(result.statesVisited).toContain("planning");
     expect(result.iterationsUsed["building->planning"]).toBe(1);
-    expect(mockSpawn).toHaveBeenCalledTimes(6);
+    expect(mockSpawn).toHaveBeenCalledTimes(7);
   });
 
   it("stops on escalation from any specialist", async () => {
@@ -233,7 +274,7 @@ describe("executeTeam", () => {
     expect(mockSpawn).toHaveBeenCalledTimes(1);
   });
 
-  it("executes revision loop: review fails → rebuild → review succeeds", async () => {
+  it("executes revision loop: review fails after tester handoff → rebuild → review succeeds", async () => {
     const mockSpawn = vi.fn()
       // Plan
       .mockResolvedValueOnce(makeOutput({
@@ -248,20 +289,56 @@ describe("executeTeam", () => {
         summary: "Built feature v1",
         deliverables: ["Added handler"],
         modifiedFiles: ["src/index.ts"],
+        changeDescription: "Built feature v1",
       }))
-      // First review — fails, loops back to building
+      // Tester authors tests
+      .mockResolvedValueOnce(makeOutput({
+        status: "success",
+        summary: "Authored tests",
+        deliverables: ["Added regression assertions"],
+        modifiedFiles: ["tests/index.test.ts"],
+        testStrategy: "Cover the missing error path",
+        testCasesAuthored: ["returns typed error on failure"],
+        executionCommands: ["make test -- tests/index.test.ts"],
+        expectedPassConditions: ["error-path regression passes"],
+        coverageNotes: ["success path not expanded"],
+      }))
+      // First builder verification pass
+      .mockResolvedValueOnce(makeOutput({
+        status: "success",
+        summary: "Verified build v1",
+        deliverables: ["Added handler", "Added error handling"],
+        modifiedFiles: ["src/index.ts"],
+        changeDescription: "Ran authored tests and added error handling",
+        testExecutionResults: ["make test -- tests/index.test.ts -> fail, then pass"],
+      }))
+      // First review — fails, loops back to rebuilding
       .mockResolvedValueOnce(makeOutput({
         status: "failure",
         summary: "Build has gaps",
         deliverables: ["Missing error handling"],
         modifiedFiles: [],
+        verdict: "request_changes",
+        findings: [
+          {
+            id: "F1",
+            priority: "major",
+            category: "correctness",
+            title: "Missing error handling",
+            explanation: "The unhappy path still needs explicit handling.",
+            evidence: "Error branch returns a generic failure.",
+            suggestedAction: "Handle the error path explicitly.",
+          },
+        ],
       }))
       // Rebuild after review failure
       .mockResolvedValueOnce(makeOutput({
         status: "success",
-        summary: "Built feature v2",
-        deliverables: ["Added handler", "Added error handling"],
+        summary: "Verified build v2",
+        deliverables: ["All checks pass"],
         modifiedFiles: ["src/index.ts"],
+        changeDescription: "Applied review feedback and reran the authored tests",
+        testExecutionResults: ["make test -- tests/index.test.ts -> pass"],
       }))
       // Second review — passes
       .mockResolvedValueOnce(makeOutput({
@@ -269,13 +346,8 @@ describe("executeTeam", () => {
         summary: "Review passed",
         deliverables: ["Looks good"],
         modifiedFiles: [],
-      }))
-      // Test
-      .mockResolvedValueOnce(makeOutput({
-        status: "success",
-        summary: "Tests pass",
-        deliverables: ["All checks pass"],
-        modifiedFiles: [],
+        verdict: "approve",
+        findings: [],
       }));
 
     const { executeTeam } = await setupTeamRouter(mockSpawn);
@@ -284,11 +356,16 @@ describe("executeTeam", () => {
     expect(result.success).toBe(true);
     expect(result.resultPacket.status).toBe("success");
     expect(result.statesVisited).toEqual([
-      "planning", "building", "review", // first attempt
-      "building", "review",             // revision loop
-      "testing", "done",
+      "planning",
+      "building",
+      "testing",
+      "rebuilding",
+      "review",
+      "rebuilding",
+      "review",
+      "done",
     ]);
-    expect(mockSpawn).toHaveBeenCalledTimes(6);
+    expect(mockSpawn).toHaveBeenCalledTimes(7);
   });
 
   it("escalates when revision loop is exhausted", async () => {
@@ -296,17 +373,21 @@ describe("executeTeam", () => {
       // Plan 1
       .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Plan 1", deliverables: ["s1"], modifiedFiles: [] }))
       // Build 1
-      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Build 1", deliverables: ["done"], modifiedFiles: ["x.ts"] }))
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Build 1", deliverables: ["done"], modifiedFiles: ["x.ts"], changeDescription: "Build 1" }))
+      // Tester
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Authored tests", deliverables: ["pass"], modifiedFiles: ["tests/x.test.ts"], testStrategy: "Regression first", testCasesAuthored: ["behavior stays fixed"], executionCommands: ["make test -- tests/x.test.ts"], expectedPassConditions: ["regression passes"], coverageNotes: ["broader integration omitted"] }))
+      // Rebuild 1
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Rebuild 1", deliverables: ["done"], modifiedFiles: ["x.ts"], changeDescription: "Rebuild 1", testExecutionResults: ["make test -- tests/x.test.ts -> pass"] }))
       // Review 1 — fail (loop iteration 1)
-      .mockResolvedValueOnce(makeOutput({ status: "failure", summary: "Reject 1", deliverables: [], modifiedFiles: [] }))
-      // Build 2
-      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Build 2", deliverables: ["done"], modifiedFiles: ["x.ts"] }))
+      .mockResolvedValueOnce(makeOutput({ status: "failure", summary: "Reject 1", deliverables: [], modifiedFiles: [], verdict: "request_changes", findings: [] }))
+      // Rebuild 2
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Rebuild 2", deliverables: ["done"], modifiedFiles: ["x.ts"], changeDescription: "Rebuild 2", testExecutionResults: ["make test -- tests/x.test.ts -> pass"] }))
       // Review 2 — fail (loop iteration 2 = maxIterations)
-      .mockResolvedValueOnce(makeOutput({ status: "failure", summary: "Reject 2", deliverables: [], modifiedFiles: [] }))
-      // Build 3
-      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Build 3", deliverables: ["done"], modifiedFiles: ["x.ts"] }))
+      .mockResolvedValueOnce(makeOutput({ status: "failure", summary: "Reject 2", deliverables: [], modifiedFiles: [], verdict: "request_changes", findings: [] }))
+      // Rebuild 3
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Rebuild 3", deliverables: ["done"], modifiedFiles: ["x.ts"], changeDescription: "Rebuild 3", testExecutionResults: ["make test -- tests/x.test.ts -> pass"] }))
       // Review 3 — fail (should trigger exhaustion)
-      .mockResolvedValueOnce(makeOutput({ status: "failure", summary: "Reject 3", deliverables: [], modifiedFiles: [] }));
+      .mockResolvedValueOnce(makeOutput({ status: "failure", summary: "Reject 3", deliverables: [], modifiedFiles: [], verdict: "request_changes", findings: [] }));
 
     const { executeTeam } = await setupTeamRouter(mockSpawn);
     const result = await executeTeam(BUILD_TEAM, makeTeamTaskPacket());
@@ -320,41 +401,41 @@ describe("executeTeam", () => {
   it("returns team-level result with combined modified files", async () => {
     const mockSpawn = vi.fn()
       .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Planned", deliverables: ["s1"], modifiedFiles: [] }))
-      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Built", deliverables: ["done"], modifiedFiles: ["a.ts", "b.ts"] }))
-      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Reviewed", deliverables: ["ok"], modifiedFiles: [] }))
-      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Tested", deliverables: ["pass"], modifiedFiles: ["b.ts", "c.ts"] }));
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Built", deliverables: ["done"], modifiedFiles: ["a.ts"], changeDescription: "Built feature" }))
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Authored tests", deliverables: ["pass"], modifiedFiles: ["tests/a.test.ts"], testStrategy: "Regression first", testCasesAuthored: ["covers behavior"], executionCommands: ["make test -- tests/a.test.ts"], expectedPassConditions: ["test passes"], coverageNotes: ["integration omitted"] }))
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Verified", deliverables: ["pass"], modifiedFiles: ["b.ts"], changeDescription: "Verified build", testExecutionResults: ["make test -- tests/a.test.ts -> pass"] }))
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Reviewed", deliverables: ["ok"], modifiedFiles: [], verdict: "approve", findings: [] }));
 
     const { executeTeam } = await setupTeamRouter(mockSpawn);
     const result = await executeTeam(BUILD_TEAM, makeTeamTaskPacket());
 
-    expect(result.resultPacket.modifiedFiles).toEqual(expect.arrayContaining(["a.ts", "b.ts", "c.ts"]));
-    expect(result.resultPacket.modifiedFiles).toHaveLength(3); // deduplicated
+    expect(result.resultPacket.modifiedFiles).toEqual(expect.arrayContaining(["a.ts", "b.ts", "tests/a.test.ts"]));
+    expect(result.resultPacket.modifiedFiles).toHaveLength(3);
   });
 
   it("tracks iteration counts in result", async () => {
     const mockSpawn = vi.fn()
       .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Plan", deliverables: ["s1"], modifiedFiles: [] }))
-      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Built", deliverables: ["done"], modifiedFiles: ["x.ts"] }))
-      .mockResolvedValueOnce(makeOutput({ status: "failure", summary: "Reject", deliverables: [], modifiedFiles: [] }))
-      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Built 2", deliverables: ["done"], modifiedFiles: ["x.ts"] }))
-      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Pass", deliverables: ["ok"], modifiedFiles: [] }))
-      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Tested", deliverables: ["pass"], modifiedFiles: [] }));
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Built", deliverables: ["done"], modifiedFiles: ["x.ts"], changeDescription: "Built v1" }))
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Authored tests", deliverables: ["pass"], modifiedFiles: ["tests/x.test.ts"], testStrategy: "Regression first", testCasesAuthored: ["covers behavior"], executionCommands: ["make test -- tests/x.test.ts"], expectedPassConditions: ["test passes"], coverageNotes: ["integration omitted"] }))
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Verified", deliverables: ["done"], modifiedFiles: ["x.ts"], changeDescription: "Verified v1", testExecutionResults: ["make test -- tests/x.test.ts -> pass"] }))
+      .mockResolvedValueOnce(makeOutput({ status: "failure", summary: "Reject", deliverables: [], modifiedFiles: [], verdict: "request_changes", findings: [] }))
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Verified 2", deliverables: ["done"], modifiedFiles: ["x.ts"], changeDescription: "Verified v2", testExecutionResults: ["make test -- tests/x.test.ts -> pass"] }))
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Pass", deliverables: ["ok"], modifiedFiles: [], verdict: "approve", findings: [] }));
 
     const { executeTeam } = await setupTeamRouter(mockSpawn);
     const result = await executeTeam(BUILD_TEAM, makeTeamTaskPacket());
 
-    expect(result.iterationsUsed["review->building"]).toBe(1);
+    expect(result.iterationsUsed["review->rebuilding"]).toBe(1);
   });
 
-  it("handles tester partial results by looping back to building", async () => {
+  it("handles tester partial results by looping into the post-tester builder pass", async () => {
     const mockSpawn = vi.fn()
       .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Plan", deliverables: ["s1"], modifiedFiles: [] }))
-      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Built", deliverables: ["done"], modifiedFiles: ["x.ts"] }))
-      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Reviewed", deliverables: ["ok"], modifiedFiles: [] }))
-      .mockResolvedValueOnce(makeOutput({ status: "partial", summary: "Some checks still pending", deliverables: ["rerun targeted tests"], modifiedFiles: [] }))
-      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Built 2", deliverables: ["done"], modifiedFiles: ["x.ts"] }))
-      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Reviewed 2", deliverables: ["ok"], modifiedFiles: [] }))
-      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Tested", deliverables: ["pass"], modifiedFiles: [] }));
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Built", deliverables: ["done"], modifiedFiles: ["x.ts"], changeDescription: "Built v1" }))
+      .mockResolvedValueOnce(makeOutput({ status: "partial", summary: "Some authored tests still depend on a missing seam", deliverables: ["add seam, then run focused tests"], modifiedFiles: ["tests/x.test.ts"], testStrategy: "Start with the blocked regression path", testCasesAuthored: ["blocked regression"], executionCommands: ["make test -- tests/x.test.ts"], expectedPassConditions: ["blocked regression passes"], coverageNotes: ["missing seam currently blocks full coverage"] }))
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Built 2", deliverables: ["done"], modifiedFiles: ["x.ts"], changeDescription: "Added seam and ran the authored test", testExecutionResults: ["make test -- tests/x.test.ts -> pass"] }))
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Reviewed 2", deliverables: ["ok"], modifiedFiles: [], verdict: "approve", findings: [] }));
 
     const { executeTeam } = await setupTeamRouter(mockSpawn);
     const result = await executeTeam(BUILD_TEAM, makeTeamTaskPacket());
@@ -363,14 +444,12 @@ describe("executeTeam", () => {
     expect(result.statesVisited).toEqual([
       "planning",
       "building",
-      "review",
       "testing",
-      "building",
+      "rebuilding",
       "review",
-      "testing",
       "done",
     ]);
-    expect(result.iterationsUsed["testing->building"]).toBe(1);
+    expect(result.iterationsUsed["testing->rebuilding"]).toBe(1);
   });
 
   it("handles subprocess spawn failure", async () => {

@@ -15,9 +15,9 @@ describe("TESTER_PROMPT_CONFIG", () => {
   });
 
   it("includes working style directives", () => {
-    expect(TESTER_PROMPT_CONFIG.workingStyle.reasoning).toContain("smallest validation set");
-    expect(TESTER_PROMPT_CONFIG.workingStyle.risk).toContain("Conservative about unverified behavior");
-    expect(TESTER_PROMPT_CONFIG.workingStyle.defaultBias).toContain("focused checks with high signal-to-noise");
+    expect(TESTER_PROMPT_CONFIG.workingStyle.reasoning).toContain("smallest authored test set");
+    expect(TESTER_PROMPT_CONFIG.workingStyle.risk).toContain("Conservative about untested behavior");
+    expect(TESTER_PROMPT_CONFIG.workingStyle.defaultBias).toContain("focused, high-signal tests");
   });
 });
 
@@ -30,29 +30,31 @@ describe("buildTesterSystemPrompt", () => {
   });
 
   it("includes working style directives", () => {
-    expect(prompt).toContain("smallest validation set that can prove or disprove");
-    expect(prompt).toContain("Conservative about unverified behavior");
-    expect(prompt).toContain("focused checks with high signal-to-noise");
+    expect(prompt).toContain("smallest authored test set that proves the required behavior");
+    expect(prompt).toContain("Conservative about untested behavior");
+    expect(prompt).toContain("focused, high-signal tests");
   });
 
   it("includes scope constraints", () => {
-    expect(prompt).toContain("ONLY validate");
-    expect(prompt).toContain("do NOT implement changes or redesign");
-    expect(prompt).toContain("report exact checks performed");
+    expect(prompt).toContain("ONLY author tests and execution expectations");
+    expect(prompt).toContain("do NOT implement product code or redesign");
+    expect(prompt).toContain("execution commands and expected pass conditions");
   });
 
   it("includes anti-patterns", () => {
-    expect(prompt).toContain("run broad test suites without scoped justification");
-    expect(prompt).toContain("report pass/fail without evidence");
+    expect(prompt).toContain("generic test runner instead of a test author");
+    expect(prompt).toContain("omit execution commands or expected pass conditions");
   });
 
   it("includes required JSON output format", () => {
     expect(prompt).toContain("```json");
     expect(prompt).toContain('"status"');
     expect(prompt).toContain('"summary"');
-    expect(prompt).toContain('"passed"');
-    expect(prompt).toContain('"evidence"');
-    expect(prompt).toContain('"failures"');
+    expect(prompt).toContain('"testStrategy"');
+    expect(prompt).toContain('"testCasesAuthored"');
+    expect(prompt).toContain('"executionCommands"');
+    expect(prompt).toContain('"expectedPassConditions"');
+    expect(prompt).toContain('"coverageNotes"');
     expect(prompt).toContain('"modifiedFiles"');
     expect(prompt).toContain('"escalation"');
   });
@@ -60,10 +62,10 @@ describe("buildTesterSystemPrompt", () => {
 
 describe("buildTesterTaskPrompt", () => {
   const baseTask: TaskPacket = createTaskPacket({
-    objective: "Validate error handling in auth module",
+    objective: "Author tests for error handling in auth module",
     allowedReadSet: ["src/auth/index.ts", "tests/auth.test.ts"],
-    allowedWriteSet: [],
-    acceptanceCriteria: ["Network errors handled", "Typed errors returned"],
+    allowedWriteSet: ["tests/auth.test.ts"],
+    acceptanceCriteria: ["Network errors handled", "Typed errors returned", "Execution commands are explicit"],
     targetAgent: "specialist_tester",
     sourceAgent: "orchestrator",
   });
@@ -71,15 +73,16 @@ describe("buildTesterTaskPrompt", () => {
   it("includes all task packet fields", () => {
     const prompt = buildTesterTaskPrompt(baseTask);
     expect(prompt).toContain(baseTask.id);
-    expect(prompt).toContain("Validate error handling in auth module");
+    expect(prompt).toContain("Author tests for error handling in auth module");
     expect(prompt).toContain("src/auth/index.ts");
     expect(prompt).toContain("Network errors handled");
     expect(prompt).toContain("Typed errors returned");
   });
 
-  it("includes read set", () => {
+  it("includes read and write sets", () => {
     const prompt = buildTesterTaskPrompt(baseTask);
     expect(prompt).toContain("Allowed read set: src/auth/index.ts, tests/auth.test.ts");
+    expect(prompt).toContain("Allowed write set: tests/auth.test.ts");
   });
 
   it("omits context when not provided", () => {

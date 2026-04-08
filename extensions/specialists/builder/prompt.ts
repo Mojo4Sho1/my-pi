@@ -39,12 +39,19 @@ export const BUILDER_PROMPT_CONFIG: SpecialistPromptConfig = {
     fields: [
       { name: "planSummary", type: "string", required: false, description: "Summary of the plan", sourceSpecialist: "planner" },
       { name: "planSteps", type: "string[]", required: false, description: "Steps from the planner", sourceSpecialist: "planner" },
+      { name: "testStrategy", type: "string", required: false, description: "How the tester expects the behavior to be proven", sourceSpecialist: "tester" },
+      { name: "testCasesAuthored", type: "string[]", required: false, description: "Test cases authored by the tester", sourceSpecialist: "tester" },
+      { name: "testFiles", type: "string[]", required: false, description: "Test files created or updated by the tester", sourceSpecialist: "tester" },
+      { name: "executionCommands", type: "string[]", required: false, description: "Commands the builder should run after authoring tests", sourceSpecialist: "tester" },
+      { name: "expectedPassConditions", type: "string[]", required: false, description: "Pass conditions the builder should satisfy", sourceSpecialist: "tester" },
+      { name: "coverageNotes", type: "string[]", required: false, description: "Coverage notes or residual test risk from the tester", sourceSpecialist: "tester" },
     ],
   },
   outputContract: {
     fields: [
       { name: "modifiedFiles", type: "string[]", required: true, description: "Files that were modified" },
       { name: "changeDescription", type: "string", required: true, description: "Description of changes made" },
+      { name: "testExecutionResults", type: "string[]", required: false, description: "Results from running tester-authored commands" },
     ],
   },
 };

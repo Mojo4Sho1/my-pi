@@ -5,7 +5,7 @@
 
 ## Current focus
 
-Stage 5a.7 contract-and-artifact redesign implementation — T-18 is complete and T-19 is now the active target.
+Stage 5a.7 contract-and-artifact redesign implementation — T-19 is complete and T-20 is now the active target.
 
 ## Completed in current focus
 
@@ -31,7 +31,11 @@ Stage 5a.7 contract-and-artifact redesign implementation — T-18 is complete an
   - output-contract validation now treats `partial` artifacts as "validate what is present, keep typed fields, note omitted required fields" instead of collapsing them into generic contract failure semantics
   - state-machine validation now requires every non-terminal state to define explicit `success` / `partial` / `failure` / `escalation` transitions and rejects duplicate status edges
   - tester advisory payloads such as `testResults` are allowed explicitly without weakening the ownership guardrail for undeclared fields
-- The canonical build-team target flow remains documented as `planner -> builder -> tester -> builder -> reviewer -> done`, but code-facing runtime definitions are not yet reconciled to that order; that is the T-19 gap.
+- T-19 tester/build-team reconciliation completed:
+  - `extensions/specialists/tester/prompt.ts`, `extensions/specialists/tester/index.ts`, `extensions/shared/registry-entries.ts`, and the orchestrator specialist descriptions now consistently frame tester as a test author
+  - builder and reviewer now consume tester-authored artifact fields through contract-driven context only: test strategy, authored cases, test files, execution commands, pass conditions, coverage notes, and builder-reported test execution results
+  - `extensions/teams/definitions.ts` now encodes the canonical runtime order `planner -> builder -> tester -> builder -> reviewer -> done` with an explicit post-tester builder pass (`rebuilding`)
+  - regression coverage now proves the tester-author handoff, the builder repair loop after tester output, and the updated team/session artifact ordering
 
 ## Passing checks
 
@@ -41,10 +45,10 @@ Stage 5a.7 contract-and-artifact redesign implementation — T-18 is complete an
 
 ## Known gaps / blockers
 
-- Tester/build-team reconciliation is now the main remaining Stage 5a.7 gap:
-  - `extensions/specialists/tester/prompt.ts` is still validation-runner oriented instead of fully test-author oriented per Decision #40
-  - `extensions/teams/definitions.ts` still encodes the older `planner -> builder -> review -> testing -> done` exemplar instead of the canonical `planner -> builder -> tester -> builder -> reviewer -> done` flow
-  - any durable docs touched while reconciling that flow will need to stay aligned with the runtime truth
+- T-20 is now the next Stage 5a.7 deliverable:
+  - YAML specialist/team templates do not exist yet under `specs/`
+  - the future source-of-truth `build-team` starter spec has not been authored yet
+- T-21 remains downstream and should stay bounded to validation coverage plus contradiction audit after the template/spec pass lands.
 - T-10 through T-14 are intentionally deferred until the Stage 5a.7 redesign lands.
 - `/next` skill not loading in Pi remains a separate background issue.
 
@@ -57,25 +61,20 @@ Stage 5a.7 contract-and-artifact redesign implementation — T-18 is complete an
   - `TeamSessionArtifact.artifactRefs`
   - `TeamSessionArtifact.taskPacketLineage`
   - logical artifact paths under `artifacts/team-sessions/<team-session-id>/...`
+- T-19 established the canonical tester/build-team runtime mapping:
+  - `testing` is the tester-authorship state
+  - `rebuilding` is the second builder verification/fix state
+  - builder/reviewer handoffs now read tester-authored fields through validated artifacts only
 - The documented future source-of-truth paths are still intended interfaces only at this point:
   - `specs/specialists/<specialist-id>.yaml`
   - `specs/teams/<team-id>.yaml`
-- For T-19 specifically, the most likely code hotspots are:
-  - `agents/specialists/tester.md`
-  - `extensions/specialists/tester/prompt.ts`
-  - `extensions/specialists/builder/prompt.ts`
-  - `extensions/specialists/reviewer/prompt.ts`
-  - `extensions/teams/definitions.ts`
-  - `tests/tester.test.ts`
-  - `tests/team-router.test.ts`
-  - `tests/session-artifact.test.ts`
 
 ## Next task (single target)
 
-T-19 — Reconcile tester/build-team behavior across prompts, team definitions, and durable docs (see `NEXT_TASK.md`)
+T-20 — Add YAML specialist/team templates and a `build-team` starter spec (see `NEXT_TASK.md`)
 
 ## Definition of done for next task
 
-- Tester is modeled consistently as a test author in prompt/config/docs
-- Build-team runtime order matches `planner -> builder -> tester -> builder -> reviewer -> done`
-- Regression coverage proves the tester-author handoff and builder repair loop work as designed
+- `specs/specialists/` and `specs/teams/` template files exist
+- A starter `build-team` spec reflects the canonical `planner -> builder -> tester -> builder -> reviewer -> done` flow
+- Touched docs stay truthful about the template/spec layer being future source-of-truth authoring input, not yet runtime execution authority

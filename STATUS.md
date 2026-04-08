@@ -1,6 +1,6 @@
 # STATUS.md
 
-Last updated: 2026-04-08 (T-18 ownership enforcement and explicit partial-routing semantics complete; T-19 reconciliation work active)
+Last updated: 2026-04-08 (T-19 tester/build-team reconciliation complete; T-20 YAML template/spec work active)
 
 ## Progress Checklist
 
@@ -40,8 +40,8 @@ Last updated: 2026-04-08 (T-18 ownership enforcement and explicit partial-routin
 - [x] `extensions/specialists/reviewer/index.ts` — `delegate-to-reviewer` tool (review-only, returns findings)
 - [x] `extensions/specialists/reviewer/prompt.ts` — Reviewer-specific prompt config
 - [x] `tests/reviewer.test.ts` — 13 tests
-- [x] `extensions/specialists/tester/index.ts` — initial `delegate-to-tester` tool landed; Stage 5a.7 now supersedes the original validation-only posture with a test-author redesign target
-- [x] `extensions/specialists/tester/prompt.ts` — Tester-specific prompt config (to be reconciled with the Stage 5a.7 test-author model)
+- [x] `extensions/specialists/tester/index.ts` — `delegate-to-tester` tool now frames the tester as a focused test author, not a generic runner
+- [x] `extensions/specialists/tester/prompt.ts` — Tester-specific prompt config reconciled to the Stage 5a.7 test-author model
 - [x] `tests/tester.test.ts` — 13 tests
 - [x] All specialists use shared factory (`createSpecialistExtension`), 118 total tests pass
 
@@ -121,7 +121,7 @@ All 3d tests are **integration tests with mocked subprocesses** (not live sub-ag
 - [x] Critic receives relevant upstream context per review (e.g., plan summary when reviewing a spec) via input contract (Decision #22) — `buildContextFromContract()` in contracts.ts
 - [x] Teams are **opaque to orchestrator**: orchestrator sends team-level TaskPacket, receives team-level ResultPacket
 - [x] Intra-team context passing governed by I/O contracts (not raw result forwarding)
-- [x] Initial `build-team` exemplar landed in `extensions/teams/definitions.ts`; Stage 5a.7 now supersedes the original handoff order with the canonical target flow `planner -> builder -> tester -> builder -> reviewer -> done`
+- [x] Initial `build-team` exemplar landed in `extensions/teams/definitions.ts`; Stage 5a.7 has now reconciled it to the canonical target flow `planner -> builder -> tester -> builder -> reviewer -> done`
 - [x] Orchestrator can delegate to a named team — `teamHint` parameter on `orchestrate` tool
 - [x] `tests/team-router.test.ts` — 10 tests (happy path, loops, exhaustion, escalation, errors)
 - [x] `tests/orchestrator-team-e2e.test.ts` — 5 tests (team delegation through orchestrate tool)
@@ -273,8 +273,8 @@ Top-priority redesign pass driven by `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TE
 - [x] Preserve structured specialist outputs end-to-end and validate named output fields directly (T-16)
 - [x] Add router-owned team session artifacts and downstream packet construction from validated artifacts only (T-17)
 - [x] Enforce ownership/edit scope and explicit `partial` routing semantics (T-18)
-- [ ] Reconcile tester/build-team behavior across prompts, team definitions, and durable docs (T-19, active)
-- [ ] Add YAML specialist/team templates plus a `build-team` starter spec (T-20)
+- [x] Reconcile tester/build-team behavior across prompts, team definitions, and durable docs (T-19)
+- [ ] Add YAML specialist/team templates plus a `build-team` starter spec (T-20, active)
 - [ ] Add validation coverage and run a contradiction audit for the redesigned flow (T-21)
 
 #### 5b — Specialist-Creator Team

@@ -29,6 +29,13 @@ const INPUT_FIELD_ALIASES: Readonly<Record<string, readonly string[]>> = {
   planDeliverables: ["steps", "deliverables"],
   implementationSummary: ["changeDescription", "summary"],
   changeDescription: ["changeDescription", "summary"],
+  testStrategy: ["testStrategy", "summary"],
+  testCasesAuthored: ["testCasesAuthored", "deliverables"],
+  testFiles: ["modifiedFiles"],
+  executionCommands: ["executionCommands", "deliverables"],
+  expectedPassConditions: ["expectedPassConditions", "deliverables"],
+  coverageNotes: ["coverageNotes", "deliverables"],
+  testExecutionResults: ["testExecutionResults", "deliverables"],
   specSummary: ["summary"],
   specDeliverables: ["deliverables"],
   schemaSummary: ["summary"],
@@ -412,6 +419,20 @@ function extractFieldFromResult(
       return result.structuredOutput?.steps ?? result.deliverables;
     case "changeDescription":
       return result.structuredOutput?.changeDescription ?? result.summary;
+    case "testStrategy":
+      return result.structuredOutput?.testStrategy ?? result.summary;
+    case "testCasesAuthored":
+      return result.structuredOutput?.testCasesAuthored ?? result.deliverables;
+    case "testFiles":
+      return result.structuredOutput?.modifiedFiles ?? result.modifiedFiles;
+    case "executionCommands":
+      return result.structuredOutput?.executionCommands ?? result.deliverables;
+    case "expectedPassConditions":
+      return result.structuredOutput?.expectedPassConditions ?? result.deliverables;
+    case "coverageNotes":
+      return result.structuredOutput?.coverageNotes ?? result.deliverables;
+    case "testExecutionResults":
+      return result.structuredOutput?.testExecutionResults ?? result.deliverables;
     case "specSummary":
       return result.summary;
     case "specDeliverables":
@@ -454,6 +475,20 @@ function extractFieldFromArtifact(
       return artifact.validatedOutput.steps ?? artifact.deliverables;
     case "changeDescription":
       return artifact.validatedOutput.changeDescription ?? artifact.summary;
+    case "testStrategy":
+      return artifact.validatedOutput.testStrategy ?? artifact.summary;
+    case "testCasesAuthored":
+      return artifact.validatedOutput.testCasesAuthored ?? artifact.deliverables;
+    case "testFiles":
+      return artifact.validatedOutput.modifiedFiles ?? artifact.modifiedFiles;
+    case "executionCommands":
+      return artifact.validatedOutput.executionCommands ?? artifact.deliverables;
+    case "expectedPassConditions":
+      return artifact.validatedOutput.expectedPassConditions ?? artifact.deliverables;
+    case "coverageNotes":
+      return artifact.validatedOutput.coverageNotes ?? artifact.deliverables;
+    case "testExecutionResults":
+      return artifact.validatedOutput.testExecutionResults ?? artifact.deliverables;
     case "specSummary":
     case "schemaSummary":
       return artifact.summary;

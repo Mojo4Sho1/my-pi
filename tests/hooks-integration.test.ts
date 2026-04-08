@@ -13,6 +13,15 @@ interface OutputOverrides {
   summary?: string;
   deliverables?: string[];
   modifiedFiles?: string[];
+  changeDescription?: string;
+  testStrategy?: string;
+  testCasesAuthored?: string[];
+  executionCommands?: string[];
+  expectedPassConditions?: string[];
+  coverageNotes?: string[];
+  testExecutionResults?: string[];
+  verdict?: string;
+  findings?: unknown[];
   tokenUsage?: { inputTokens: number; outputTokens: number; totalTokens: number };
 }
 
@@ -22,6 +31,15 @@ function makeOutput(overrides: OutputOverrides = {}) {
     summary: overrides.summary ?? "Done",
     deliverables: overrides.deliverables ?? [],
     modifiedFiles: overrides.modifiedFiles ?? [],
+    ...(overrides.changeDescription !== undefined ? { changeDescription: overrides.changeDescription } : {}),
+    ...(overrides.testStrategy !== undefined ? { testStrategy: overrides.testStrategy } : {}),
+    ...(overrides.testCasesAuthored !== undefined ? { testCasesAuthored: overrides.testCasesAuthored } : {}),
+    ...(overrides.executionCommands !== undefined ? { executionCommands: overrides.executionCommands } : {}),
+    ...(overrides.expectedPassConditions !== undefined ? { expectedPassConditions: overrides.expectedPassConditions } : {}),
+    ...(overrides.coverageNotes !== undefined ? { coverageNotes: overrides.coverageNotes } : {}),
+    ...(overrides.testExecutionResults !== undefined ? { testExecutionResults: overrides.testExecutionResults } : {}),
+    ...(overrides.verdict !== undefined ? { verdict: overrides.verdict } : {}),
+    ...(overrides.findings !== undefined ? { findings: overrides.findings } : {}),
   });
   return {
     exitCode: 0,
@@ -146,14 +164,29 @@ describe("hook integration", () => {
         summary: "Plan ready",
       }))
       .mockResolvedValueOnce(makeOutput({
-        summary: "Review passed",
-      }))
-      .mockResolvedValueOnce(makeOutput({
-        summary: "Built it",
+        summary: "Build ready",
+        changeDescription: "Implemented the feature",
         modifiedFiles: ["src/index.ts"],
       }))
       .mockResolvedValueOnce(makeOutput({
-        summary: "Tests passed",
+        summary: "Authored tests",
+        testStrategy: "Regression first",
+        testCasesAuthored: ["covers feature"],
+        executionCommands: ["make test -- tests/index.test.ts"],
+        expectedPassConditions: ["feature test passes"],
+        coverageNotes: ["integration omitted"],
+        modifiedFiles: ["tests/index.test.ts"],
+      }))
+      .mockResolvedValueOnce(makeOutput({
+        summary: "Verified build",
+        changeDescription: "Ran the authored tests and fixed the issue",
+        testExecutionResults: ["make test -- tests/index.test.ts -> pass"],
+        modifiedFiles: ["src/index.ts"],
+      }))
+      .mockResolvedValueOnce(makeOutput({
+        summary: "Review passed",
+        verdict: "approve",
+        findings: [],
       }));
 
     const { execute } = await setupOrchestrator(mockSpawn, registry);

@@ -37,9 +37,10 @@ describe("orchestrator team delegation", () => {
   it("delegates to build-team when teamHint is provided", async () => {
     const mockSpawn = vi.fn()
       .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Planned", deliverables: ["s1"], modifiedFiles: [] }))
-      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Built", deliverables: ["done"], modifiedFiles: ["a.ts"] }))
-      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Reviewed", deliverables: ["ok"], modifiedFiles: [] }))
-      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Tested", deliverables: ["pass"], modifiedFiles: [] }));
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Built", deliverables: ["done"], modifiedFiles: ["a.ts"], changeDescription: "Built feature" }))
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Authored tests", deliverables: ["pass"], modifiedFiles: ["tests/a.test.ts"], testStrategy: "Regression first", testCasesAuthored: ["covers behavior"], executionCommands: ["make test -- tests/a.test.ts"], expectedPassConditions: ["test passes"], coverageNotes: ["integration omitted"] }))
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Verified build", deliverables: ["done"], modifiedFiles: ["a.ts"], changeDescription: "Verified build", testExecutionResults: ["make test -- tests/a.test.ts -> pass"] }))
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Reviewed", deliverables: ["ok"], modifiedFiles: [], verdict: "approve", findings: [] }));
 
     const tool = await setupOrchestrator(mockSpawn);
     const result = await tool.execute(
@@ -56,7 +57,7 @@ describe("orchestrator team delegation", () => {
 
     expect(result.details.overallStatus).toBe("success");
     expect(result.details.teamId).toBe("build-team");
-    expect(mockSpawn).toHaveBeenCalledTimes(4);
+    expect(mockSpawn).toHaveBeenCalledTimes(5);
   });
 
   it("returns failure for unknown team ID", async () => {
@@ -82,9 +83,10 @@ describe("orchestrator team delegation", () => {
   it("teamHint bypasses specialist selection entirely", async () => {
     const mockSpawn = vi.fn()
       .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Planned", deliverables: ["s1"], modifiedFiles: [] }))
-      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Built", deliverables: ["done"], modifiedFiles: ["a.ts"] }))
-      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Reviewed", deliverables: ["ok"], modifiedFiles: [] }))
-      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Tested", deliverables: ["pass"], modifiedFiles: [] }));
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Built", deliverables: ["done"], modifiedFiles: ["a.ts"], changeDescription: "Built feature" }))
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Authored tests", deliverables: ["pass"], modifiedFiles: ["tests/a.test.ts"], testStrategy: "Regression first", testCasesAuthored: ["covers behavior"], executionCommands: ["make test -- tests/a.test.ts"], expectedPassConditions: ["test passes"], coverageNotes: ["integration omitted"] }))
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Verified build", deliverables: ["done"], modifiedFiles: ["a.ts"], changeDescription: "Verified build", testExecutionResults: ["make test -- tests/a.test.ts -> pass"] }))
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Reviewed", deliverables: ["ok"], modifiedFiles: [], verdict: "approve", findings: [] }));
 
     const tool = await setupOrchestrator(mockSpawn);
     const result = await tool.execute(
@@ -99,8 +101,7 @@ describe("orchestrator team delegation", () => {
       {} as any,
     );
 
-    // All 4 specialists invoked via team, not just planner
-    expect(mockSpawn).toHaveBeenCalledTimes(4);
+    expect(mockSpawn).toHaveBeenCalledTimes(5);
     expect(result.details.teamId).toBe("build-team");
   });
 

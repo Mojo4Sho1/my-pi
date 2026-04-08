@@ -10,13 +10,14 @@ import type { TeamDefinition } from "../shared/types.js";
 /**
  * Build Team — the exemplar team for Stage 4b.
  *
- * Executes a full plan → build → review → test workflow.
- * Build, review, and test failures loop back for revision with maxIterations guards.
+ * Executes the canonical plan → build → test-author → builder verification → review workflow.
+ * Planning/build failures loop back upstream, tester outputs feed a second builder pass,
+ * and reviewer follow-up loops back to the post-tester builder state.
  */
 export const BUILD_TEAM: TeamDefinition = {
   id: "build-team",
   name: "Build Team",
-  purpose: "Plan, build, review, and test a feature end-to-end",
+  purpose: "Plan, build, author tests, verify against those tests, and review a feature end-to-end",
   members: [
     "specialist_planner",
     "specialist_builder",
@@ -50,27 +51,36 @@ export const BUILD_TEAM: TeamDefinition = {
       building: {
         agent: "specialist_builder",
         transitions: [
-          { on: "success", to: "review" },
+          { on: "success", to: "testing" },
           { on: "partial", to: "planning", maxIterations: 2 },
           { on: "failure", to: "planning", maxIterations: 2 },
-          { on: "escalation", to: "failed" },
-        ],
-      },
-      review: {
-        agent: "specialist_reviewer",
-        transitions: [
-          { on: "success", to: "testing" },
-          { on: "partial", to: "building", maxIterations: 2 },
-          { on: "failure", to: "building", maxIterations: 2 },
           { on: "escalation", to: "failed" },
         ],
       },
       testing: {
         agent: "specialist_tester",
         transitions: [
+          { on: "success", to: "rebuilding" },
+          { on: "partial", to: "rebuilding", maxIterations: 2 },
+          { on: "failure", to: "rebuilding", maxIterations: 2 },
+          { on: "escalation", to: "failed" },
+        ],
+      },
+      rebuilding: {
+        agent: "specialist_builder",
+        transitions: [
+          { on: "success", to: "review" },
+          { on: "partial", to: "rebuilding", maxIterations: 2 },
+          { on: "failure", to: "rebuilding", maxIterations: 2 },
+          { on: "escalation", to: "failed" },
+        ],
+      },
+      review: {
+        agent: "specialist_reviewer",
+        transitions: [
           { on: "success", to: "done" },
-          { on: "partial", to: "building", maxIterations: 2 },
-          { on: "failure", to: "building", maxIterations: 2 },
+          { on: "partial", to: "rebuilding", maxIterations: 2 },
+          { on: "failure", to: "rebuilding", maxIterations: 2 },
           { on: "escalation", to: "failed" },
         ],
       },

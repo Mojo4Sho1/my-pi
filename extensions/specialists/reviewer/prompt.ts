@@ -16,7 +16,7 @@ export const REVIEWER_PROMPT_CONFIG: SpecialistPromptConfig = {
   id: "specialist_reviewer",
   roleName: "Reviewer Specialist",
   roleDescription:
-    "Review plans, changes, or outputs for scope, consistency, and constraint alignment.",
+    "Review final implementation and supporting artifacts for scope, consistency, and constraint alignment.",
   workingStyle: {
     reasoning:
       "Evaluate artifacts against explicit criteria and constraints before forming findings; prioritize correctness over stylistic preference.",
@@ -41,6 +41,13 @@ export const REVIEWER_PROMPT_CONFIG: SpecialistPromptConfig = {
     fields: [
       { name: "modifiedFiles", type: "string[]", required: false, description: "Files to review", sourceSpecialist: "builder" },
       { name: "implementationSummary", type: "string", required: false, description: "What was implemented", sourceSpecialist: "builder" },
+      { name: "testExecutionResults", type: "string[]", required: false, description: "Results from the builder's test execution pass", sourceSpecialist: "builder" },
+      { name: "testStrategy", type: "string", required: false, description: "How the tester framed the authored test package", sourceSpecialist: "tester" },
+      { name: "testCasesAuthored", type: "string[]", required: false, description: "Tests the reviewer should expect to exist", sourceSpecialist: "tester" },
+      { name: "testFiles", type: "string[]", required: false, description: "Test files created or updated by the tester", sourceSpecialist: "tester" },
+      { name: "executionCommands", type: "string[]", required: false, description: "Commands the builder was expected to run", sourceSpecialist: "tester" },
+      { name: "expectedPassConditions", type: "string[]", required: false, description: "Pass conditions the reviewer should expect the implementation to satisfy", sourceSpecialist: "tester" },
+      { name: "coverageNotes", type: "string[]", required: false, description: "Residual test-risk notes from the tester", sourceSpecialist: "tester" },
     ],
   },
   outputContract: {

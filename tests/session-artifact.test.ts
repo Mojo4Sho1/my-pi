@@ -45,16 +45,19 @@ describe("team session artifacts", () => {
   it("happy path produces artifact with correct metadata", async () => {
     const mockSpawn = vi.fn()
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Plan created", deliverables: ["step-1"], modifiedFiles: [],
+        status: "success", summary: "Plan created", deliverables: ["step-1"], steps: ["step-1"], dependencies: [], risks: [], modifiedFiles: [],
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Built feature", deliverables: [], modifiedFiles: ["src/index.ts"],
+        status: "success", summary: "Built feature", deliverables: [], modifiedFiles: ["src/index.ts"], changeDescription: "Built feature",
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Review passed", deliverables: [], modifiedFiles: [],
+        status: "success", summary: "Authored tests", deliverables: [], modifiedFiles: ["tests/index.test.ts"], testStrategy: "Regression first", testCasesAuthored: ["covers feature"], executionCommands: ["make test -- tests/index.test.ts"], expectedPassConditions: ["feature test passes"], coverageNotes: ["integration omitted"],
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Tests passed", deliverables: [], modifiedFiles: [],
+        status: "success", summary: "Verified build", deliverables: [], modifiedFiles: ["src/index.ts"], changeDescription: "Verified build", testExecutionResults: ["make test -- tests/index.test.ts -> pass"],
+      }))
+      .mockResolvedValueOnce(makeOutput({
+        status: "success", summary: "Review passed", deliverables: [], modifiedFiles: [], verdict: "approve", findings: [],
       }));
 
     const { executeTeam } = await setupTeamRouter(mockSpawn);
@@ -82,60 +85,68 @@ describe("team session artifacts", () => {
   it("state trace has one entry per non-terminal state visited", async () => {
     const mockSpawn = vi.fn()
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Plan", deliverables: [], modifiedFiles: [],
+        status: "success", summary: "Plan", deliverables: [], steps: ["step-1"], dependencies: [], risks: [], modifiedFiles: [],
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Build", deliverables: [], modifiedFiles: ["src/index.ts"],
+        status: "success", summary: "Build", deliverables: [], modifiedFiles: ["src/index.ts"], changeDescription: "Build",
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Review", deliverables: [], modifiedFiles: [],
+        status: "success", summary: "Test authoring", deliverables: [], modifiedFiles: ["tests/index.test.ts"], testStrategy: "Regression first", testCasesAuthored: ["covers feature"], executionCommands: ["make test -- tests/index.test.ts"], expectedPassConditions: ["feature test passes"], coverageNotes: ["integration omitted"],
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Test", deliverables: [], modifiedFiles: [],
+        status: "success", summary: "Rebuild", deliverables: [], modifiedFiles: ["src/index.ts"], changeDescription: "Rebuild", testExecutionResults: ["make test -- tests/index.test.ts -> pass"],
+      }))
+      .mockResolvedValueOnce(makeOutput({
+        status: "success", summary: "Review", deliverables: [], modifiedFiles: [], verdict: "approve", findings: [],
       }));
 
     const { executeTeam } = await setupTeamRouter(mockSpawn);
     const result = await executeTeam(BUILD_TEAM, makeTeamTaskPacket());
     const artifact = result.sessionArtifact!;
 
-    // 4 non-terminal states: planning, building, review, testing
-    expect(artifact.stateTrace).toHaveLength(4);
+    expect(artifact.stateTrace).toHaveLength(5);
     expect(artifact.stateTrace[0].state).toBe("planning");
     expect(artifact.stateTrace[0].agent).toBe("specialist_planner");
     expect(artifact.stateTrace[0].transitionTo).toBe("building");
     expect(artifact.stateTrace[0].resultStatus).toBe("success");
 
     expect(artifact.stateTrace[1].state).toBe("building");
-    expect(artifact.stateTrace[2].state).toBe("review");
-    expect(artifact.stateTrace[3].state).toBe("testing");
-    expect(artifact.stateTrace[3].transitionTo).toBe("done");
+    expect(artifact.stateTrace[2].state).toBe("testing");
+    expect(artifact.stateTrace[3].state).toBe("rebuilding");
+    expect(artifact.stateTrace[4].state).toBe("review");
+    expect(artifact.stateTrace[4].transitionTo).toBe("done");
   });
 
   it("specialist summaries has one entry per delegation", async () => {
     const mockSpawn = vi.fn()
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Plan", deliverables: [], modifiedFiles: [],
+        status: "success", summary: "Plan", deliverables: [], steps: ["step-1"], dependencies: [], risks: [], modifiedFiles: [],
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Build", deliverables: [], modifiedFiles: ["a.ts"],
+        status: "success", summary: "Build", deliverables: [], modifiedFiles: ["a.ts"], changeDescription: "Build",
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Review", deliverables: [], modifiedFiles: [],
+        status: "success", summary: "Test authoring", deliverables: [], modifiedFiles: ["tests/a.test.ts"], testStrategy: "Regression first", testCasesAuthored: ["covers behavior"], executionCommands: ["make test -- tests/a.test.ts"], expectedPassConditions: ["test passes"], coverageNotes: ["integration omitted"],
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Test", deliverables: [], modifiedFiles: [],
+        status: "success", summary: "Rebuild", deliverables: [], modifiedFiles: ["a.ts"], changeDescription: "Rebuild", testExecutionResults: ["make test -- tests/a.test.ts -> pass"],
+      }))
+      .mockResolvedValueOnce(makeOutput({
+        status: "success", summary: "Review", deliverables: [], modifiedFiles: [], verdict: "approve", findings: [],
       }));
 
     const { executeTeam } = await setupTeamRouter(mockSpawn);
     const result = await executeTeam(BUILD_TEAM, makeTeamTaskPacket());
     const artifact = result.sessionArtifact!;
 
-    expect(artifact.specialistSummaries).toHaveLength(4);
+    expect(artifact.specialistSummaries).toHaveLength(5);
     expect(artifact.specialistSummaries[0].agentId).toBe("specialist_planner");
     expect(artifact.specialistSummaries[0].order).toBe(1);
     expect(artifact.specialistSummaries[0].status).toBe("success");
-    expect(artifact.specialistSummaries[3].agentId).toBe("specialist_tester");
-    expect(artifact.specialistSummaries[3].order).toBe(4);
+    expect(artifact.specialistSummaries[2].agentId).toBe("specialist_tester");
+    expect(artifact.specialistSummaries[2].order).toBe(3);
+    expect(artifact.specialistSummaries[4].agentId).toBe("specialist_reviewer");
+    expect(artifact.specialistSummaries[4].order).toBe(5);
 
     // Each should have a durationMs (positive number)
     for (const summary of artifact.specialistSummaries) {
@@ -163,29 +174,39 @@ describe("team session artifacts", () => {
       }))
       .mockResolvedValueOnce(makeOutput({
         status: "success",
+        summary: "Test authoring",
+        deliverables: [],
+        modifiedFiles: ["tests/index.test.ts"],
+        testStrategy: "Cover the scoped feature first",
+        testCasesAuthored: ["feature path passes"],
+        executionCommands: ["make test -- tests/index.test.ts"],
+        expectedPassConditions: ["feature test passes"],
+        coverageNotes: ["integration path still manual"],
+      }))
+      .mockResolvedValueOnce(makeOutput({
+        status: "success",
+        summary: "Rebuild",
+        deliverables: [],
+        modifiedFiles: ["src/index.ts"],
+        changeDescription: "Implemented the feature after running the authored tests",
+        testExecutionResults: ["make test -- tests/index.test.ts -> pass"],
+      }))
+      .mockResolvedValueOnce(makeOutput({
+        status: "success",
         summary: "Review",
         deliverables: [],
         modifiedFiles: [],
         verdict: "approve",
         findings: [],
-      }))
-      .mockResolvedValueOnce(makeOutput({
-        status: "success",
-        summary: "Test",
-        deliverables: [],
-        modifiedFiles: [],
-        passed: true,
-        evidence: ["targeted checks pass"],
-        failures: [],
       }));
 
     const { executeTeam } = await setupTeamRouter(mockSpawn);
     const result = await executeTeam(BUILD_TEAM, makeTeamTaskPacket());
     const artifact = result.sessionArtifact!;
 
-    expect(artifact.stepArtifacts).toHaveLength(4);
-    expect(artifact.artifactRefs).toHaveLength(4);
-    expect(artifact.finalResultRef?.artifactId).toBe(artifact.stepArtifacts[3].artifactId);
+    expect(artifact.stepArtifacts).toHaveLength(5);
+    expect(artifact.artifactRefs).toHaveLength(5);
+    expect(artifact.finalResultRef?.artifactId).toBe(artifact.stepArtifacts[4].artifactId);
     expect(artifact.stepArtifacts[0].logicalPath).toContain("/001_PLANNER_OUTPUT.json");
     expect(artifact.stepArtifacts[0].editableFields).toEqual(["dependencies", "risks", "steps"]);
     expect(artifact.stepArtifacts[0].validatedOutput).toEqual({
@@ -193,34 +214,50 @@ describe("team session artifacts", () => {
       dependencies: ["step-2 depends on step-1"],
       risks: ["scope drift"],
     });
-    expect(artifact.stepArtifacts[1].editableFields).toEqual(["changeDescription", "modifiedFiles"]);
+    expect(artifact.stepArtifacts[1].editableFields).toEqual(["changeDescription", "modifiedFiles", "testExecutionResults"]);
     expect(artifact.stepArtifacts[1].validatedOutput).toEqual({
       modifiedFiles: ["src/index.ts"],
       changeDescription: "Implemented the feature",
     });
-    expect(artifact.taskPacketLineage).toHaveLength(5);
+    expect(artifact.stepArtifacts[2].validatedOutput).toEqual({
+      testStrategy: "Cover the scoped feature first",
+      testCasesAuthored: ["feature path passes"],
+      executionCommands: ["make test -- tests/index.test.ts"],
+      expectedPassConditions: ["feature test passes"],
+      coverageNotes: ["integration path still manual"],
+    });
+    expect(artifact.stepArtifacts[3].editableFields).toEqual(["changeDescription", "modifiedFiles", "testExecutionResults"]);
+    expect(artifact.stepArtifacts[3].validatedOutput).toEqual({
+      modifiedFiles: ["src/index.ts"],
+      changeDescription: "Implemented the feature after running the authored tests",
+      testExecutionResults: ["make test -- tests/index.test.ts -> pass"],
+    });
+    expect(artifact.taskPacketLineage).toHaveLength(6);
   });
 
   it("loop/revision produces correct loopCount and revisionCount in metrics", async () => {
-    // Plan → build → review fails → rebuild → review passes → test → done
+    // Plan → build → test authoring → rebuild → review fails → rebuild → review passes → done
     const mockSpawn = vi.fn()
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Plan v1", deliverables: [], modifiedFiles: [],
+        status: "success", summary: "Plan v1", deliverables: [], steps: ["step-1"], dependencies: [], risks: [], modifiedFiles: [],
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Build v1", deliverables: [], modifiedFiles: ["a.ts"],
+        status: "success", summary: "Build v1", deliverables: [], modifiedFiles: ["a.ts"], changeDescription: "Build v1",
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "failure", summary: "Review failed", deliverables: [], modifiedFiles: [],
+        status: "success", summary: "Test authoring", deliverables: [], modifiedFiles: ["tests/a.test.ts"], testStrategy: "Regression first", testCasesAuthored: ["covers behavior"], executionCommands: ["make test -- tests/a.test.ts"], expectedPassConditions: ["test passes"], coverageNotes: ["integration omitted"],
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Build v2", deliverables: [], modifiedFiles: ["a.ts"],
+        status: "success", summary: "Rebuild v1", deliverables: [], modifiedFiles: ["a.ts"], changeDescription: "Rebuild v1", testExecutionResults: ["make test -- tests/a.test.ts -> pass"],
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Review passed", deliverables: [], modifiedFiles: [],
+        status: "failure", summary: "Review failed", deliverables: [], modifiedFiles: [], verdict: "request_changes", findings: [],
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Tested", deliverables: [], modifiedFiles: [],
+        status: "success", summary: "Rebuild v2", deliverables: [], modifiedFiles: ["a.ts"], changeDescription: "Rebuild v2", testExecutionResults: ["make test -- tests/a.test.ts -> pass"],
+      }))
+      .mockResolvedValueOnce(makeOutput({
+        status: "success", summary: "Review passed", deliverables: [], modifiedFiles: [], verdict: "approve", findings: [],
       }));
 
     const { executeTeam } = await setupTeamRouter(mockSpawn);
@@ -231,31 +268,36 @@ describe("team session artifacts", () => {
     // building/review were revisited, so loopCount and revisionCount should reflect this
     expect(artifact.metrics.loopCount).toBeGreaterThan(0);
     expect(artifact.metrics.revisionCount).toBeGreaterThan(0);
-    expect(artifact.metrics.totalTransitions).toBe(6);
+    expect(artifact.metrics.totalTransitions).toBe(7);
     expect(artifact.metrics.totalDurationMs).toBeGreaterThanOrEqual(0);
   });
 
   it("aggregates token usage into specialist summaries and session metrics", async () => {
     const mockSpawn = vi.fn()
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Plan", deliverables: [], modifiedFiles: [],
+        status: "success", summary: "Plan", deliverables: [], steps: ["step-1"], dependencies: [], risks: [], modifiedFiles: [],
       }, {
         inputTokens: 100, outputTokens: 20, totalTokens: 120,
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Build", deliverables: [], modifiedFiles: ["a.ts"],
+        status: "success", summary: "Build", deliverables: [], modifiedFiles: ["a.ts"], changeDescription: "Build",
       }, {
         inputTokens: 150, outputTokens: 80, totalTokens: 230,
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Review", deliverables: [], modifiedFiles: [],
+        status: "success", summary: "Test authoring", deliverables: [], modifiedFiles: ["tests/a.test.ts"], testStrategy: "Regression first", testCasesAuthored: ["covers behavior"], executionCommands: ["make test -- tests/a.test.ts"], expectedPassConditions: ["test passes"], coverageNotes: ["integration omitted"],
       }, {
-        inputTokens: 40, outputTokens: 10, totalTokens: 50,
+        inputTokens: 40, outputTokens: 25, totalTokens: 65,
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Test", deliverables: [], modifiedFiles: [],
+        status: "success", summary: "Rebuild", deliverables: [], modifiedFiles: ["a.ts"], changeDescription: "Rebuild", testExecutionResults: ["make test -- tests/a.test.ts -> pass"],
       }, {
         inputTokens: 60, outputTokens: 30, totalTokens: 90,
+      }))
+      .mockResolvedValueOnce(makeOutput({
+        status: "success", summary: "Review", deliverables: [], modifiedFiles: [], verdict: "approve", findings: [],
+      }, {
+        inputTokens: 20, outputTokens: 10, totalTokens: 30,
       }));
 
     const { executeTeam } = await setupTeamRouter(mockSpawn);
@@ -268,25 +310,28 @@ describe("team session artifacts", () => {
       totalTokens: 120,
     });
     expect(artifact.metrics.totalTokenUsage).toEqual({
-      inputTokens: 350,
-      outputTokens: 140,
-      totalTokens: 490,
+      inputTokens: 370,
+      outputTokens: 165,
+      totalTokens: 535,
     });
   });
 
   it("emits team and state transition hook events", async () => {
     const mockSpawn = vi.fn()
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Plan", deliverables: [], modifiedFiles: [],
+        status: "success", summary: "Plan", deliverables: [], steps: ["step-1"], dependencies: [], risks: [], modifiedFiles: [],
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Build", deliverables: [], modifiedFiles: ["a.ts"],
+        status: "success", summary: "Build", deliverables: [], modifiedFiles: ["a.ts"], changeDescription: "Build",
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Review", deliverables: [], modifiedFiles: [],
+        status: "success", summary: "Test authoring", deliverables: [], modifiedFiles: ["tests/a.test.ts"], testStrategy: "Regression first", testCasesAuthored: ["covers behavior"], executionCommands: ["make test -- tests/a.test.ts"], expectedPassConditions: ["test passes"], coverageNotes: ["integration omitted"],
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Test", deliverables: [], modifiedFiles: [],
+        status: "success", summary: "Rebuild", deliverables: [], modifiedFiles: ["a.ts"], changeDescription: "Rebuild", testExecutionResults: ["make test -- tests/a.test.ts -> pass"],
+      }))
+      .mockResolvedValueOnce(makeOutput({
+        status: "success", summary: "Review", deliverables: [], modifiedFiles: [], verdict: "approve", findings: [],
       }));
 
     const { executeTeam } = await setupTeamRouter(mockSpawn);
@@ -306,34 +351,39 @@ describe("team session artifacts", () => {
     await executeTeam(BUILD_TEAM, makeTeamTaskPacket(), undefined, undefined, hookRegistry);
 
     expect(events[0]).toBe("onTeamStart");
-    expect(events.filter((event) => event === "beforeStateTransition")).toHaveLength(4);
-    expect(events.filter((event) => event === "afterStateTransition")).toHaveLength(4);
+    expect(events.filter((event) => event === "beforeStateTransition")).toHaveLength(5);
+    expect(events.filter((event) => event === "afterStateTransition")).toHaveLength(5);
   });
 
   it("escalation (loop exhaustion) produces artifact with terminationReason retry_exhaustion", async () => {
-    // review→building maxIterations=2: first two failures advance (count 0→1, 1→2), third attempt exhausts (count=2 >= 2)
-    // plan → build → review(fail,count→1) → build → review(fail,count→2) → build → review(fail,count=2→exhausted)
+    // review→rebuilding maxIterations=2: first two failures advance, third attempt exhausts
     const mockSpawn = vi.fn()
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Plan v1", deliverables: [], modifiedFiles: [],
+        status: "success", summary: "Plan v1", deliverables: [], steps: ["step-1"], dependencies: [], risks: [], modifiedFiles: [],
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Build v1", deliverables: [], modifiedFiles: ["a.ts"],
+        status: "success", summary: "Build v1", deliverables: [], modifiedFiles: ["a.ts"], changeDescription: "Build v1",
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "failure", summary: "Review rejected v1", deliverables: [], modifiedFiles: [],
+        status: "success", summary: "Test authoring", deliverables: [], modifiedFiles: ["tests/a.test.ts"], testStrategy: "Regression first", testCasesAuthored: ["covers behavior"], executionCommands: ["make test -- tests/a.test.ts"], expectedPassConditions: ["test passes"], coverageNotes: ["integration omitted"],
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Build v2", deliverables: [], modifiedFiles: ["a.ts"],
+        status: "success", summary: "Rebuild v1", deliverables: [], modifiedFiles: ["a.ts"], changeDescription: "Rebuild v1", testExecutionResults: ["make test -- tests/a.test.ts -> pass"],
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "failure", summary: "Review rejected v2", deliverables: [], modifiedFiles: [],
+        status: "failure", summary: "Review rejected v1", deliverables: [], modifiedFiles: [], verdict: "request_changes", findings: [],
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Build v3", deliverables: [], modifiedFiles: ["a.ts"],
+        status: "success", summary: "Rebuild v2", deliverables: [], modifiedFiles: ["a.ts"], changeDescription: "Rebuild v2", testExecutionResults: ["make test -- tests/a.test.ts -> pass"],
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "failure", summary: "Review rejected v3", deliverables: [], modifiedFiles: [],
+        status: "failure", summary: "Review rejected v2", deliverables: [], modifiedFiles: [], verdict: "request_changes", findings: [],
+      }))
+      .mockResolvedValueOnce(makeOutput({
+        status: "success", summary: "Rebuild v3", deliverables: [], modifiedFiles: ["a.ts"], changeDescription: "Rebuild v3", testExecutionResults: ["make test -- tests/a.test.ts -> pass"],
+      }))
+      .mockResolvedValueOnce(makeOutput({
+        status: "failure", summary: "Review rejected v3", deliverables: [], modifiedFiles: [], verdict: "request_changes", findings: [],
       }));
 
     const { executeTeam } = await setupTeamRouter(mockSpawn);
@@ -383,16 +433,19 @@ describe("team session artifacts", () => {
   it("teamVersion is consistent and deterministic", async () => {
     const mockSpawn = vi.fn()
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Plan", deliverables: [], modifiedFiles: [],
+        status: "success", summary: "Plan", deliverables: [], steps: ["step-1"], dependencies: [], risks: [], modifiedFiles: [],
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Build", deliverables: [], modifiedFiles: ["a.ts"],
+        status: "success", summary: "Build", deliverables: [], modifiedFiles: ["a.ts"], changeDescription: "Build",
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Review", deliverables: [], modifiedFiles: [],
+        status: "success", summary: "Test authoring", deliverables: [], modifiedFiles: ["tests/a.test.ts"], testStrategy: "Regression first", testCasesAuthored: ["covers behavior"], executionCommands: ["make test -- tests/a.test.ts"], expectedPassConditions: ["test passes"], coverageNotes: ["integration omitted"],
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Test", deliverables: [], modifiedFiles: [],
+        status: "success", summary: "Rebuild", deliverables: [], modifiedFiles: ["a.ts"], changeDescription: "Rebuild", testExecutionResults: ["make test -- tests/a.test.ts -> pass"],
+      }))
+      .mockResolvedValueOnce(makeOutput({
+        status: "success", summary: "Review", deliverables: [], modifiedFiles: [], verdict: "approve", findings: [],
       }));
 
     const { executeTeam } = await setupTeamRouter(mockSpawn);
@@ -405,16 +458,19 @@ describe("team session artifacts", () => {
   it("contractSatisfied is correctly computed per specialist", async () => {
     const mockSpawn = vi.fn()
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Plan", deliverables: ["step-1"], modifiedFiles: [],
+        status: "success", summary: "Plan", deliverables: ["step-1"], steps: ["step-1"], dependencies: [], risks: [], modifiedFiles: [],
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Build", deliverables: [], modifiedFiles: ["a.ts"],
+        status: "success", summary: "Build", deliverables: [], modifiedFiles: ["a.ts"], changeDescription: "Build",
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Review", deliverables: [], modifiedFiles: [],
+        status: "success", summary: "Test authoring", deliverables: [], modifiedFiles: ["tests/a.test.ts"], testStrategy: "Regression first", testCasesAuthored: ["covers behavior"], executionCommands: ["make test -- tests/a.test.ts"], expectedPassConditions: ["test passes"], coverageNotes: ["integration omitted"],
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Test", deliverables: [], modifiedFiles: [],
+        status: "success", summary: "Rebuild", deliverables: [], modifiedFiles: ["a.ts"], changeDescription: "Rebuild", testExecutionResults: ["make test -- tests/a.test.ts -> pass"],
+      }))
+      .mockResolvedValueOnce(makeOutput({
+        status: "success", summary: "Review", deliverables: [], modifiedFiles: [], verdict: "approve", findings: [],
       }));
 
     const { executeTeam } = await setupTeamRouter(mockSpawn);
@@ -479,16 +535,19 @@ describe("team session artifacts", () => {
   it("logger receives team events when provided", async () => {
     const mockSpawn = vi.fn()
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Plan", deliverables: [], modifiedFiles: [],
+        status: "success", summary: "Plan", deliverables: [], steps: ["step-1"], dependencies: [], risks: [], modifiedFiles: [],
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Build", deliverables: [], modifiedFiles: ["a.ts"],
+        status: "success", summary: "Build", deliverables: [], modifiedFiles: ["a.ts"], changeDescription: "Build",
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Review", deliverables: [], modifiedFiles: [],
+        status: "success", summary: "Test authoring", deliverables: [], modifiedFiles: ["tests/a.test.ts"], testStrategy: "Regression first", testCasesAuthored: ["covers behavior"], executionCommands: ["make test -- tests/a.test.ts"], expectedPassConditions: ["test passes"], coverageNotes: ["integration omitted"],
       }))
       .mockResolvedValueOnce(makeOutput({
-        status: "success", summary: "Test", deliverables: [], modifiedFiles: [],
+        status: "success", summary: "Rebuild", deliverables: [], modifiedFiles: ["a.ts"], changeDescription: "Rebuild", testExecutionResults: ["make test -- tests/a.test.ts -> pass"],
+      }))
+      .mockResolvedValueOnce(makeOutput({
+        status: "success", summary: "Review", deliverables: [], modifiedFiles: [], verdict: "approve", findings: [],
       }));
 
     const logEntries: unknown[] = [];
@@ -501,8 +560,8 @@ describe("team session artifacts", () => {
     // Should have: team_start, then delegation_start/complete pairs, team_state_transitions, team_complete
     expect(events[0]).toBe("team_start");
     expect(events[events.length - 1]).toBe("team_complete");
-    expect(events.filter((e) => e === "team_state_transition").length).toBe(4);
-    expect(events.filter((e) => e === "delegation_start").length).toBe(4);
-    expect(events.filter((e) => e === "delegation_complete").length).toBe(4);
+    expect(events.filter((e) => e === "team_state_transition").length).toBe(5);
+    expect(events.filter((e) => e === "delegation_start").length).toBe(5);
+    expect(events.filter((e) => e === "delegation_complete").length).toBe(5);
   });
 });
