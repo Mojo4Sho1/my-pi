@@ -5,6 +5,9 @@ import {
   contractsCompatible,
   buildContextFromArtifacts,
   buildContextFromContract,
+  isOutputContractSatisfied,
+  partialOutputNeedsFollowup,
+  validateStructuredOutputOwnership,
 } from "../extensions/shared/contracts.js";
 import { createResultPacket } from "../extensions/shared/packets.js";
 import type { InputContract, OutputContract, TeamStepArtifact } from "../extensions/shared/types.js";
@@ -65,6 +68,98 @@ describe("validateOutputContract", () => {
       "Missing required output field 'steps'",
       "Missing required output field 'risks'",
     ]);
+  });
+
+  it("allows partial outputs to omit required fields while still validating present ones", () => {
+    const errors = validateOutputContract(
+      { steps: ["a"], risks: "wrong-type" },
+      contract,
+      { allowPartial: true }
+    );
+    expect(errors).toEqual([
+      "Output field 'risks' has wrong type: expected string[], got string",
+    ]);
+  });
+});
+
+describe("validateStructuredOutputOwnership", () => {
+  const contract: OutputContract = {
+    fields: [
+      { name: "steps", type: "string[]", required: true, description: "Steps" },
+    ],
+  };
+
+  it("allows shared result fields and declared contract fields", () => {
+    const result = validateStructuredOutputOwnership(
+      {
+        status: "success",
+        summary: "Planned",
+        modifiedFiles: [],
+        steps: ["step-1"],
+      },
+      contract
+    );
+
+    expect(result.errors).toEqual([]);
+    expect(result.editableFields).toEqual(["steps"]);
+  });
+
+  it("rejects router-owned fields in structured output", () => {
+    const result = validateStructuredOutputOwnership(
+      {
+        status: "success",
+        steps: ["step-1"],
+        artifactId: "team_step_1",
+      },
+      contract
+    );
+
+    expect(result.errors).toEqual([
+      "Structured output field 'artifactId' is router-owned and cannot be written by the specialist",
+    ]);
+  });
+
+  it("allows explicitly approved advisory output fields", () => {
+    const result = validateStructuredOutputOwnership(
+      {
+        status: "partial",
+        summary: "Checks drafted",
+        passed: false,
+        evidence: [],
+        failures: ["still drafting"],
+        testResults: [],
+      },
+      {
+        fields: [
+          { name: "passed", type: "boolean", required: true, description: "Pass flag" },
+          { name: "evidence", type: "string[]", required: true, description: "Evidence" },
+          { name: "failures", type: "string[]", required: true, description: "Failures" },
+        ],
+      },
+      { allowedOutputFields: ["testResults"] }
+    );
+
+    expect(result.errors).toEqual([]);
+    expect(result.editableFields).toEqual(["evidence", "failures", "passed", "testResults"]);
+  });
+});
+
+describe("partialOutputNeedsFollowup", () => {
+  const contract: OutputContract = {
+    fields: [
+      { name: "steps", type: "string[]", required: true, description: "Steps" },
+      { name: "risks", type: "string[]", required: true, description: "Risks" },
+    ],
+  };
+
+  it("notes omitted required fields for partial outputs", () => {
+    expect(partialOutputNeedsFollowup("partial", { steps: ["a"] }, contract)).toEqual([
+      "Partial output omitted required field 'risks'",
+    ]);
+  });
+
+  it("treats complete outputs as satisfied independently of partial follow-up notes", () => {
+    expect(isOutputContractSatisfied({ steps: ["a"], risks: ["r1"] }, contract)).toBe(true);
   });
 });
 

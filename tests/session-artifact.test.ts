@@ -187,11 +187,13 @@ describe("team session artifacts", () => {
     expect(artifact.artifactRefs).toHaveLength(4);
     expect(artifact.finalResultRef?.artifactId).toBe(artifact.stepArtifacts[3].artifactId);
     expect(artifact.stepArtifacts[0].logicalPath).toContain("/001_PLANNER_OUTPUT.json");
+    expect(artifact.stepArtifacts[0].editableFields).toEqual(["dependencies", "risks", "steps"]);
     expect(artifact.stepArtifacts[0].validatedOutput).toEqual({
       steps: ["step-1", "step-2"],
       dependencies: ["step-2 depends on step-1"],
       risks: ["scope drift"],
     });
+    expect(artifact.stepArtifacts[1].editableFields).toEqual(["changeDescription", "modifiedFiles"]);
     expect(artifact.stepArtifacts[1].validatedOutput).toEqual({
       modifiedFiles: ["src/index.ts"],
       changeDescription: "Implemented the feature",
@@ -423,6 +425,31 @@ describe("team session artifacts", () => {
     for (const summary of artifact.specialistSummaries) {
       expect(typeof summary.contractSatisfied).toBe("boolean");
     }
+  });
+
+  it("records contract_violation when ownership enforcement rejects a step artifact", async () => {
+    const mockSpawn = vi.fn()
+      .mockResolvedValueOnce(makeOutput({
+        status: "success",
+        summary: "Plan",
+        deliverables: ["step-1"],
+        modifiedFiles: [],
+        steps: ["step-1"],
+        dependencies: [],
+        risks: [],
+        teamSessionId: "attempted-overwrite",
+      }));
+
+    const { executeTeam } = await setupTeamRouter(mockSpawn);
+    const result = await executeTeam(BUILD_TEAM, makeTeamTaskPacket());
+    const artifact = result.sessionArtifact!;
+
+    expect(result.success).toBe(false);
+    expect(artifact.terminationReason).toBe("contract_violation");
+    expect(artifact.outcome.failureReason).toBe("contract_violation");
+    expect(artifact.stepArtifacts[0].contractErrors).toContain(
+      "Structured output field 'teamSessionId' is router-owned and cannot be written by the specialist"
+    );
   });
 
   it("produces artifact even when team has validation errors", async () => {

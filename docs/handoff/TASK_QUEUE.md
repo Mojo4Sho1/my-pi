@@ -1,6 +1,6 @@
 # Task Queue
 
-**Last updated:** 2026-04-07
+**Last updated:** 2026-04-08
 **Owner:** Joe
 
 ## Purpose
@@ -61,8 +61,8 @@ For handoff routing, start with `docs/handoff/_HANDOFF_INDEX.md`. For validation
 | T-15 | done | Documentation and roadmap realignment for the contract/artifact redesign | `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`, `docs/IMPLEMENTATION_PLAN.md`, `docs/handoff/` | Handoff docs, status, implementation plan, indexes, and tester definition all point to Stage 5a.7 and no longer route agents into the old priority order |
 | T-16 | done | Preserve structured specialist outputs end-to-end and validate named output fields directly | `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`, `docs/IMPLEMENTATION_PLAN.md` (Stage 5a.7) | Parsed specialist outputs preserve named structured payloads end-to-end and output contracts validate real payload fields with regression coverage |
 | T-17 | done | Add router-owned team session artifacts and downstream packet construction from validated artifacts only | `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`, `docs/IMPLEMENTATION_PLAN.md` (Stage 5a.7) | Router persists canonical team/specialist artifacts and builds downstream TaskPackets from validated artifact fields only |
-| T-18 | active | Enforce ownership/edit scope and explicit `partial` routing semantics | `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`, `docs/IMPLEMENTATION_PLAN.md` (Stage 5a.7) | Unauthorized field writes are rejected, `partial` handling is explicit per state, and routing stays deterministic |
-| T-19 | queued | Reconcile tester/build-team behavior across prompts, team definitions, and durable docs | `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`, Decision #40 | Canonical build-team flow is `planner -> builder -> tester -> builder -> reviewer -> done` across code-facing and durable docs |
+| T-18 | done | Enforce ownership/edit scope and explicit `partial` routing semantics | `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`, `docs/IMPLEMENTATION_PLAN.md` (Stage 5a.7) | Unauthorized field writes are rejected, `partial` handling is explicit per state, and routing stays deterministic |
+| T-19 | active | Reconcile tester/build-team behavior across prompts, team definitions, and durable docs | `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`, Decision #40 | Canonical build-team flow is `planner -> builder -> tester -> builder -> reviewer -> done` across code-facing and durable docs |
 | T-20 | queued | Add YAML specialist/team templates and a `build-team` starter spec | `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`, `docs/IMPLEMENTATION_PLAN.md` (Stage 5a.7) | `specs/specialists/` and `specs/teams/` templates exist and a `build-team` starter spec reflects the canonical flow |
 | T-21 | queued | Add validation coverage and run a contradiction audit for the redesigned flow | `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`, `docs/IMPLEMENTATION_PLAN.md` (Stage 5a.7) | Validation covers artifact preservation, ownership guardrails, partial handling, and no durable docs contradict the redesigned flow |
 
@@ -84,5 +84,6 @@ For handoff routing, start with `docs/handoff/_HANDOFF_INDEX.md`. For validation
 - T-15 completed the documentation-only realignment pass that promotes Stage 5a.7 to the top of the queue.
 - T-16 completed the structured-output preservation pass with green typecheck/test coverage.
 - T-17 completed the router-owned artifact pass: team sessions now carry canonical step artifacts, artifact refs, and packet lineage, and downstream routing reads validated artifact fields only.
-- T-18 is now the single active target.
+- T-18 completed the ownership/edit-scope guardrail pass: router-owned artifact fields are now protected, unauthorized structured-output fields are rejected, and non-terminal team states must define explicit `partial` handling.
+- T-19 is now the single active target.
 - T-10 through T-14 remain visible but are intentionally deferred until the Stage 5a.7 redesign lands.

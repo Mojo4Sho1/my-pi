@@ -144,6 +144,33 @@ describe("executeTeam", () => {
     expect(result.sessionArtifact?.taskPacketLineage).toHaveLength(5);
   });
 
+  it("rejects unauthorized specialist field writes before routing can continue", async () => {
+    const mockSpawn = vi.fn()
+      .mockResolvedValueOnce(makeOutput({
+        status: "success",
+        summary: "Plan created",
+        deliverables: ["step-1"],
+        steps: ["step-1"],
+        dependencies: [],
+        risks: [],
+        artifactId: "attempted-overwrite",
+        modifiedFiles: [],
+      }));
+
+    const { executeTeam } = await setupTeamRouter(mockSpawn);
+    const result = await executeTeam(BUILD_TEAM, makeTeamTaskPacket());
+
+    expect(result.success).toBe(false);
+    expect(result.resultPacket.status).toBe("failure");
+    expect(result.resultPacket.summary).toContain("ownership/edit-scope violations");
+    expect(result.resultPacket.summary).toContain("artifactId");
+    expect(result.statesVisited).toEqual(["planning"]);
+    expect(result.sessionArtifact?.terminationReason).toBe("contract_violation");
+    expect(result.sessionArtifact?.stepArtifacts[0].contractErrors).toContain(
+      "Structured output field 'artifactId' is router-owned and cannot be written by the specialist"
+    );
+  });
+
   it("handles building failure with loop back to planning then eventual success", async () => {
     const mockSpawn = vi.fn()
       // Plan 1

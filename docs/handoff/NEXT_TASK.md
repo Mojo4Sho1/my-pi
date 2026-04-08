@@ -1,77 +1,77 @@
 # Next Task
 
-**Last updated:** 2026-04-07
+**Last updated:** 2026-04-08
 **Owner:** Joe
 
 ## Task summary
 
-Implement T-18 from Stage 5a.7 by enforcing ownership/edit-scope guardrails on canonical team step artifacts and making `partial` routing semantics explicit per state. The outcome of this task should be a team-routing path where the router rejects unauthorized specialist field writes and handles `partial` results deterministically instead of treating them as loosely equivalent to success/failure side paths.
+Implement T-19 from Stage 5a.7 by reconciling the tester specialist and `build-team` runtime flow to Decision #40. The outcome of this task should be a code-and-doc path where the tester is consistently modeled as a test author, the team state machine follows `planner -> builder -> tester -> builder -> reviewer -> done`, and the repo no longer presents conflicting explanations of that handoff in touched durable docs.
 
 ## Why this task is next
 
-- T-17 is complete, so the router now owns canonical per-step artifacts, artifact refs, and packet lineage
-- Ownership metadata is now present in the runtime artifacts (`editableFields`, `readOnlyFields`) but is not yet enforced
-- Explicit `partial` semantics are the next routing guardrail needed before broader tester/build-team reconciliation (T-19)
+- T-18 is complete, so ownership/edit-scope guardrails and explicit `partial` routing semantics are now enforced in the team router
+- The main remaining Stage 5a.7 mismatch is the tester/build-team flow: durable docs already point at the canonical order, but the runtime team definition and tester prompt/config still reflect the older validation-runner posture
+- T-20 and T-21 depend on having one reconciled canonical flow to template and audit
 
 ## Scope (in)
 
-- Enforce ownership/edit-scope rules for specialist-produced canonical step artifacts
-- Reject or fail routing when a specialist writes unauthorized or router-owned fields
-- Make `partial` handling explicit and deterministic in the team routing path
-- Add or update regression tests covering ownership violations and `partial` state transitions
-- Update durable docs only where needed to reflect the implemented enforcement behavior truthfully
+- Update tester-facing code/config so the tester is a test author rather than a generic validation runner
+- Reconcile the runtime `build-team` state machine to `planner -> builder -> tester -> builder -> reviewer -> done`
+- Adjust builder/tester/reviewer handoff contracts only as needed to support the reconciled flow
+- Add or update regression tests covering the tester-authorship handoff and builder repair loop
+- Update durable docs only where needed to keep touched explanations truthful about the implemented flow
 
 ## Scope (out)
 
-- Full tester/build-team reconciliation across prompts, team definitions, and durable docs (that is T-19)
 - YAML specialist/team template creation (that is T-20)
 - Broad contradiction audit beyond touched docs (that is T-21)
-- Live Pi validation reruns and `/dashboard` follow-on work (deferred tasks T-10 through T-14)
+- New live Pi validation reruns and deferred `/dashboard` follow-on work (T-10 through T-14)
+- Broader invocation-pattern redesign beyond the canonical tester/build-team flow
 
 ## Relevant files
 
 - References: `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`
-- References: `docs/IMPLEMENTATION_PLAN.md` (Stage 5a.7)
-- References: `extensions/shared/types.ts`
-- References: `extensions/shared/contracts.ts`
-- References: `extensions/teams/router.ts`
+- References: `docs/IMPLEMENTATION_PLAN.md` (Stage 5a.7 and 5a.3c notes)
+- References: `DECISION_LOG.md` (Decision #40)
+- References: `agents/specialists/tester.md`
+- References: `extensions/specialists/tester/prompt.ts`
+- References: `extensions/specialists/builder/prompt.ts`
+- References: `extensions/specialists/reviewer/prompt.ts`
 - References: `extensions/teams/definitions.ts`
-- References: `extensions/specialists/*/prompt.ts`
-- References: `tests/session-artifact.test.ts`
+- References: `tests/tester.test.ts`
 - References: `tests/team-router.test.ts`
-- References: `tests/contracts.test.ts`
-- References: `tests/orchestrator-team-e2e.test.ts`
+- References: `tests/session-artifact.test.ts`
 
 ## Recommended first reads
 
-1. `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`
-2. `docs/IMPLEMENTATION_PLAN.md` (Stage 5a.7 only)
-3. `extensions/teams/router.ts`
-4. `extensions/shared/types.ts`
-5. `extensions/shared/contracts.ts`
+1. `DECISION_LOG.md` (Decision #40 only)
+2. `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`
+3. `docs/IMPLEMENTATION_PLAN.md` (Stage 5a.7 and 5a.3c only)
+4. `agents/specialists/tester.md`
+5. `extensions/specialists/tester/prompt.ts`
 6. `extensions/teams/definitions.ts`
-7. `tests/team-router.test.ts`
-8. `tests/session-artifact.test.ts`
+7. `tests/tester.test.ts`
+8. `tests/team-router.test.ts`
 
 ## Likely implementation hotspots
 
-- `extensions/teams/router.ts` now records ownership metadata but does not enforce it
-- `extensions/shared/types.ts` may need stronger ownership metadata shapes for contract fields or artifacts
-- `extensions/shared/contracts.ts` is the likely place to centralize allowed-field and read-only-field validation
-- `extensions/teams/definitions.ts` may need explicit `partial` routing review so every state is deterministic
+- `extensions/specialists/tester/prompt.ts` still frames the tester around validation execution rather than test authorship
+- `extensions/teams/definitions.ts` still encodes the older exemplar ordering, so the state graph and transition expectations need reconciliation
+- `extensions/specialists/builder/prompt.ts` and `extensions/specialists/reviewer/prompt.ts` may need contract/handoff tweaks once tester outputs become author-owned test artifacts
+- `tests/team-router.test.ts` and `tests/session-artifact.test.ts` are the most likely places where the current order assumptions will need to change
 
 ## Dependencies / prerequisites
 
-- T-17 router-owned artifacts and artifact-driven packet construction complete
+- T-18 ownership enforcement and explicit `partial` routing semantics complete
 - Stage 4a through 4d substrate available as the starting point
-- Tester/build-team reconciliation remains deferred to T-19; keep this task bounded to enforcement and routing semantics
+- T-20 and T-21 remain downstream; keep this task bounded to the canonical tester/build-team reconciliation work
 
 ## Acceptance criteria (definition of done)
 
-- Unauthorized specialist field writes are rejected against explicit ownership/edit-scope rules
-- Router-owned and derived fields cannot be silently overwritten by specialists
-- `partial` handling is explicit and deterministic in the team routing path
-- Regression tests cover at least one ownership violation and one `partial` routing path
+- Tester prompt/config and touched docs consistently describe the tester as a test author
+- `build-team` runtime flow is `planner -> builder -> tester -> builder -> reviewer -> done`
+- Builder receives tester-authored outputs through validated artifact-driven routing
+- Regression tests cover at least one tester-author handoff and one builder rework loop after tester output
 - Docs touched by the implementation remain truthful about the current Stage 5a.7 behavior
 - Update `docs/handoff/CURRENT_STATUS.md`
 - Update `docs/handoff/TASK_QUEUE.md`
@@ -79,11 +79,11 @@ Implement T-18 from Stage 5a.7 by enforcing ownership/edit-scope guardrails on c
 
 ## Verification checklist
 
-- [ ] Audit current artifact metadata and decide where ownership validation should run
-- [ ] Define the enforcement rule for unauthorized structured output fields vs router-owned fields
-- [ ] Implement ownership/edit-scope validation in the team routing path
-- [ ] Make `partial` transitions explicit and deterministic
-- [ ] Add regression tests for ownership violations and `partial` routing
+- [ ] Audit tester/build-team flow mismatches across prompt config, runtime definitions, and touched durable docs
+- [ ] Update tester-facing contracts/prompts to match Decision #40
+- [ ] Reconcile the `build-team` state machine to the canonical order
+- [ ] Ensure downstream builder/reviewer handoffs still use validated artifact fields only
+- [ ] Add regression tests for tester-authored output and builder repair routing
 - [ ] `make typecheck` passes after code changes
 - [ ] `make test` passes after code changes
 - [ ] Update `CURRENT_STATUS.md` with results
@@ -91,6 +91,6 @@ Implement T-18 from Stage 5a.7 by enforcing ownership/edit-scope guardrails on c
 
 ## Risks / rollback notes
 
-- The current artifact model records ownership metadata but does not yet distinguish between unknown extra fields and intentionally router-owned fields; make the enforcement rule explicit
-- Avoid quietly reconciling the tester/build-team flow in this task; that belongs to T-19
-- If explicit `partial` handling exposes contradictions in current team definitions, record them clearly but keep the implementation bounded to T-18
+- Avoid silently broadening T-19 into the full contradiction audit; that belongs to T-21
+- Keep the reconciliation grounded in Decision #40 rather than inventing a third tester posture
+- If the runtime flow change exposes additional downstream contract drift, record it clearly but keep the implementation bounded to the canonical tester/build-team path

@@ -30,6 +30,8 @@ export interface SpecialistPromptConfig {
   inputContract?: InputContract;
   /** What this specialist guarantees in its structured output (Stage 4a) */
   outputContract?: OutputContract;
+  /** Additional structured payload fields the specialist may emit for audit or advisory use */
+  allowedOutputFields?: string[];
   /** If set, replaces the auto-generated output format block in the system prompt */
   outputFormatOverride?: string;
   /** Specialist's default model preference (Stage 4e) */

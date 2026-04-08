@@ -14,6 +14,13 @@ import type {
   ResultPacket,
 } from "./types.js";
 
+const EXPLICIT_NON_TERMINAL_STATUSES: readonly PacketStatus[] = [
+  "success",
+  "partial",
+  "failure",
+  "escalation",
+];
+
 export interface MachineState {
   currentState: string;
   history: Array<{
@@ -64,7 +71,16 @@ export function validateStateMachine(
 
   // All transition targets must exist, and validate maxIterations
   for (const [stateName, state] of Object.entries(definition.states)) {
+    const seenStatuses = new Set<PacketStatus>();
+
     for (const transition of state.transitions) {
+      if (seenStatuses.has(transition.on)) {
+        errors.push(
+          `State '${stateName}' has multiple transitions for status '${transition.on}'`
+        );
+      }
+      seenStatuses.add(transition.on);
+
       if (!stateNames.includes(transition.to)) {
         errors.push(
           `State '${stateName}' has transition to unknown state '${transition.to}'`
@@ -100,6 +116,21 @@ export function validateStateMachine(
       errors.push(
         `Non-terminal state '${stateName}' has no transitions (would be a dead end)`
       );
+    }
+  }
+
+  for (const [stateName, state] of Object.entries(definition.states)) {
+    if (definition.terminalStates.includes(stateName)) {
+      continue;
+    }
+
+    const statusSet = new Set(state.transitions.map((transition) => transition.on));
+    for (const status of EXPLICIT_NON_TERMINAL_STATUSES) {
+      if (!statusSet.has(status)) {
+        errors.push(
+          `Non-terminal state '${stateName}' must define an explicit '${status}' transition`
+        );
+      }
     }
   }
 

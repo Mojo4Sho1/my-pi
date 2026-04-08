@@ -11,6 +11,7 @@ import type {
   OutputContract,
   ContractField,
   ContractFieldType,
+  PacketStatus,
   ResultPacket,
   TeamStepArtifact,
 } from "./types.js";
@@ -33,6 +34,42 @@ const INPUT_FIELD_ALIASES: Readonly<Record<string, readonly string[]>> = {
   schemaSummary: ["summary"],
   schemaDeliverables: ["deliverables"],
 };
+
+const SHARED_STRUCTURED_OUTPUT_FIELDS: readonly string[] = [
+  "status",
+  "summary",
+  "deliverables",
+  "modifiedFiles",
+  "escalation",
+];
+
+const ROUTER_OWNED_ARTIFACT_FIELDS: readonly string[] = [
+  "schemaVersion",
+  "artifactId",
+  "artifactType",
+  "logicalPath",
+  "teamId",
+  "teamSessionId",
+  "taskId",
+  "state",
+  "stepOrder",
+  "specialistId",
+  "ownerRole",
+  "inputTaskPacketId",
+  "editableFields",
+  "readOnlyFields",
+  "derivedFrom",
+  "producedAt",
+  "validatedOutput",
+  "contractSatisfied",
+  "contractErrors",
+];
+
+export interface StructuredOutputOwnershipValidationResult {
+  editableFields: string[];
+  readOnlyFields: string[];
+  errors: string[];
+}
 
 /**
  * Check whether a runtime value matches a declared ContractFieldType.
@@ -62,7 +99,8 @@ function matchesType(value: unknown, expectedType: ContractFieldType): boolean {
  */
 export function validateOutputContract(
   outputPayload: Record<string, unknown> | undefined,
-  contract: OutputContract
+  contract: OutputContract,
+  options?: { allowPartial?: boolean }
 ): string[] {
   const errors: string[] = [];
 
@@ -70,7 +108,7 @@ export function validateOutputContract(
     const value = outputPayload?.[field.name];
 
     if (value === undefined || value === null) {
-      if (field.required) {
+      if (field.required && !options?.allowPartial) {
         errors.push(`Missing required output field '${field.name}'`);
       }
       continue;
@@ -84,6 +122,67 @@ export function validateOutputContract(
   }
 
   return errors;
+}
+
+export function validateStructuredOutputOwnership(
+  outputPayload: Record<string, unknown> | undefined,
+  contract: OutputContract | undefined,
+  options?: { allowedOutputFields?: readonly string[] }
+): StructuredOutputOwnershipValidationResult {
+  const editableFieldSet = new Set<string>([
+    ...(contract?.fields.map((field) => field.name) ?? []),
+    ...(options?.allowedOutputFields ?? []),
+  ]);
+  const sharedFieldSet = new Set(SHARED_STRUCTURED_OUTPUT_FIELDS);
+  const routerOwnedFieldSet = new Set(ROUTER_OWNED_ARTIFACT_FIELDS);
+  const errors: string[] = [];
+
+  if (outputPayload) {
+    for (const fieldName of Object.keys(outputPayload)) {
+      if (editableFieldSet.has(fieldName) || sharedFieldSet.has(fieldName)) {
+        continue;
+      }
+
+      if (routerOwnedFieldSet.has(fieldName)) {
+        errors.push(
+          `Structured output field '${fieldName}' is router-owned and cannot be written by the specialist`
+        );
+        continue;
+      }
+
+      errors.push(
+        `Structured output field '${fieldName}' is not declared in the specialist output contract`
+      );
+    }
+  }
+
+  return {
+    editableFields: [...editableFieldSet].sort(),
+    readOnlyFields: [...ROUTER_OWNED_ARTIFACT_FIELDS],
+    errors,
+  };
+}
+
+export function isOutputContractSatisfied(
+  outputPayload: Record<string, unknown> | undefined,
+  contract: OutputContract
+): boolean {
+  return validateOutputContract(outputPayload, contract).length === 0;
+}
+
+export function partialOutputNeedsFollowup(
+  status: PacketStatus,
+  outputPayload: Record<string, unknown> | undefined,
+  contract: OutputContract
+): string[] {
+  if (status !== "partial") {
+    return [];
+  }
+
+  return contract.fields
+    .filter((field) => field.required)
+    .filter((field) => outputPayload?.[field.name] === undefined || outputPayload?.[field.name] === null)
+    .map((field) => `Partial output omitted required field '${field.name}'`);
 }
 
 /**

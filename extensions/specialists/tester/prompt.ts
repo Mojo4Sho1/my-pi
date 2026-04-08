@@ -50,6 +50,7 @@ export const TESTER_PROMPT_CONFIG: SpecialistPromptConfig = {
       { name: "failures", type: "string[]", required: true, description: "Failed checks" },
     ],
   },
+  allowedOutputFields: ["testResults"],
   outputFormatOverride: `\`\`\`json
 {
   "status": "success | partial | failure | escalation",

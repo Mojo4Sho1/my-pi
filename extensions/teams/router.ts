@@ -32,7 +32,10 @@ import { delegateToSpecialist, getPromptConfig } from "../orchestrator/delegate.
 import {
   buildContextFromArtifacts,
   collectValidatedOutputFields,
+  isOutputContractSatisfied,
+  partialOutputNeedsFollowup,
   validateOutputContract,
+  validateStructuredOutputOwnership,
 } from "../shared/contracts.js";
 import { computeTeamVersion } from "../shared/logging.js";
 import { aggregateTokenUsage } from "../shared/tokens.js";
@@ -113,6 +116,8 @@ function buildTeamStepArtifact(params: {
   validatedOutput: Record<string, unknown>;
   contractSatisfied: boolean;
   contractErrors: string[];
+  contractEditableFields: string[];
+  contractReadOnlyFields: string[];
   derivedFrom: string[];
 }): TeamStepArtifact {
   const producedAt = new Date().toISOString();
@@ -135,8 +140,9 @@ function buildTeamStepArtifact(params: {
     summary: params.resultPacket.summary,
     deliverables: params.resultPacket.deliverables,
     modifiedFiles: params.resultPacket.modifiedFiles,
-    editableFields: Object.keys(params.validatedOutput),
-    readOnlyFields: [
+    editableFields: params.contractEditableFields,
+    readOnlyFields: [...new Set([
+      ...params.contractReadOnlyFields,
       "artifactId",
       "artifactType",
       "logicalPath",
@@ -154,7 +160,7 @@ function buildTeamStepArtifact(params: {
       "modifiedFiles",
       "derivedFrom",
       "producedAt",
-    ],
+    ])],
     derivedFrom: params.derivedFrom,
     producedAt,
     structuredOutput: params.resultPacket.structuredOutput,
@@ -490,23 +496,47 @@ export async function executeTeam(
 
       let contractSatisfied = true;
       let contractErrors: string[] = [];
+      let ownershipEditableFields: string[] = [];
+      let ownershipReadOnlyFields: string[] = [];
       let validatedOutput: Record<string, unknown> = resultPacket.structuredOutput
         ? { ...resultPacket.structuredOutput }
         : {};
+      const ownershipValidation = validateStructuredOutputOwnership(
+        resultPacket.structuredOutput,
+        promptConfig.outputContract,
+        { allowedOutputFields: promptConfig.allowedOutputFields }
+      );
+      ownershipEditableFields = ownershipValidation.editableFields;
+      ownershipReadOnlyFields = ownershipValidation.readOnlyFields;
+      contractErrors.push(...ownershipValidation.errors);
+
       if (promptConfig.outputContract) {
         try {
-          contractErrors = validateOutputContract(
+          contractErrors.push(
+            ...validateOutputContract(
             resultPacket.structuredOutput,
-            promptConfig.outputContract
+            promptConfig.outputContract,
+            { allowPartial: resultPacket.status === "partial" }
+          ),
+          );
+          contractErrors.push(
+            ...partialOutputNeedsFollowup(
+              resultPacket.status,
+              resultPacket.structuredOutput,
+              promptConfig.outputContract
+            )
           );
           validatedOutput = collectValidatedOutputFields(
             resultPacket.structuredOutput,
             promptConfig.outputContract
           );
-          contractSatisfied = contractErrors.length === 0;
+          contractSatisfied = isOutputContractSatisfied(
+            resultPacket.structuredOutput,
+            promptConfig.outputContract
+          ) && ownershipValidation.errors.length === 0;
         } catch {
           contractSatisfied = false;
-          contractErrors = ["Output contract validation threw unexpectedly"];
+          contractErrors.push("Output contract validation threw unexpectedly");
           validatedOutput = {};
         }
       }
@@ -523,6 +553,8 @@ export async function executeTeam(
         validatedOutput,
         contractSatisfied,
         contractErrors,
+        contractEditableFields: ownershipEditableFields,
+        contractReadOnlyFields: ownershipReadOnlyFields,
         derivedFrom: stepArtifacts.map((artifact) => artifact.artifactId),
       });
       const artifactRef = buildArtifactRef(stepArtifact);
@@ -544,6 +576,26 @@ export async function executeTeam(
         durationMs: delegationDurationMs,
         tokenUsage,
       });
+
+      if (ownershipValidation.errors.length > 0) {
+        finalState = "failed";
+        return buildResult(
+          createResultPacket({
+            taskId: taskPacket.id,
+            status: "failure",
+            summary: `Team '${team.id}' rejected output from '${agentId}' due to ownership/edit-scope violations: ${ownershipValidation.errors.join("; ")}`,
+            deliverables: [],
+            modifiedFiles: [],
+            sourceAgent: `team_${team.id}`,
+          }),
+          false,
+          statesVisited,
+          machineState.iterationCounts,
+          machineState.currentState,
+          "contract_violation",
+          "contract_violation",
+        );
+      }
 
       const advanceResult = advanceState(team.states, machineState, resultPacket);
 

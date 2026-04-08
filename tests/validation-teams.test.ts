@@ -72,11 +72,21 @@ describe("validateTeamDefinition — synthetic bad definitions", () => {
         states: {
           plan: {
             agent: "specialist_planner",
-            transitions: [{ on: "success", to: "build" }],
+            transitions: [
+              { on: "success", to: "build" },
+              { on: "partial", to: "done" },
+              { on: "failure", to: "done" },
+              { on: "escalation", to: "done" },
+            ],
           },
           build: {
             agent: "specialist_builder",
-            transitions: [{ on: "success", to: "done" }],
+            transitions: [
+              { on: "success", to: "done" },
+              { on: "partial", to: "done" },
+              { on: "failure", to: "done" },
+              { on: "escalation", to: "done" },
+            ],
           },
           done: {
             agent: "orchestrator",
@@ -153,11 +163,21 @@ describe("validateTeamDefinition — synthetic bad definitions", () => {
         states: {
           step_a: {
             agent: "spec_a",
-            transitions: [{ on: "success", to: "step_b" }],
+            transitions: [
+              { on: "success", to: "step_b" },
+              { on: "partial", to: "done" },
+              { on: "failure", to: "done" },
+              { on: "escalation", to: "done" },
+            ],
           },
           step_b: {
             agent: "spec_b",
-            transitions: [{ on: "success", to: "done" }],
+            transitions: [
+              { on: "success", to: "done" },
+              { on: "partial", to: "done" },
+              { on: "failure", to: "done" },
+              { on: "escalation", to: "done" },
+            ],
           },
           done: {
             agent: "orchestrator",

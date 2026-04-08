@@ -18,13 +18,16 @@ const buildTeamMachine: StateMachineDefinition = {
       agent: "specialist_planner",
       transitions: [
         { on: "success", to: "building" },
+        { on: "partial", to: "failed" },
         { on: "failure", to: "failed" },
+        { on: "escalation", to: "failed" },
       ],
     },
     building: {
       agent: "specialist_builder",
       transitions: [
         { on: "success", to: "review" },
+        { on: "partial", to: "planning" },
         { on: "failure", to: "planning" },
         { on: "escalation", to: "failed" },
       ],
@@ -33,6 +36,7 @@ const buildTeamMachine: StateMachineDefinition = {
       agent: "specialist_reviewer",
       transitions: [
         { on: "success", to: "testing" },
+        { on: "partial", to: "building" },
         { on: "failure", to: "building" },
         { on: "escalation", to: "failed" },
       ],
@@ -41,6 +45,7 @@ const buildTeamMachine: StateMachineDefinition = {
       agent: "specialist_tester",
       transitions: [
         { on: "success", to: "done" },
+        { on: "partial", to: "building" },
         { on: "failure", to: "building" },
         { on: "escalation", to: "failed" },
       ],
@@ -145,6 +150,63 @@ describe("validateStateMachine", () => {
     expect(errors).toContain(
       "Non-terminal state 'a' has no transitions (would be a dead end)"
     );
+    expect(errors).toContain(
+      "Non-terminal state 'a' must define an explicit 'partial' transition"
+    );
+  });
+
+  it("requires explicit partial handling for non-terminal states", () => {
+    const machine: StateMachineDefinition = {
+      startState: "a",
+      terminalStates: ["done"],
+      states: {
+        a: {
+          agent: "x",
+          transitions: [
+            { on: "success", to: "done" },
+            { on: "failure", to: "done" },
+            { on: "escalation", to: "done" },
+          ],
+        },
+        done: {
+          agent: "y",
+          transitions: [],
+        },
+      },
+    };
+
+    const errors = validateStateMachine(machine);
+    expect(errors).toContain(
+      "Non-terminal state 'a' must define an explicit 'partial' transition"
+    );
+  });
+
+  it("rejects duplicate status transitions in a state", () => {
+    const machine: StateMachineDefinition = {
+      startState: "a",
+      terminalStates: ["done"],
+      states: {
+        a: {
+          agent: "x",
+          transitions: [
+            { on: "success", to: "done" },
+            { on: "success", to: "a" },
+            { on: "partial", to: "done" },
+            { on: "failure", to: "done" },
+            { on: "escalation", to: "done" },
+          ],
+        },
+        done: {
+          agent: "y",
+          transitions: [],
+        },
+      },
+    };
+
+    const errors = validateStateMachine(machine);
+    expect(errors).toContain(
+      "State 'a' has multiple transitions for status 'success'"
+    );
   });
 });
 
@@ -158,7 +220,7 @@ describe("initMachineState", () => {
 });
 
 describe("advanceState", () => {
-  function makeResult(status: "success" | "failure" | "escalation") {
+  function makeResult(status: "success" | "partial" | "failure" | "escalation") {
     return createResultPacket({
       taskId: "task_001",
       status,
@@ -184,13 +246,23 @@ describe("advanceState", () => {
   });
 
   it("rejects invalid transitions", () => {
-    const state = initMachineState(buildTeamMachine);
-    // "partial" has no transition from "planning"
-    const result = advanceState(buildTeamMachine, state, makeResult("escalation"));
+    const machine: StateMachineDefinition = {
+      startState: "planning",
+      terminalStates: ["done"],
+      states: {
+        planning: {
+          agent: "specialist_planner",
+          transitions: [{ on: "success", to: "done" }],
+        },
+        done: {
+          agent: "orchestrator",
+          transitions: [],
+        },
+      },
+    };
+    const state = initMachineState(machine);
+    const result = advanceState(machine, state, makeResult("failure"));
 
-    // planning only has success→building and failure→failed, not escalation
-    // Actually, let's check: planning has success→building and failure→failed
-    // escalation is not defined for planning
     expect("error" in result).toBe(true);
   });
 
@@ -305,13 +377,16 @@ const loopMachine: StateMachineDefinition = {
       agent: "specialist_builder",
       transitions: [
         { on: "success", to: "critique" },
+        { on: "partial", to: "write", maxIterations: 2 },
         { on: "failure", to: "failed" },
+        { on: "escalation", to: "failed" },
       ],
     },
     critique: {
       agent: "specialist_reviewer",
       transitions: [
         { on: "success", to: "done" },
+        { on: "partial", to: "write", maxIterations: 2 },
         { on: "failure", to: "write", maxIterations: 2 },
         { on: "escalation", to: "failed" },
       ],
@@ -366,7 +441,7 @@ describe("validateStateMachine (extended)", () => {
 });
 
 describe("advanceState (loop iterations)", () => {
-  function makeResult(status: "success" | "failure" | "escalation") {
+  function makeResult(status: "success" | "partial" | "failure" | "escalation") {
     return createResultPacket({
       taskId: "task_001",
       status,
@@ -448,14 +523,18 @@ describe("advanceState (loop iterations)", () => {
           agent: "x",
           transitions: [
             { on: "success", to: "b" },
+            { on: "partial", to: "a", maxIterations: 2 },
             { on: "failure", to: "a", maxIterations: 3 },
+            { on: "escalation", to: "done" },
           ],
         },
         b: {
           agent: "y",
           transitions: [
             { on: "success", to: "done" },
+            { on: "partial", to: "a", maxIterations: 2 },
             { on: "failure", to: "a", maxIterations: 2 },
+            { on: "escalation", to: "done" },
           ],
         },
         done: { agent: "z", transitions: [] },
