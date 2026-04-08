@@ -81,11 +81,40 @@ export function projectWorklistProgress(
   };
 }
 
+function projectProgressLabel(
+  snapshot: DashboardSessionSnapshot,
+  activePath: ActivePrimitivePath | null
+): string | null {
+  if (snapshot.plannedSpecialists && snapshot.plannedSpecialists.length > 0) {
+    const total = snapshot.plannedSpecialists.length;
+    const current = Math.max(
+      0,
+      Math.min(
+        total,
+        snapshot.currentDelegationIndex ??
+          snapshot.completedDelegations ??
+          (activePath?.agent ? 1 : 0)
+      )
+    );
+    return `${current}/${total}`;
+  }
+
+  if (activePath?.team) {
+    const segments = [activePath.state, activePath.agent].filter(
+      (segment): segment is string => Boolean(segment)
+    );
+    return segments.length > 0 ? segments.join(" -> ") : activePath.team;
+  }
+
+  return activePath?.agent ?? null;
+}
+
 export function projectWidgetState(
   snapshot: DashboardSessionSnapshot,
   now = Date.now()
 ): WidgetState {
   const activePath = deriveActivePrimitivePath(snapshot);
+  const progressLabel = projectProgressLabel(snapshot, activePath);
   const worklistProgress = projectWorklistProgress(snapshot.worklistSummary);
   const artifactStatus = mapPacketStatus(snapshot.teamSession?.outcome.status);
   const hintedStatus = snapshot.sessionStatusHint;
@@ -96,7 +125,7 @@ export function projectWidgetState(
     sessionStatus = artifactStatus;
   } else if (hintedStatus) {
     sessionStatus = hintedStatus;
-  } else if (latestResultStatus) {
+  } else if (latestResultStatus && (!snapshot.startedAt || snapshot.completedAt)) {
     sessionStatus = latestResultStatus;
   } else if (snapshot.startedAt) {
     sessionStatus = "running";
@@ -116,9 +145,11 @@ export function projectWidgetState(
   return {
     sessionStatus,
     activePath,
+    progressLabel,
     worklistProgress,
     hasBlockers: snapshot.worklistSummary?.hasBlockers ?? false,
     hasEscalation: sessionStatus === "escalated",
+    subprocessActive: snapshot.subprocessActive ?? false,
     elapsedMs,
     totalTokens:
       snapshot.totalTokenUsage?.totalTokens ??

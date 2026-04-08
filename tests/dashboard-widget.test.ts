@@ -21,6 +21,7 @@ function makeWidgetState(overrides: Partial<WidgetState> = {}): WidgetState {
       state: "review",
       agent: "reviewer",
     },
+    progressLabel: "review -> reviewer",
     worklistProgress: {
       total: 4,
       completed: 2,
@@ -29,6 +30,7 @@ function makeWidgetState(overrides: Partial<WidgetState> = {}): WidgetState {
     },
     hasBlockers: false,
     hasEscalation: false,
+    subprocessActive: false,
     elapsedMs: 65000,
     totalTokens: 1234,
     ...overrides,
@@ -54,7 +56,24 @@ describe("dashboard widget rendering", () => {
       "Team: build-team",
       "State: review",
       "Agent: reviewer",
+      "Progress: review -> reviewer",
       "Work: 4 total | 2 done | 2 remaining",
+      "Time: 1m 5s | Tokens: 1,234",
+    ]);
+  });
+
+  it("shows chain progress and subprocess activity for live specialist runs", () => {
+    expect(renderWidgetLines(makeWidgetState({
+      activePath: {
+        agent: "builder",
+      },
+      progressLabel: "2/4",
+      subprocessActive: true,
+      worklistProgress: null,
+    }))).toEqual([
+      "Status: running",
+      "Agent: builder",
+      "Progress: 2/4 | Subprocess: active",
       "Time: 1m 5s | Tokens: 1,234",
     ]);
   });
@@ -75,13 +94,15 @@ describe("dashboard widget rendering", () => {
         remaining: 3,
         blocked: 2,
       },
-    }))[4]).toBe("Work: 4 total | 1 done | 3 remaining | 2 blocked");
+    }))[5]).toBe("Work: 4 total | 1 done | 3 remaining | 2 blocked");
   });
 
   it("degrades gracefully when path and worklist sections are missing", () => {
     expect(renderWidgetLines(makeWidgetState({
       activePath: null,
+      progressLabel: null,
       worklistProgress: null,
+      subprocessActive: false,
       elapsedMs: 0,
       totalTokens: 0,
     }))).toEqual([
@@ -177,6 +198,17 @@ describe("dashboard reconstruction and live updates", () => {
 
     snapshot = applyDashboardObserverEvent(
       snapshot,
+      "onCommandInvoked",
+      {
+        commandName: "orchestrate",
+        toolCallId: "tool-1",
+        task: "implement the feature",
+        delegationHint: "planner,builder",
+      },
+      "2026-04-03T11:59:59.000Z",
+    );
+    snapshot = applyDashboardObserverEvent(
+      snapshot,
       "onSessionStart",
       { sessionId: "hook_session_1" },
       "2026-04-03T12:00:00.000Z",
@@ -186,6 +218,15 @@ describe("dashboard reconstruction and live updates", () => {
       "onTeamStart",
       { teamId: "build-team", teamVersion: "v0-123", taskId: "task-1" },
       "2026-04-03T12:00:01.000Z",
+    );
+    snapshot = applyDashboardObserverEvent(
+      snapshot,
+      "beforeSubprocessSpawn",
+      {
+        specialistId: "planner",
+        taskId: "task-1",
+      },
+      "2026-04-03T12:00:02.000Z",
     );
     snapshot = applyDashboardObserverEvent(
       snapshot,
@@ -207,9 +248,13 @@ describe("dashboard reconstruction and live updates", () => {
     expect(snapshot.sessionId).toBe("hook_session_1");
     expect(snapshot.activePathHint).toEqual({
       team: "build-team",
+      agent: "planner",
     });
     expect(snapshot.totalTokenUsage?.totalTokens).toBe(50);
-    expect(snapshot.sessionStatusHint).toBe("completed");
+    expect(snapshot.sessionStatusHint).toBe("running");
+    expect(snapshot.currentDelegationIndex).toBe(1);
+    expect(snapshot.completedDelegations).toBe(1);
+    expect(snapshot.subprocessActive).toBe(false);
   });
 
   it("replaces state on session-switch reconstruction rather than merging stale data", async () => {

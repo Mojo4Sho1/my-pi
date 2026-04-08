@@ -16,9 +16,11 @@ import type { WorklistSummary } from "../worklist/types.js";
 export interface WidgetState {
   sessionStatus: "idle" | "running" | "completed" | "failed" | "escalated";
   activePath: ActivePrimitivePath | null;
+  progressLabel: string | null;
   worklistProgress: WorklistProgressView | null;
   hasBlockers: boolean;
   hasEscalation: boolean;
+  subprocessActive: boolean;
   elapsedMs: number;
   totalTokens: number;
 }
@@ -43,6 +45,10 @@ export interface DashboardSessionSnapshot {
   sessionStatusHint?: WidgetState["sessionStatus"];
   latestResultStatus?: PacketStatus;
   activePathHint?: ActivePrimitivePath | null;
+  plannedSpecialists?: string[];
+  completedDelegations?: number;
+  currentDelegationIndex?: number;
+  subprocessActive?: boolean;
   teamSession?: TeamSessionArtifact;
   worklistSummary?: WorklistSummary;
   delegationLogs: DelegationLogEntry[];

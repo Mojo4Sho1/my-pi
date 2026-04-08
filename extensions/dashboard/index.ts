@@ -9,9 +9,11 @@
 import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
 import type {
   ArtifactHookPayload,
+  CommandHookPayload,
   DelegationHookPayload,
   SessionHookPayload,
   StateTransitionHookPayload,
+  SubprocessHookPayload,
   TeamStartHookPayload,
   TokenUsage,
 } from "../shared/types.js";
@@ -22,6 +24,8 @@ import { aggregateTokenUsage } from "../shared/tokens.js";
 import type { DashboardSessionSnapshot } from "./types.js";
 import { projectWidgetState } from "./projections.js";
 import { applyWidget } from "./widget.js";
+import { registerDashboardCommand } from "./command.js";
+import { selectSpecialists, type DelegationHint } from "../orchestrator/select.js";
 
 type DashboardBranchEntry = {
   type: string;
@@ -36,6 +40,9 @@ type WorklistSessionArtifact = {
 function createEmptySnapshot(): DashboardSessionSnapshot {
   return {
     activePathHint: null,
+    completedDelegations: 0,
+    currentDelegationIndex: 0,
+    subprocessActive: false,
     delegationLogs: [],
   };
 }
@@ -74,10 +81,37 @@ export function applyDashboardObserverEvent(
   receivedAt: string
 ): DashboardSessionSnapshot {
   switch (eventName) {
+    case "onCommandInvoked": {
+      const commandPayload = payload as CommandHookPayload;
+      if (commandPayload.commandName !== "orchestrate") {
+        return snapshot;
+      }
+
+      const rawHint = commandPayload.delegationHint;
+      let parsedHint: DelegationHint | undefined;
+      if (rawHint && rawHint !== "auto" && rawHint.includes(",")) {
+        parsedHint = rawHint.split(",").map((segment) => segment.trim()) as DelegationHint;
+      } else if (rawHint) {
+        parsedHint = rawHint as DelegationHint;
+      }
+
+      const plannedSpecialists = commandPayload.teamHint
+        ? undefined
+        : selectSpecialists(commandPayload.task ?? "", parsedHint).specialists;
+
+      return {
+        ...snapshot,
+        plannedSpecialists,
+        completedDelegations: 0,
+        currentDelegationIndex: 0,
+      };
+    }
+
     case "onSessionStart": {
       const sessionPayload = payload as SessionHookPayload;
       return {
         ...createEmptySnapshot(),
+        plannedSpecialists: snapshot.plannedSpecialists,
         sessionId: sessionPayload.sessionId,
         startedAt: receivedAt,
         sessionStatusHint: "running",
@@ -110,38 +144,81 @@ export function applyDashboardObserverEvent(
       const transitionPayload = payload as StateTransitionHookPayload;
       return {
         ...snapshot,
-        sessionStatusHint: transitionPayload.resultStatus
-          ? mapPacketStatusToWidgetStatus(transitionPayload.resultStatus)
-          : "running",
+        sessionStatusHint:
+          transitionPayload.resultStatus === "failure"
+            ? "failed"
+            : transitionPayload.resultStatus === "escalation"
+              ? "escalated"
+              : "running",
         latestResultStatus: transitionPayload.resultStatus,
         activePathHint: {
           team: transitionPayload.teamId,
           state: transitionPayload.toState,
           agent: transitionPayload.agentId,
         },
+        subprocessActive: false,
       };
     }
 
     case "beforeDelegation": {
       const delegationPayload = payload as DelegationHookPayload;
+      const completedDelegations = snapshot.completedDelegations ?? 0;
       return {
         ...snapshot,
         sessionStatusHint: "running",
         activePathHint: snapshot.activePathHint?.team
-          ? snapshot.activePathHint
+          ? {
+              ...snapshot.activePathHint,
+              agent: delegationPayload.specialistId,
+            }
           : { agent: delegationPayload.specialistId },
+        currentDelegationIndex: Math.min(
+          snapshot.plannedSpecialists?.length ?? completedDelegations + 1,
+          completedDelegations + 1
+        ),
       };
     }
 
     case "afterDelegation": {
       const delegationPayload = payload as DelegationHookPayload;
+      const completedDelegations = (snapshot.completedDelegations ?? 0) + 1;
       return {
         ...snapshot,
         latestResultStatus: delegationPayload.resultStatus,
-        sessionStatusHint: delegationPayload.resultStatus
-          ? mapPacketStatusToWidgetStatus(delegationPayload.resultStatus)
-          : snapshot.sessionStatusHint,
+        sessionStatusHint:
+          delegationPayload.resultStatus === "failure"
+            ? "failed"
+            : delegationPayload.resultStatus === "escalation"
+              ? "escalated"
+              : "running",
+        completedDelegations,
+        currentDelegationIndex: Math.min(
+          snapshot.plannedSpecialists?.length ?? completedDelegations,
+          completedDelegations
+        ),
+        subprocessActive: false,
         totalTokenUsage: rollTokenUsage(snapshot.totalTokenUsage, delegationPayload.tokenUsage),
+      };
+    }
+
+    case "beforeSubprocessSpawn": {
+      const subprocessPayload = payload as SubprocessHookPayload;
+      return {
+        ...snapshot,
+        subprocessActive: true,
+        activePathHint: snapshot.activePathHint?.team
+          ? {
+              ...snapshot.activePathHint,
+              agent: subprocessPayload.specialistId,
+            }
+          : { agent: subprocessPayload.specialistId },
+      };
+    }
+
+    case "afterSubprocessExit": {
+      return {
+        ...snapshot,
+        subprocessActive: false,
       };
     }
 
@@ -176,7 +253,8 @@ export function applyDashboardObserverEvent(
         ...snapshot,
         sessionId: sessionPayload.sessionId ?? snapshot.sessionId,
         completedAt: receivedAt,
-        totalTokenUsage: rollTokenUsage(snapshot.totalTokenUsage, sessionPayload.totalTokenUsage),
+        subprocessActive: false,
+        totalTokenUsage: sessionPayload.totalTokenUsage ?? snapshot.totalTokenUsage,
         sessionStatusHint: snapshot.teamSession
           ? snapshot.sessionStatusHint
           : mapPacketStatusToWidgetStatus(snapshot.latestResultStatus) ?? snapshot.sessionStatusHint,
@@ -226,14 +304,35 @@ export function reconstructSnapshotFromBranch(
 }
 
 export default function dashboardExtension(pi: ExtensionAPI): void {
+  registerDashboardCommand(pi);
+
   let currentCtx: ExtensionContext | undefined;
   let snapshot = createEmptySnapshot();
+  let renderTimer: ReturnType<typeof setInterval> | undefined;
 
   function renderCurrentWidget(): void {
     if (!currentCtx || !currentCtx.hasUI) {
       return;
     }
     applyWidget(currentCtx, projectWidgetState(snapshot));
+  }
+
+  function syncRenderTimer(): void {
+    const widgetState = projectWidgetState(snapshot);
+    if (widgetState.sessionStatus === "running") {
+      if (!renderTimer) {
+        renderTimer = setInterval(() => {
+          renderCurrentWidget();
+        }, 1000);
+        renderTimer.unref?.();
+      }
+      return;
+    }
+
+    if (renderTimer) {
+      clearInterval(renderTimer);
+      renderTimer = undefined;
+    }
   }
 
   function handleSessionContext(ctx: ExtensionContext): void {
@@ -249,40 +348,64 @@ export default function dashboardExtension(pi: ExtensionAPI): void {
       snapshot = createEmptySnapshot();
     }
     renderCurrentWidget();
+    syncRenderTimer();
   }
 
   registerHookInstaller((registry) => {
+    registry.registerObserver("onCommandInvoked", (event) => {
+      snapshot = applyDashboardObserverEvent(snapshot, event.eventName, event.payload, event.timestamp);
+      renderCurrentWidget();
+      syncRenderTimer();
+    });
     registry.registerObserver("onSessionStart", (event) => {
       snapshot = applyDashboardObserverEvent(snapshot, event.eventName, event.payload, event.timestamp);
       renderCurrentWidget();
+      syncRenderTimer();
     });
     registry.registerObserver("onTeamStart", (event) => {
       snapshot = applyDashboardObserverEvent(snapshot, event.eventName, event.payload, event.timestamp);
       renderCurrentWidget();
+      syncRenderTimer();
     });
     registry.registerObserver("beforeStateTransition", (event) => {
       snapshot = applyDashboardObserverEvent(snapshot, event.eventName, event.payload, event.timestamp);
       renderCurrentWidget();
+      syncRenderTimer();
     });
     registry.registerObserver("afterStateTransition", (event) => {
       snapshot = applyDashboardObserverEvent(snapshot, event.eventName, event.payload, event.timestamp);
       renderCurrentWidget();
+      syncRenderTimer();
     });
     registry.registerObserver("beforeDelegation", (event) => {
       snapshot = applyDashboardObserverEvent(snapshot, event.eventName, event.payload, event.timestamp);
       renderCurrentWidget();
+      syncRenderTimer();
     });
     registry.registerObserver("afterDelegation", (event) => {
       snapshot = applyDashboardObserverEvent(snapshot, event.eventName, event.payload, event.timestamp);
       renderCurrentWidget();
+      syncRenderTimer();
+    });
+    registry.registerObserver("beforeSubprocessSpawn", (event) => {
+      snapshot = applyDashboardObserverEvent(snapshot, event.eventName, event.payload, event.timestamp);
+      renderCurrentWidget();
+      syncRenderTimer();
+    });
+    registry.registerObserver("afterSubprocessExit", (event) => {
+      snapshot = applyDashboardObserverEvent(snapshot, event.eventName, event.payload, event.timestamp);
+      renderCurrentWidget();
+      syncRenderTimer();
     });
     registry.registerObserver("onArtifactWritten", (event) => {
       snapshot = applyDashboardObserverEvent(snapshot, event.eventName, event.payload, event.timestamp);
       renderCurrentWidget();
+      syncRenderTimer();
     });
     registry.registerObserver("onSessionEnd", (event) => {
       snapshot = applyDashboardObserverEvent(snapshot, event.eventName, event.payload, event.timestamp);
       renderCurrentWidget();
+      syncRenderTimer();
     });
   });
 

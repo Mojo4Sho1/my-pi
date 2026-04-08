@@ -90,6 +90,7 @@ describe("dashboard projections", () => {
       state: "testing",
       agent: "tester",
     });
+    expect(state.progressLabel).toBe("testing -> tester");
     expect(state.worklistProgress).toEqual({
       total: 4,
       completed: 4,
@@ -116,7 +117,28 @@ describe("dashboard projections", () => {
       state: "review",
       agent: "reviewer",
     });
+    expect(state.progressLabel).toBe("review -> reviewer");
     expect(state.elapsedMs).toBe(120000);
+  });
+
+  it("projects live specialist-chain progress from planned delegation state", () => {
+    const state = projectWidgetState(makeSnapshot({
+      startedAt: "2026-04-03T12:00:00.000Z",
+      activePathHint: {
+        agent: "specialist_builder",
+      },
+      plannedSpecialists: ["planner", "builder", "tester"],
+      currentDelegationIndex: 2,
+      completedDelegations: 1,
+      subprocessActive: true,
+    }), Date.parse("2026-04-03T12:02:00.000Z"));
+
+    expect(state.sessionStatus).toBe("running");
+    expect(state.activePath).toEqual({
+      agent: "builder",
+    });
+    expect(state.progressLabel).toBe("2/3");
+    expect(state.subprocessActive).toBe(true);
   });
 
   it("returns null worklist progress and false blockers when summary is missing", () => {
@@ -126,6 +148,7 @@ describe("dashboard projections", () => {
 
     expect(state.worklistProgress).toBeNull();
     expect(state.hasBlockers).toBe(false);
+    expect(state.progressLabel).toBeNull();
   });
 
   it("uses zero tokens when no token data is available", () => {

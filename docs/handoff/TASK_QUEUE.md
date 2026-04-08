@@ -56,8 +56,8 @@ For handoff routing, start with `docs/handoff/_HANDOFF_INDEX.md`. For validation
 
 | ID | Status | Task | Specs to Read | Acceptance Criteria |
 |----|--------|------|---------------|---------------------|
-| T-09b | active | Live orchestration widget | See NEXT_TASK.md | Widget shows active specialist, chain progress, token count, elapsed time during orchestration; uses existing setWidget() + hook observers |
-| T-10 | queued | Team state machine e2e validation (5a.3b) | `docs/IMPLEMENTATION_PLAN.md` (5a.3b) | Clean build-team run via teamHint with no errors |
+| T-09b | done | Live orchestration widget | See NEXT_TASK.md | Widget shows active specialist, chain progress, token count, elapsed time during orchestration; uses existing setWidget() + hook observers |
+| T-10 | active | Team state machine e2e validation (5a.3b) | `docs/IMPLEMENTATION_PLAN.md` (5a.3b) | Clean build-team run via teamHint with no errors |
 | T-11 | queued | Tester specialist role redesign (5a.3c) | `docs/IMPLEMENTATION_PLAN.md` (5a.3c), Decision #40 | Tester is test author; build-team flow updated |
 | T-12 | queued | Specialist invocation patterns (5a.3d) | `docs/IMPLEMENTATION_PLAN.md` (5a.3d), Decision #41 | Verified build + parallel scout patterns working |
 | T-13 | queued | Token logging and observability (5a.3e) | `docs/IMPLEMENTATION_PLAN.md` (5a.3e) | Per-specialist token counts in orchestrator output |
@@ -67,6 +67,6 @@ For handoff routing, start with `docs/handoff/_HANDOFF_INDEX.md`. For validation
 
 ## Notes
 
-- Stage 5a.3 validation is complete. All 8 tasks done, 617 tests passing.
-- T-09 is complete. T-09b (live widget) is the active handoff target — must be done before T-10 so the user can monitor live orchestration.
-- Restart Pi before running T-10 so the live extension session picks up the new teardown code.
+- Stage 5a.3 validation is complete. All 8 tasks done.
+- T-09 and T-09b are complete. The active handoff target is now T-10 live team validation.
+- Restart Pi before running T-10 so the live extension session picks up the new dashboard widget and teardown code.

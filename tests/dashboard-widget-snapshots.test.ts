@@ -10,6 +10,7 @@ function makeWidgetState(overrides: Partial<WidgetState> = {}): WidgetState {
       state: "review",
       agent: "reviewer",
     },
+    progressLabel: "review -> reviewer",
     worklistProgress: {
       total: 4,
       completed: 2,
@@ -18,6 +19,7 @@ function makeWidgetState(overrides: Partial<WidgetState> = {}): WidgetState {
     },
     hasBlockers: false,
     hasEscalation: false,
+    subprocessActive: false,
     elapsedMs: 65000,
     totalTokens: 1234,
     ...overrides,
@@ -29,7 +31,9 @@ describe("dashboard widget snapshot rendering", () => {
     expect(renderWidgetLines(makeWidgetState({
       sessionStatus: "idle",
       activePath: null,
+      progressLabel: null,
       worklistProgress: null,
+      subprocessActive: false,
       elapsedMs: 0,
       totalTokens: 0,
     }))).toEqual([
@@ -43,12 +47,14 @@ describe("dashboard widget snapshot rendering", () => {
       activePath: {
         team: "build-team",
       },
+      progressLabel: "build-team",
       worklistProgress: null,
       elapsedMs: 4000,
       totalTokens: 0,
     }))).toEqual([
       "Status: running",
       "Team: build-team",
+      "Progress: build-team",
       "Time: 4s | Tokens: 0",
     ]);
   });
@@ -59,6 +65,7 @@ describe("dashboard widget snapshot rendering", () => {
       "Team: build-team",
       "State: review",
       "Agent: reviewer",
+      "Progress: review -> reviewer",
       "Work: 4 total | 2 done | 2 remaining",
       "Time: 1m 5s | Tokens: 1,234",
     ]);
@@ -80,6 +87,7 @@ describe("dashboard widget snapshot rendering", () => {
       "Team: build-team",
       "State: review",
       "Agent: reviewer",
+      "Progress: review -> reviewer",
       "Work: 5 total | 2 done | 3 remaining | 2 blocked",
       "Time: 2m 5s | Tokens: 3,200",
     ]);
@@ -88,6 +96,7 @@ describe("dashboard widget snapshot rendering", () => {
   it("renders running state with escalation", () => {
     expect(renderWidgetLines(makeWidgetState({
       hasEscalation: true,
+      subprocessActive: true,
       elapsedMs: 130000,
       totalTokens: 1500,
     }))).toEqual([
@@ -95,6 +104,7 @@ describe("dashboard widget snapshot rendering", () => {
       "Team: build-team",
       "State: review",
       "Agent: reviewer",
+      "Progress: review -> reviewer | Subprocess: active",
       "Work: 4 total | 2 done | 2 remaining",
       "Time: 2m 10s | Tokens: 1,500",
     ]);
@@ -108,6 +118,7 @@ describe("dashboard widget snapshot rendering", () => {
         state: "done",
         agent: "tester",
       },
+      progressLabel: "done -> tester",
       worklistProgress: {
         total: 4,
         completed: 4,
@@ -121,6 +132,7 @@ describe("dashboard widget snapshot rendering", () => {
       "Team: build-team",
       "State: done",
       "Agent: tester",
+      "Progress: done -> tester",
       "Work: 4 total | 4 done | 0 remaining",
       "Time: 5m 0s | Tokens: 4,500",
     ]);
@@ -134,6 +146,7 @@ describe("dashboard widget snapshot rendering", () => {
         state: "testing",
         agent: "tester",
       },
+      progressLabel: "testing -> tester",
       worklistProgress: {
         total: 4,
         completed: 3,
@@ -147,6 +160,7 @@ describe("dashboard widget snapshot rendering", () => {
       "Team: build-team",
       "State: testing",
       "Agent: tester",
+      "Progress: testing -> tester",
       "Work: 4 total | 3 done | 1 remaining",
       "Time: 3m 30s | Tokens: 2,750",
     ]);
@@ -175,6 +189,7 @@ describe("dashboard widget snapshot rendering", () => {
       "Team: build-team",
       "State: review",
       "Agent: reviewer",
+      "Progress: review -> reviewer",
       "Work: 4 total | 2 done | 2 remaining | 1 blocked",
       "Time: 4m 0s | Tokens: 3,900",
     ]);

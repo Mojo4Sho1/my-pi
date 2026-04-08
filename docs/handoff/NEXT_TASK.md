@@ -5,80 +5,80 @@
 
 ## Task summary
 
-Enhance the existing persistent widget to show real-time orchestration progress. During `orchestrate` tool execution, the widget should display which specialist is currently active, position in the chain, cumulative token count, and elapsed time. This gives the user visibility into what was previously a black box, and enables informed use of `/panic` if something stalls.
+Run a real end-to-end `build-team` orchestration through `teamHint: "build-team"` and validate that the team router, state transitions, session artifact, and live widget all behave correctly in a live Pi session.
 
 ## Why this task is next
 
-- The orchestrator is currently a black box — no visibility into which specialist is running or whether progress is being made
-- The user needs this before running further live validation (T-10) to know when to invoke `/panic`
-- The widget infrastructure already exists (5a.2): `ctx.ui.setWidget()`, hook observers in `extensions/dashboard/index.ts`, projection layer in `extensions/dashboard/projections.ts`
+- T-09b is complete, so the user now has live visibility into orchestration progress and can monitor or panic a stalled run
+- Stage 5a.3b is the next dependency gate before redesigning the tester role in 5a.3c
+- The team router and artifacts are well covered by mocked tests, but they still need one real subprocess validation pass
 
 ## Scope (in)
 
-- Update `extensions/dashboard/index.ts` hook observers to capture live orchestration events:
-  - `beforeDelegation` / `afterDelegation` — which specialist, position in chain
-  - `beforeSubprocessSpawn` / `afterSubprocessExit` — subprocess active indicator
-  - `onSessionStart` / `onSessionEnd` — elapsed time tracking
-- Update widget rendering in `extensions/dashboard/widget.ts` to show during orchestration:
-  - Active specialist name (e.g., "builder")
-  - Chain progress (e.g., "2/4" or "building → builder")
-  - Cumulative token count
-  - Elapsed time
-- For team runs, show current state machine state and specialist
-- Ensure widget clears or shows summary when orchestration completes
-- Add/update tests
+- Restart Pi so the updated dashboard extension and teardown code are loaded
+- Execute at least one real task via `orchestrate` with `teamHint: "build-team"`
+- Verify the live widget during the run:
+  - current team state
+  - active specialist
+  - elapsed time
+  - cumulative token count
+- Verify the build-team state trace follows the expected sequence:
+  - planning -> building -> review -> testing -> done
+- Inspect the produced team session artifact for:
+  - complete state trace
+  - coherent final outcome
+  - token totals if present
+- Document any live-only bugs or substrate issues discovered
 
 ## Scope (out)
 
-- Full `/dashboard` command panels — this is widget-only
-- Historical telemetry or session logs
-- New hook events — use existing event surface
-- Run registry integration in the widget (that's T-14)
+- Redesigning the tester specialist role (that is T-11 / Stage 5a.3c)
+- New dashboard panels or run registry views
+- New routing features beyond fixing blockers discovered during live validation
 
 ## Specialist flow
 
-This task should NOT use the orchestrator — it modifies the dashboard extension that observes the orchestrator. Implement directly.
+This task should use the live system directly. Do not modify the dashboard first unless live validation exposes a concrete bug that blocks completion.
 
 ## Relevant files
 
-- Modifies: `extensions/dashboard/index.ts`, `extensions/dashboard/widget.ts`, `extensions/dashboard/projections.ts`, `extensions/dashboard/types.ts`
-- References: `extensions/shared/hooks.ts` (event types), `extensions/orchestrator/index.ts` (hook dispatch points), `extensions/orchestrator/delegate.ts` (delegation events)
-- Tests: `tests/dashboard-widget.test.ts`, `tests/dashboard-projections.test.ts`, `tests/dashboard-widget-snapshots.test.ts`
+- References: `docs/IMPLEMENTATION_PLAN.md` (Stage 5a.3b)
+- References: `extensions/teams/router.ts`
+- References: `extensions/teams/definitions.ts`
+- References: `extensions/dashboard/index.ts`
+- References: `extensions/dashboard/widget.ts`
+- References: `extensions/orchestrator/index.ts`
 
 ## Dependencies / prerequisites
 
-- Widget infrastructure exists (Stage 5a.2)
-- Hook event surface exists (Stage 5a.1b) — `beforeDelegation`, `afterDelegation`, `beforeSubprocessSpawn`, `afterSubprocessExit` already defined
-- Token tracking exists (Stage 5a.1)
+- T-09b live widget complete
+- Pi must be restarted before validation so the current extensions are loaded
+- `/panic` is available if a live run stalls
 
 ## Acceptance criteria (definition of done)
 
-- During orchestration, widget shows: active specialist, chain position, token count, elapsed time
-- During team runs, widget shows: current state, active specialist
-- Widget updates in real time as specialists are invoked
-- Widget shows summary or clears when orchestration completes
-- Existing widget behavior (idle, completed, failed states) is preserved
-- `make typecheck` passes
-- `make test` passes
+- At least one clean real `build-team` run completes via `teamHint: "build-team"` with no errors
+- Widget visibly updates during the live run and shows state/specialist progress
+- Team session artifact contains the expected state trace and final outcome
+- No missing-transition or routing errors occur
+- Any live-only defects found are documented and queued
+- Update `docs/handoff/CURRENT_STATUS.md`
+- Update `docs/handoff/TASK_QUEUE.md`
+- Update `docs/handoff/NEXT_TASK.md`
 
 ## Verification checklist
 
-- [ ] Widget shows active specialist name during orchestration
-- [ ] Widget shows chain progress (e.g., "2/4")
-- [ ] Widget shows cumulative token count
-- [ ] Widget shows elapsed time
-- [ ] Team runs show state machine state
-- [ ] Widget updates between specialist invocations
-- [ ] Widget shows summary on completion
-- [ ] Existing widget states still work
-- [ ] `make typecheck` passes
-- [ ] `make test` passes
-- [ ] Update `docs/handoff/CURRENT_STATUS.md`
-- [ ] Update `docs/handoff/TASK_QUEUE.md`
-- [ ] Update `docs/handoff/NEXT_TASK.md`
+- [ ] Restart Pi before validation
+- [ ] Run a real `build-team` task through `teamHint`
+- [ ] Observe widget updates during the run
+- [ ] Confirm expected state transition order
+- [ ] Inspect resulting team session artifact
+- [ ] Record any live-only bugs with reproduction notes
+- [ ] `make typecheck` passes after any fixes
+- [ ] `make test` passes after any fixes
 
 ## Risks / rollback notes
 
-- The widget observer runs in the same process as the orchestrator — must not slow down or interfere with delegation
-- Hook observer errors are isolated (existing error isolation from 5a.1b), so widget bugs won't crash orchestration
-- Snapshot tests in `tests/dashboard-widget-snapshots.test.ts` may need updating if widget line format changes
+- Live subprocess validation can surface issues not present in mocked tests: Pi CLI behavior, session lifecycle ordering, or specialist prompt/output drift
+- If the run stalls, use `/panic` and check whether teardown fully settles descendants before retrying
+- Avoid widening orchestration depth while validating; keep the task focused on the existing build-team path

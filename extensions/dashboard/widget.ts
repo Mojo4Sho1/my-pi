@@ -49,6 +49,16 @@ export function renderWidgetLines(state: WidgetState): string[] {
   if (state.activePath?.agent) {
     lines.push(`Agent: ${state.activePath.agent}`);
   }
+  if (state.progressLabel || state.subprocessActive) {
+    const progressParts: string[] = [];
+    if (state.progressLabel) {
+      progressParts.push(`Progress: ${state.progressLabel}`);
+    }
+    if (state.subprocessActive) {
+      progressParts.push("Subprocess: active");
+    }
+    lines.push(progressParts.join(" | "));
+  }
 
   if (state.worklistProgress) {
     let worklistLine =
