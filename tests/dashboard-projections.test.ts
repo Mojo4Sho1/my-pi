@@ -25,15 +25,23 @@ describe("dashboard projections", () => {
   it("projects a full team session artifact into terminal widget state", () => {
     const state = projectWidgetState(makeSnapshot({
       teamSession: {
+        schemaVersion: "team-artifact.v1",
         sessionId: "session_1",
+        taskId: "task-1",
+        objective: "Build the feature end-to-end",
         startedAt: "2026-04-03T12:00:00.000Z",
         completedAt: "2026-04-03T12:05:00.000Z",
         teamId: "build-team",
         teamName: "Build Team",
         teamVersion: "v0-123",
+        status: "success",
+        currentState: "done",
+        currentOwnerRole: "orchestrator",
         startState: "planning",
         endState: "done",
         terminationReason: "success",
+        taskPacketLineage: ["task-1", "task-step-1", "task-step-2"],
+        artifactRefs: [],
         stateTrace: [
           {
             state: "planning",
@@ -53,6 +61,7 @@ describe("dashboard projections", () => {
           },
         ],
         specialistSummaries: [],
+        stepArtifacts: [],
         outcome: {
           status: "success",
         },
@@ -162,17 +171,26 @@ describe("dashboard projections", () => {
   it("maps escalation artifacts to escalated widget status", () => {
     const state = projectWidgetState(makeSnapshot({
       teamSession: {
+        schemaVersion: "team-artifact.v1",
         sessionId: "session_1",
+        taskId: "task-2",
+        objective: "Escalate the build-team run",
         startedAt: "2026-04-03T12:00:00.000Z",
         completedAt: "2026-04-03T12:01:00.000Z",
         teamId: "build-team",
         teamName: "Build Team",
         teamVersion: "v0-123",
+        status: "escalation",
+        currentState: "review",
+        currentOwnerRole: "specialist_reviewer",
         startState: "planning",
         endState: "review",
         terminationReason: "retry_exhaustion",
+        taskPacketLineage: ["task-2"],
+        artifactRefs: [],
         stateTrace: [],
         specialistSummaries: [],
+        stepArtifacts: [],
         outcome: {
           status: "escalation",
           failureReason: "retry_exhaustion",
@@ -255,15 +273,23 @@ describe("dashboard projections", () => {
         agent: "reviewer",
       },
       teamSession: {
+        schemaVersion: "team-artifact.v1",
         sessionId: "session_1",
+        taskId: "task-3",
+        objective: "Build the feature end-to-end",
         startedAt: "2026-04-03T12:00:00.000Z",
         completedAt: "2026-04-03T12:05:00.000Z",
         teamId: "build-team",
         teamName: "Build Team",
         teamVersion: "v0-123",
+        status: "success",
+        currentState: "done",
+        currentOwnerRole: "orchestrator",
         startState: "planning",
         endState: "done",
         terminationReason: "success",
+        taskPacketLineage: ["task-3"],
+        artifactRefs: [],
         stateTrace: [
           {
             state: "testing",
@@ -275,6 +301,7 @@ describe("dashboard projections", () => {
           },
         ],
         specialistSummaries: [],
+        stepArtifacts: [],
         outcome: {
           status: "success",
         },

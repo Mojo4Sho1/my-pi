@@ -16,6 +16,8 @@ import type {
   StateTraceEntry,
   SpecialistInvocationSummary,
   TeamSessionArtifact,
+  TeamStepArtifact,
+  ArtifactRef,
 } from "../shared/types.js";
 import type { MachineState } from "../shared/routing.js";
 import {
@@ -27,7 +29,11 @@ import {
 } from "../shared/routing.js";
 import { createTaskPacket, createResultPacket } from "../shared/packets.js";
 import { delegateToSpecialist, getPromptConfig } from "../orchestrator/delegate.js";
-import { buildContextFromContract, validateOutputContract } from "../shared/contracts.js";
+import {
+  buildContextFromArtifacts,
+  collectValidatedOutputFields,
+  validateOutputContract,
+} from "../shared/contracts.js";
 import { computeTeamVersion } from "../shared/logging.js";
 import { aggregateTokenUsage } from "../shared/tokens.js";
 import { READ_ONLY_SPECIALISTS } from "../shared/sandbox.js";
@@ -49,6 +55,8 @@ export interface TeamExecutionResult {
   sessionArtifact?: TeamSessionArtifact;
 }
 
+const TEAM_ARTIFACT_SCHEMA_VERSION = "team-artifact.v1";
+
 /**
  * Map an agent ID (e.g. "specialist_planner") to a SpecialistId ("planner").
  */
@@ -65,16 +73,112 @@ function generateSessionId(): string {
   return `session_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function generateArtifactId(prefix: string): string {
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function buildTeamArtifactBasePath(sessionId: string): string {
+  return `artifacts/team-sessions/${sessionId}`;
+}
+
+function buildStepArtifactPath(sessionId: string, stepOrder: number, specialistId: string): string {
+  const roleStem = specialistId
+    .replace(/^specialist_/, "")
+    .replaceAll("-", "_")
+    .toUpperCase();
+  return `${buildTeamArtifactBasePath(sessionId)}/${String(stepOrder).padStart(3, "0")}_${roleStem}_OUTPUT.json`;
+}
+
+function buildArtifactRef(stepArtifact: TeamStepArtifact): ArtifactRef {
+  return {
+    artifactId: stepArtifact.artifactId,
+    artifactType: stepArtifact.artifactType,
+    logicalPath: stepArtifact.logicalPath,
+    ownerAgent: stepArtifact.ownerRole,
+    createdAt: stepArtifact.producedAt,
+    stepOrder: stepArtifact.stepOrder,
+    state: stepArtifact.state,
+  };
+}
+
+function buildTeamStepArtifact(params: {
+  sessionId: string;
+  team: TeamDefinition;
+  rootTaskId: string;
+  state: string;
+  stepOrder: number;
+  specialistId: string;
+  taskPacket: TaskPacket;
+  resultPacket: ResultPacket;
+  validatedOutput: Record<string, unknown>;
+  contractSatisfied: boolean;
+  contractErrors: string[];
+  derivedFrom: string[];
+}): TeamStepArtifact {
+  const producedAt = new Date().toISOString();
+  const artifactId = generateArtifactId("team_step");
+
+  return {
+    schemaVersion: TEAM_ARTIFACT_SCHEMA_VERSION,
+    artifactId,
+    artifactType: "team_step_output",
+    logicalPath: buildStepArtifactPath(params.sessionId, params.stepOrder, params.specialistId),
+    teamId: params.team.id,
+    teamSessionId: params.sessionId,
+    taskId: params.rootTaskId,
+    state: params.state,
+    stepOrder: params.stepOrder,
+    specialistId: params.specialistId,
+    ownerRole: params.specialistId,
+    inputTaskPacketId: params.taskPacket.id,
+    status: params.resultPacket.status,
+    summary: params.resultPacket.summary,
+    deliverables: params.resultPacket.deliverables,
+    modifiedFiles: params.resultPacket.modifiedFiles,
+    editableFields: Object.keys(params.validatedOutput),
+    readOnlyFields: [
+      "artifactId",
+      "artifactType",
+      "logicalPath",
+      "teamId",
+      "teamSessionId",
+      "taskId",
+      "state",
+      "stepOrder",
+      "specialistId",
+      "ownerRole",
+      "inputTaskPacketId",
+      "status",
+      "summary",
+      "deliverables",
+      "modifiedFiles",
+      "derivedFrom",
+      "producedAt",
+    ],
+    derivedFrom: params.derivedFrom,
+    producedAt,
+    structuredOutput: params.resultPacket.structuredOutput,
+    validatedOutput: params.validatedOutput,
+    contractSatisfied: params.contractSatisfied,
+    contractErrors: params.contractErrors.length > 0 ? params.contractErrors : undefined,
+  };
+}
+
 /**
  * Build the session artifact from collected execution data.
  */
 function buildSessionArtifact(params: {
   sessionId: string;
+  taskPacket: TaskPacket;
   startedAt: string;
   team: TeamDefinition;
   teamVersion: string;
+  currentOwnerRole: string;
   stateTrace: StateTraceEntry[];
   specialistSummaries: SpecialistInvocationSummary[];
+  stepArtifacts: TeamStepArtifact[];
+  artifactRefs: ArtifactRef[];
+  finalResultRef?: ArtifactRef;
   endState: string;
   terminationReason: FailureReason | "success";
   finalStatus: ResultPacket["status"];
@@ -101,17 +205,30 @@ function buildSessionArtifact(params: {
   );
 
   return {
+    schemaVersion: TEAM_ARTIFACT_SCHEMA_VERSION,
     sessionId: params.sessionId,
+    taskId: params.taskPacket.id,
+    objective: params.taskPacket.objective,
     startedAt: params.startedAt,
     completedAt,
     teamId: params.team.id,
     teamName: params.team.name,
     teamVersion: params.teamVersion,
+    status: params.finalStatus,
+    currentState: params.endState,
+    currentOwnerRole: params.currentOwnerRole,
     startState: params.team.states.startState,
     endState: params.endState,
     terminationReason: params.terminationReason,
+    taskPacketLineage: [
+      params.taskPacket.id,
+      ...params.stepArtifacts.map((artifact) => artifact.inputTaskPacketId),
+    ],
+    artifactRefs: params.artifactRefs,
     stateTrace: params.stateTrace,
     specialistSummaries: params.specialistSummaries,
+    stepArtifacts: params.stepArtifacts,
+    finalResultRef: params.finalResultRef,
     outcome: {
       status: params.finalStatus,
       failureReason: params.failureReason,
@@ -170,8 +287,12 @@ export async function executeTeam(
   const teamVersion = computeTeamVersion(team);
   const stateTrace: StateTraceEntry[] = [];
   const specialistSummaries: SpecialistInvocationSummary[] = [];
+  const stepArtifacts: TeamStepArtifact[] = [];
+  const artifactRefs: ArtifactRef[] = [];
   let invocationOrder = 0;
   let finalState: "settled" | "failed" | "canceled" = "settled";
+  let currentOwnerRole = `team_${team.id}`;
+  let finalResultRef: ArtifactRef | undefined;
 
   try {
     logger?.log({
@@ -200,11 +321,16 @@ export async function executeTeam(
     ): TeamExecutionResult {
       const artifact = buildSessionArtifact({
         sessionId,
+        taskPacket,
         startedAt,
         team,
         teamVersion,
+        currentOwnerRole,
         stateTrace,
         specialistSummaries,
+        stepArtifacts,
+        artifactRefs,
+        finalResultRef,
         endState,
         terminationReason,
         finalStatus: resultPacket.status,
@@ -254,7 +380,6 @@ export async function executeTeam(
 
     let machineState: MachineState = initMachineState(team.states);
     const statesVisited: string[] = [machineState.currentState];
-    const collectedResults: ResultPacket[] = [];
     let lastResult: ResultPacket | undefined;
 
     while (!isTerminal(team.states, machineState)) {
@@ -325,7 +450,7 @@ export async function executeTeam(
 
       const promptConfig = getPromptConfig(specialistId);
       const context = promptConfig.inputContract
-        ? buildContextFromContract(promptConfig.inputContract, collectedResults)
+        ? buildContextFromArtifacts(promptConfig.inputContract, stepArtifacts)
         : undefined;
 
       const specialistTaskPacket = createTaskPacket({
@@ -339,6 +464,7 @@ export async function executeTeam(
         targetAgent: agentId,
         sourceAgent: `team_${team.id}`,
       });
+      currentOwnerRole = agentId;
 
       hookRegistry?.dispatchObserver("beforeStateTransition", {
         teamId: team.id,
@@ -359,22 +485,55 @@ export async function executeTeam(
       });
       const delegationDurationMs = Date.now() - delegationStartMs;
 
-      collectedResults.push(resultPacket);
       lastResult = resultPacket;
       invocationOrder++;
 
       let contractSatisfied = true;
+      let contractErrors: string[] = [];
+      let validatedOutput: Record<string, unknown> = resultPacket.structuredOutput
+        ? { ...resultPacket.structuredOutput }
+        : {};
       if (promptConfig.outputContract) {
         try {
-          const errors = validateOutputContract(
+          contractErrors = validateOutputContract(
             resultPacket.structuredOutput,
             promptConfig.outputContract
           );
-          contractSatisfied = errors.length === 0;
+          validatedOutput = collectValidatedOutputFields(
+            resultPacket.structuredOutput,
+            promptConfig.outputContract
+          );
+          contractSatisfied = contractErrors.length === 0;
         } catch {
           contractSatisfied = false;
+          contractErrors = ["Output contract validation threw unexpectedly"];
+          validatedOutput = {};
         }
       }
+
+      const stepArtifact = buildTeamStepArtifact({
+        sessionId,
+        team,
+        rootTaskId: taskPacket.id,
+        state: currentStateName,
+        stepOrder: invocationOrder,
+        specialistId: agentId,
+        taskPacket: specialistTaskPacket,
+        resultPacket,
+        validatedOutput,
+        contractSatisfied,
+        contractErrors,
+        derivedFrom: stepArtifacts.map((artifact) => artifact.artifactId),
+      });
+      const artifactRef = buildArtifactRef(stepArtifact);
+      stepArtifacts.push(stepArtifact);
+      artifactRefs.push(artifactRef);
+      finalResultRef = artifactRef;
+      hookRegistry?.dispatchObserver("onArtifactWritten", {
+        artifactType: "team_step_output",
+        taskId: taskPacket.id,
+        artifact: stepArtifact,
+      });
 
       specialistSummaries.push({
         agentId,
@@ -424,8 +583,8 @@ export async function executeTeam(
             taskId: taskPacket.id,
             status: "escalation",
             summary: `Team '${team.id}' revision loop exhausted on edge '${advanceResult.edge}' after ${advanceResult.iterations} iterations`,
-            deliverables: collectedResults.map((r) => `[${r.sourceAgent}] ${r.summary}`),
-            modifiedFiles: collectedResults.flatMap((r) => r.modifiedFiles),
+            deliverables: stepArtifacts.map((artifact) => `[${artifact.specialistId}] ${artifact.summary}`),
+            modifiedFiles: stepArtifacts.flatMap((artifact) => artifact.modifiedFiles),
             escalation: {
               reason: `Revision loop exhausted: ${advanceResult.edge}`,
               suggestedAction: "Review the feedback cycle and adjust scope or requirements",
@@ -513,8 +672,9 @@ export async function executeTeam(
       statesVisited.push(machineState.currentState);
     }
 
-    const allModifiedFiles = [...new Set(collectedResults.flatMap((r) => r.modifiedFiles))];
+    const allModifiedFiles = [...new Set(stepArtifacts.flatMap((artifact) => artifact.modifiedFiles))];
     const isSuccess = machineState.currentState !== "failed" && lastResult?.status === "success";
+    currentOwnerRole = team.states.states[machineState.currentState]?.agent ?? currentOwnerRole;
 
     let failureReason: FailureReason | undefined;
     if (!isSuccess && lastResult) {
@@ -531,9 +691,9 @@ export async function executeTeam(
         taskId: taskPacket.id,
         status: isSuccess ? "success" : (lastResult?.status || "failure"),
         summary: isSuccess
-          ? `Team '${team.id}' completed successfully. ${collectedResults.map((r) => `[${r.sourceAgent}] ${r.summary}`).join("; ")}`
+          ? `Team '${team.id}' completed successfully. ${stepArtifacts.map((artifact) => `[${artifact.specialistId}] ${artifact.summary}`).join("; ")}`
           : `Team '${team.id}' ended in state '${machineState.currentState}'. ${lastResult?.summary || "No results."}`,
-        deliverables: collectedResults.map((r) => `[${r.sourceAgent}] ${r.summary}`),
+        deliverables: stepArtifacts.map((artifact) => `[${artifact.specialistId}] ${artifact.summary}`),
         modifiedFiles: allModifiedFiles,
         escalation: lastResult?.escalation,
         sourceAgent: `team_${team.id}`,

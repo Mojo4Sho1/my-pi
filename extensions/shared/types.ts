@@ -415,6 +415,82 @@ export interface SpecialistInvocationSummary {
   tokenUsage?: TokenUsage;
 }
 
+/**
+ * Identifies a canonical machine-first artifact produced during team execution.
+ * These lightweight refs let the router link session records to per-step artifacts without copying full payloads everywhere.
+ */
+export interface ArtifactRef {
+  /** Unique artifact identifier */
+  artifactId: string;
+  /** Runtime artifact kind */
+  artifactType: "team_session" | "team_step_output";
+  /** Logical canonical path for the artifact */
+  logicalPath: string;
+  /** Agent or runtime component that owns this artifact */
+  ownerAgent: string;
+  /** Timestamp when the artifact was created */
+  createdAt: string;
+  /** Step order for per-specialist artifacts */
+  stepOrder?: number;
+  /** Team state associated with the artifact */
+  state?: string;
+}
+
+/**
+ * Captures one canonical machine-first specialist artifact created by the router after validating a team step.
+ * The router owns the lifecycle of this record even though the specialist owns the payload fields it produced.
+ */
+export interface TeamStepArtifact {
+  /** Artifact schema version for future migrations */
+  schemaVersion: string;
+  /** Unique artifact identifier */
+  artifactId: string;
+  /** Artifact kind */
+  artifactType: "team_step_output";
+  /** Logical canonical path for the artifact */
+  logicalPath: string;
+  /** Team definition ID */
+  teamId: string;
+  /** Parent team session ID */
+  teamSessionId: string;
+  /** Root task ID for the team run */
+  taskId: string;
+  /** Team state that produced this artifact */
+  state: string;
+  /** Invocation order within the team session */
+  stepOrder: number;
+  /** Specialist agent ID (e.g. "specialist_builder") */
+  specialistId: string;
+  /** Specialist role that owns the payload */
+  ownerRole: string;
+  /** Task packet ID that was delegated to produce this artifact */
+  inputTaskPacketId: string;
+  /** Result status returned by the specialist */
+  status: PacketStatus;
+  /** Summary copied from the validated result packet metadata */
+  summary: string;
+  /** Deliverables copied from the validated result packet metadata */
+  deliverables: string[];
+  /** Modified files copied from the validated result packet metadata */
+  modifiedFiles: string[];
+  /** Fields the specialist is expected to fill */
+  editableFields: string[];
+  /** Router-owned or derived fields that are read-only to the specialist */
+  readOnlyFields: string[];
+  /** Upstream packet or artifact IDs this output derives from */
+  derivedFrom: string[];
+  /** Timestamp when the artifact was recorded */
+  producedAt: string;
+  /** Raw preserved structured payload returned by the specialist */
+  structuredOutput?: Record<string, unknown>;
+  /** Contract-validated output fields approved for downstream routing */
+  validatedOutput: Record<string, unknown>;
+  /** Whether the specialist satisfied its declared output contract */
+  contractSatisfied: boolean;
+  /** Validation failures observed while recording the artifact */
+  contractErrors?: string[];
+}
+
 // --- Token Tracking (Stage 5a.1) ---
 
 /**
@@ -685,8 +761,14 @@ export interface SpawnRecord {
  * It combines trace data, per-specialist summaries, metrics, and final outcome for observability and analysis.
  */
 export interface TeamSessionArtifact {
+  /** Artifact schema version for future migrations */
+  schemaVersion: string;
   /** Unique session ID */
   sessionId: string;
+  /** Root task packet ID for this team run */
+  taskId: string;
+  /** Objective delegated to the team */
+  objective: string;
   /** Timestamp of session start */
   startedAt: string;
   /** Timestamp of session completion */
@@ -697,16 +779,30 @@ export interface TeamSessionArtifact {
   teamName: string;
   /** Hash or version identifier of the team definition used */
   teamVersion: string;
+  /** Final session status */
+  status: PacketStatus;
+  /** Current or terminal state when the artifact was emitted */
+  currentState: string;
+  /** Current or terminal owner role when the artifact was emitted */
+  currentOwnerRole: string;
   /** Starting state */
   startState: string;
   /** Ending state */
   endState: string;
   /** Why the team stopped */
   terminationReason: FailureReason | "success";
+  /** Full packet lineage for the team run */
+  taskPacketLineage: string[];
+  /** Linked canonical artifact refs produced during the run */
+  artifactRefs: ArtifactRef[];
   /** Ordered state trace */
   stateTrace: StateTraceEntry[];
   /** Per-specialist invocation summaries */
   specialistSummaries: SpecialistInvocationSummary[];
+  /** Canonical per-step artifacts recorded by the router */
+  stepArtifacts: TeamStepArtifact[];
+  /** Ref to the final step artifact when available */
+  finalResultRef?: ArtifactRef;
   /** Final outcome */
   outcome: {
     status: PacketStatus;

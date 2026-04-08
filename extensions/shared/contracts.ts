@@ -12,6 +12,7 @@ import type {
   ContractField,
   ContractFieldType,
   ResultPacket,
+  TeamStepArtifact,
 } from "./types.js";
 
 const SHARED_RESULT_FIELD_TYPES: Readonly<Record<string, ContractFieldType>> = {
@@ -83,6 +84,30 @@ export function validateOutputContract(
   }
 
   return errors;
+}
+
+/**
+ * Collect the subset of structured output fields that satisfy the declared output contract.
+ * This lets the router persist and forward only validated named fields even when the overall contract is not fully satisfied.
+ */
+export function collectValidatedOutputFields(
+  outputPayload: Record<string, unknown> | undefined,
+  contract: OutputContract
+): Record<string, unknown> {
+  const validatedFields: Record<string, unknown> = {};
+
+  if (!outputPayload) {
+    return validatedFields;
+  }
+
+  for (const field of contract.fields) {
+    const value = outputPayload[field.name];
+    if (value !== undefined && value !== null && matchesType(value, field.type)) {
+      validatedFields[field.name] = value;
+    }
+  }
+
+  return validatedFields;
 }
 
 /**
@@ -229,6 +254,40 @@ export function buildContextFromContract(
 }
 
 /**
+ * Build context for a downstream specialist from router-owned step artifacts.
+ * Only validated artifact fields and artifact metadata are eligible routing inputs.
+ */
+export function buildContextFromArtifacts(
+  inputContract: InputContract,
+  priorArtifacts: TeamStepArtifact[]
+): Record<string, unknown> | undefined {
+  if (inputContract.fields.length === 0) {
+    return undefined;
+  }
+
+  const context: Record<string, unknown> = {};
+  let hasAnyField = false;
+
+  for (const field of inputContract.fields) {
+    if (!field.sourceSpecialist) continue;
+
+    const sourceArtifact = [...priorArtifacts].reverse().find(
+      (artifact) => artifact.specialistId === `specialist_${field.sourceSpecialist}`
+    );
+
+    if (!sourceArtifact) continue;
+
+    const value = extractFieldFromArtifact(field.name, sourceArtifact);
+    if (value !== undefined) {
+      context[field.name] = value;
+      hasAnyField = true;
+    }
+  }
+
+  return hasAnyField ? context : undefined;
+}
+
+/**
  * Extract a named field from a ResultPacket.
  * Maps contract field names to ResultPacket properties.
  */
@@ -266,6 +325,45 @@ function extractFieldFromResult(
       return undefined; // Built from multiple results, not extracted from one
     case "priorDeliverables":
       return undefined; // Same — handled by buildContextForSpecialist directly
+    default:
+      return undefined;
+  }
+}
+
+/**
+ * Extract a named field from a canonical team step artifact.
+ * Uses only contract-validated output fields plus router-owned artifact metadata.
+ */
+function extractFieldFromArtifact(
+  fieldName: string,
+  artifact: TeamStepArtifact
+): unknown {
+  const validatedValue = artifact.validatedOutput[fieldName];
+  if (validatedValue !== undefined) {
+    return validatedValue;
+  }
+
+  switch (fieldName) {
+    case "modifiedFiles":
+      return artifact.validatedOutput.modifiedFiles ?? artifact.modifiedFiles;
+    case "implementationSummary":
+      return artifact.validatedOutput.changeDescription ?? artifact.summary;
+    case "planSummary":
+      return artifact.summary;
+    case "planDeliverables":
+    case "planSteps":
+      return artifact.validatedOutput.steps ?? artifact.deliverables;
+    case "changeDescription":
+      return artifact.validatedOutput.changeDescription ?? artifact.summary;
+    case "specSummary":
+    case "schemaSummary":
+      return artifact.summary;
+    case "specDeliverables":
+    case "schemaDeliverables":
+      return artifact.deliverables;
+    case "priorSummaries":
+    case "priorDeliverables":
+      return undefined;
     default:
       return undefined;
   }

@@ -69,10 +69,14 @@ describe("team session artifacts", () => {
     expect(artifact.teamVersion).toBe(computeTeamVersion(BUILD_TEAM));
     expect(artifact.startState).toBe("planning");
     expect(artifact.endState).toBe("done");
+    expect(artifact.status).toBe("success");
+    expect(artifact.currentState).toBe("done");
     expect(artifact.terminationReason).toBe("success");
     expect(artifact.sessionId).toMatch(/^session_/);
     expect(artifact.startedAt).toBeTruthy();
     expect(artifact.completedAt).toBeTruthy();
+    expect(artifact.taskPacketLineage[0]).toBe(result.resultPacket.taskId);
+    expect(artifact.schemaVersion).toBe("team-artifact.v1");
   });
 
   it("state trace has one entry per non-terminal state visited", async () => {
@@ -137,6 +141,62 @@ describe("team session artifacts", () => {
     for (const summary of artifact.specialistSummaries) {
       expect(summary.durationMs).toBeGreaterThanOrEqual(0);
     }
+  });
+
+  it("records canonical step artifacts and links them from the session artifact", async () => {
+    const mockSpawn = vi.fn()
+      .mockResolvedValueOnce(makeOutput({
+        status: "success",
+        summary: "Plan",
+        deliverables: ["fallback step"],
+        steps: ["step-1", "step-2"],
+        dependencies: ["step-2 depends on step-1"],
+        risks: ["scope drift"],
+        modifiedFiles: [],
+      }))
+      .mockResolvedValueOnce(makeOutput({
+        status: "success",
+        summary: "Build",
+        deliverables: ["fallback build"],
+        modifiedFiles: ["src/index.ts"],
+        changeDescription: "Implemented the feature",
+      }))
+      .mockResolvedValueOnce(makeOutput({
+        status: "success",
+        summary: "Review",
+        deliverables: [],
+        modifiedFiles: [],
+        verdict: "approve",
+        findings: [],
+      }))
+      .mockResolvedValueOnce(makeOutput({
+        status: "success",
+        summary: "Test",
+        deliverables: [],
+        modifiedFiles: [],
+        passed: true,
+        evidence: ["targeted checks pass"],
+        failures: [],
+      }));
+
+    const { executeTeam } = await setupTeamRouter(mockSpawn);
+    const result = await executeTeam(BUILD_TEAM, makeTeamTaskPacket());
+    const artifact = result.sessionArtifact!;
+
+    expect(artifact.stepArtifacts).toHaveLength(4);
+    expect(artifact.artifactRefs).toHaveLength(4);
+    expect(artifact.finalResultRef?.artifactId).toBe(artifact.stepArtifacts[3].artifactId);
+    expect(artifact.stepArtifacts[0].logicalPath).toContain("/001_PLANNER_OUTPUT.json");
+    expect(artifact.stepArtifacts[0].validatedOutput).toEqual({
+      steps: ["step-1", "step-2"],
+      dependencies: ["step-2 depends on step-1"],
+      risks: ["scope drift"],
+    });
+    expect(artifact.stepArtifacts[1].validatedOutput).toEqual({
+      modifiedFiles: ["src/index.ts"],
+      changeDescription: "Implemented the feature",
+    });
+    expect(artifact.taskPacketLineage).toHaveLength(5);
   });
 
   it("loop/revision produces correct loopCount and revisionCount in metrics", async () => {

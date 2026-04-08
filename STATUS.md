@@ -1,6 +1,6 @@
 # STATUS.md
 
-Last updated: 2026-04-07 (T-16 structured-output preservation complete; T-17 artifact-routing work active)
+Last updated: 2026-04-07 (T-17 router-owned artifacts complete; T-18 ownership and partial-routing work active)
 
 ## Progress Checklist
 
@@ -271,8 +271,8 @@ Top-priority redesign pass driven by `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TE
 
 - [x] Documentation and roadmap realignment (T-15)
 - [x] Preserve structured specialist outputs end-to-end and validate named output fields directly (T-16)
-- [ ] Add router-owned team session artifacts and downstream packet construction from validated artifacts only (T-17)
-- [ ] Enforce ownership/edit scope and explicit `partial` routing semantics (T-18)
+- [x] Add router-owned team session artifacts and downstream packet construction from validated artifacts only (T-17)
+- [ ] Enforce ownership/edit scope and explicit `partial` routing semantics (T-18, active)
 - [ ] Reconcile tester/build-team behavior across prompts, team definitions, and durable docs (T-19)
 - [ ] Add YAML specialist/team templates plus a `build-team` starter spec (T-20)
 - [ ] Add validation coverage and run a contradiction audit for the redesigned flow (T-21)
@@ -365,7 +365,7 @@ See `docs/FUTURE_WORK.md` for deferred design ideas (team critic, campaign super
 
 ## Blockers
 
-- No hard repo blocker currently prevents Stage 5a.7 kickoff.
+- No hard repo blocker currently prevents continued Stage 5a.7 progress.
 - T-10 through T-14 are intentionally deferred behind Stage 5a.7; treat that as a priority choice, not a hidden blocker.
 
 ## Risks

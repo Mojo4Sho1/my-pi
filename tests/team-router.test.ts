@@ -123,7 +123,7 @@ describe("executeTeam", () => {
       }));
 
     const { executeTeam } = await setupTeamRouter(mockSpawn);
-    await executeTeam(BUILD_TEAM, makeTeamTaskPacket());
+    const result = await executeTeam(BUILD_TEAM, makeTeamTaskPacket());
 
     const builderTaskPrompt: string = mockSpawn.mock.calls[1][1];
     expect(builderTaskPrompt).toContain("planSteps");
@@ -137,6 +137,11 @@ describe("executeTeam", () => {
     const testerTaskPrompt: string = mockSpawn.mock.calls[3][1];
     expect(testerTaskPrompt).toContain("implementationSummary");
     expect(testerTaskPrompt).toContain("Implemented the feature with scoped edits");
+    expect(result.sessionArtifact?.stepArtifacts[0].validatedOutput.steps).toEqual([
+      "step-1: scaffold",
+      "step-2: implement",
+    ]);
+    expect(result.sessionArtifact?.taskPacketLineage).toHaveLength(5);
   });
 
   it("handles building failure with loop back to planning then eventual success", async () => {

@@ -3,10 +3,11 @@ import {
   validateOutputContract,
   validateInputContract,
   contractsCompatible,
+  buildContextFromArtifacts,
   buildContextFromContract,
 } from "../extensions/shared/contracts.js";
 import { createResultPacket } from "../extensions/shared/packets.js";
-import type { InputContract, OutputContract } from "../extensions/shared/types.js";
+import type { InputContract, OutputContract, TeamStepArtifact } from "../extensions/shared/types.js";
 
 describe("validateOutputContract", () => {
   const contract: OutputContract = {
@@ -187,6 +188,36 @@ describe("buildContextFromContract", () => {
     sourceAgent: "specialist_builder",
   });
 
+  const plannerArtifact: TeamStepArtifact = {
+    schemaVersion: "team-artifact.v1",
+    artifactId: "team_step_1",
+    artifactType: "team_step_output",
+    logicalPath: "artifacts/team-sessions/session_1/001_PLANNER_OUTPUT.json",
+    teamId: "build-team",
+    teamSessionId: "session_1",
+    taskId: "task_1",
+    state: "planning",
+    stepOrder: 1,
+    specialistId: "specialist_planner",
+    ownerRole: "specialist_planner",
+    inputTaskPacketId: "task_step_1",
+    status: "success",
+    summary: "Plan: add tests",
+    deliverables: ["fallback plan deliverable"],
+    modifiedFiles: [],
+    editableFields: ["steps", "dependencies", "risks"],
+    readOnlyFields: ["summary"],
+    derivedFrom: [],
+    producedAt: "2026-04-07T00:00:00.000Z",
+    structuredOutput: plannerResult.structuredOutput,
+    validatedOutput: {
+      steps: ["step-1: write tests", "step-2: run tests"],
+      dependencies: ["step-2 depends on step-1"],
+      risks: ["tests may need fixtures"],
+    },
+    contractSatisfied: true,
+  };
+
   it("extracts fields from matching prior results", () => {
     const input: InputContract = {
       fields: [
@@ -235,5 +266,21 @@ describe("buildContextFromContract", () => {
       ],
     };
     expect(buildContextFromContract(input, [plannerResult])).toBeUndefined();
+  });
+
+  it("builds downstream context from validated step artifact fields only", () => {
+    const input: InputContract = {
+      fields: [
+        { name: "planSummary", type: "string", required: false, description: "Plan", sourceSpecialist: "planner" },
+        { name: "planSteps", type: "string[]", required: false, description: "Steps", sourceSpecialist: "planner" },
+      ],
+    };
+
+    const context = buildContextFromArtifacts(input, [plannerArtifact]);
+    expect(context).toEqual({
+      planSummary: "Plan: add tests",
+      planSteps: ["step-1: write tests", "step-2: run tests"],
+    });
+    expect(context?.planSteps).not.toEqual(["fallback plan deliverable"]);
   });
 });
