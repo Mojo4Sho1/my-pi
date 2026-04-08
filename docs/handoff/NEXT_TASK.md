@@ -5,80 +5,95 @@
 
 ## Task summary
 
-Run a real end-to-end `build-team` orchestration through `teamHint: "build-team"` and validate that the team router, state transitions, session artifact, and live widget all behave correctly in a live Pi session.
+Implement T-16 from Stage 5a.7 by preserving structured specialist outputs end-to-end and validating named output fields directly. The outcome of this task should be a code path where parsed specialist payloads remain canonical machine-readable artifacts for routing and contract checks, instead of being collapsed to generic summaries or placeholder deliverables.
 
 ## Why this task is next
 
-- T-09b is complete, so the user now has live visibility into orchestration progress and can monitor or panic a stalled run
-- Stage 5a.3b is the next dependency gate before redesigning the tester role in 5a.3c
-- The team router and artifacts are well covered by mocked tests, but they still need one real subprocess validation pass
+- T-15 completed the documentation and roadmap realignment, so fresh-context agents now route into Stage 5a.7 instead of the older live-validation queue
+- T-16 is the first implementation task in the redesign sequence and unblocks router-owned artifacts, ownership guardrails, and tester/build-team reconciliation
+- The design document explicitly calls for preserving named structured outputs before the router can safely construct downstream packets from validated artifact fields
 
 ## Scope (in)
 
-- Restart Pi so the updated dashboard extension and teardown code are loaded
-- Execute at least one real task via `orchestrate` with `teamHint: "build-team"`
-- Verify the live widget during the run:
-  - current team state
-  - active specialist
-  - elapsed time
-  - cumulative token count
-- Verify the build-team state trace follows the expected sequence:
-  - planning -> building -> review -> testing -> done
-- Inspect the produced team session artifact for:
-  - complete state trace
-  - coherent final outcome
-  - token totals if present
-- Document any live-only bugs or substrate issues discovered
+- Audit the existing result-parsing, packet, and contract-validation path for places where named structured fields are dropped or replaced with generic summaries
+- Update shared types and parsing so structured specialist payloads remain available end-to-end as the canonical machine-readable routing substrate
+- Replace placeholder-style output validation with validation against the actual named payload fields specialists produce
+- Add or update regression tests covering planner-to-builder and builder-to-tester style payload preservation at the structured-field level
+- Update durable docs only where needed to reflect the implemented structured-output behavior truthfully
 
 ## Scope (out)
 
-- Redesigning the tester specialist role (that is T-11 / Stage 5a.3c)
-- New dashboard panels or run registry views
-- New routing features beyond fixing blockers discovered during live validation
-
-## Specialist flow
-
-This task should use the live system directly. Do not modify the dashboard first unless live validation exposes a concrete bug that blocks completion.
+- Router-owned team session artifact persistence and downstream packet rebuilding from validated artifacts only (that is T-17)
+- Ownership/edit-scope enforcement and explicit per-state `partial` handling (that is T-18)
+- Full tester/build-team reconciliation across prompts and team definitions (that is T-19)
+- YAML specialist/team template creation (that is T-20)
+- Live Pi validation reruns and `/dashboard` follow-on work (deferred tasks T-10 through T-14)
 
 ## Relevant files
 
-- References: `docs/IMPLEMENTATION_PLAN.md` (Stage 5a.3b)
+- References: `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`
+- References: `docs/IMPLEMENTATION_PLAN.md` (Stage 5a.7)
+- References: `extensions/shared/result-parser.ts`
+- References: `extensions/shared/types.ts`
+- References: `extensions/shared/contracts.ts`
+- References: `extensions/shared/specialist-extension.ts`
+- References: `extensions/orchestrator/delegate.ts`
 - References: `extensions/teams/router.ts`
-- References: `extensions/teams/definitions.ts`
-- References: `extensions/dashboard/index.ts`
-- References: `extensions/dashboard/widget.ts`
-- References: `extensions/orchestrator/index.ts`
+- References: `tests/result-parser.test.ts`
+- References: `tests/contracts.test.ts`
+- References: `tests/orchestrator-context.test.ts`
+- References: `tests/orchestrator-delegate.test.ts`
+- References: `tests/team-router.test.ts`
+
+## Recommended first reads
+
+1. `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`
+2. `docs/IMPLEMENTATION_PLAN.md` (Stage 5a.7 only)
+3. `extensions/shared/result-parser.ts`
+4. `extensions/shared/contracts.ts`
+5. `extensions/orchestrator/delegate.ts`
+6. `extensions/teams/router.ts`
+7. `tests/result-parser.test.ts` and `tests/contracts.test.ts`
+
+## Likely implementation hotspots
+
+- `extensions/shared/result-parser.ts` still treats generic `deliverables` as the primary parsed structured substrate for most specialists
+- `extensions/shared/contracts.ts` still validates output through deliverables-shaped objects and generic field extraction helpers
+- `extensions/orchestrator/delegate.ts` still forwards context through summary-and-deliverables mappings for several specialist paths
+- `extensions/teams/router.ts` still converts deliverables into `deliverable_<n>` style fields when building downstream context
+- `extensions/shared/specialist-extension.ts` is in the direct specialist execution path and may need to preserve any richer parsed payload data
 
 ## Dependencies / prerequisites
 
-- T-09b live widget complete
-- Pi must be restarted before validation so the current extensions are loaded
-- `/panic` is available if a live run stalls
+- T-15 documentation realignment complete
+- Stage 4a through 4d substrate available as the starting point
+- Decision #40 remains the durable tester-role direction, but full reconciliation is deferred to T-19
 
 ## Acceptance criteria (definition of done)
 
-- At least one clean real `build-team` run completes via `teamHint: "build-team"` with no errors
-- Widget visibly updates during the live run and shows state/specialist progress
-- Team session artifact contains the expected state trace and final outcome
-- No missing-transition or routing errors occur
-- Any live-only defects found are documented and queued
+- Named structured payload fields from specialist outputs are preserved end-to-end in the runtime path instead of being reduced to summary-only routing inputs
+- Output contract validation checks the actual named payload fields the specialist produced
+- Regression tests cover at least one success path where downstream context is built from preserved structured payload data
+- Docs touched by the implementation remain truthful about the current Stage 5a.7 behavior
 - Update `docs/handoff/CURRENT_STATUS.md`
 - Update `docs/handoff/TASK_QUEUE.md`
 - Update `docs/handoff/NEXT_TASK.md`
 
 ## Verification checklist
 
-- [ ] Restart Pi before validation
-- [ ] Run a real `build-team` task through `teamHint`
-- [ ] Observe widget updates during the run
-- [ ] Confirm expected state transition order
-- [ ] Inspect resulting team session artifact
-- [ ] Record any live-only bugs with reproduction notes
-- [ ] `make typecheck` passes after any fixes
-- [ ] `make test` passes after any fixes
+- [ ] Audit where structured output is currently parsed, stored, validated, and forwarded
+- [ ] Decide what the canonical runtime carrier for preserved structured payloads is before changing downstream call sites
+- [ ] Preserve named payload fields in the canonical runtime data path
+- [ ] Replace placeholder-style output validation with named-field validation
+- [ ] Add regression tests for structured payload preservation and validation
+- [ ] Verify the tested forwarding path no longer depends on synthetic `deliverable_<n>` mapping
+- [ ] `make typecheck` passes after code changes
+- [ ] `make test` passes after code changes
+- [ ] Update `CURRENT_STATUS.md` with results
+- [ ] Update `TASK_QUEUE.md` and promote the next queued Stage 5a.7 task
 
 ## Risks / rollback notes
 
-- Live subprocess validation can surface issues not present in mocked tests: Pi CLI behavior, session lifecycle ordering, or specialist prompt/output drift
-- If the run stalls, use `/panic` and check whether teardown fully settles descendants before retrying
-- Avoid widening orchestration depth while validating; keep the task focused on the existing build-team path
+- The current runtime may depend on summary/deliverable fallback behavior in more places than expected, so changes here can ripple into synthesis or team routing
+- Avoid quietly introducing router-owned artifact persistence or ownership enforcement in this task; those belong to T-17 and T-18
+- If structured output preservation exposes contradictions in current prompts or contracts, record them explicitly but keep the implementation bounded to T-16

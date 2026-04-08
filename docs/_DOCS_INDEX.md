@@ -18,13 +18,14 @@ Use this file to decide which documentation area is authoritative for the curren
 |---|---|---|
 | repo navigation rules | `docs/REPO_CONVENTIONS.md` | Naming, index-first behavior, truthfulness rules |
 | implementation stage routing | `docs/_IMPLEMENTATION_PLAN_INDEX.md` | Smallest path into the implementation plan |
+| active contract/artifact redesign | `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md` | Current source of truth for Stage 5a.7 redesign work |
 | stable architecture | `docs/PROJECT_FOUNDATION.md` | Durable scope, principles, platform posture |
 | system vocabulary/hierarchy | `docs/ORCHESTRATION_MODEL.md` | Definitions for orchestrator, specialists, teams, sequences, artifacts |
 | current validation work | `docs/validation/_VALIDATION_INDEX.md` | Methodology, task specs, result artifacts |
 | current handoff flow | `docs/handoff/_HANDOFF_INDEX.md` | Start-of-session and backlog routing |
 | Pi extension mechanics | `docs/PI_EXTENSION_API.md` | Extension and command API details |
 | upstream Pi compatibility policy | `docs/UPSTREAM_PI_POLICY.md` | Versioning and compatibility-sensitive changes |
-| current design proposals | `docs/design/INDEXING_AND_CONTEXT_ROUTING_DESIGN.md` | Working design docs, not durable decisions |
+| current design proposals | `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md` | Working design doc currently driving repo-priority changes |
 
 ## Directory Guide
 
@@ -45,7 +46,7 @@ Use this file to decide which documentation area is authoritative for the curren
 |---|---|---|---|
 | `docs/validation/` | `docs/validation/_VALIDATION_INDEX.md` | Stage 5a.3 methodology, tasks, and result artifacts | not doing validation work |
 | `docs/handoff/` | `docs/handoff/_HANDOFF_INDEX.md` | queued work, current focus, decisions-needed flow | not using the handoff system |
-| `docs/design/` | target design doc only | active proposals driving a change | you only need accepted durable decisions |
+| `docs/design/` | target design doc only | active proposals driving a change; for current redesign work, start with the contract/artifact design doc | you only need accepted durable decisions |
 | `docs/archive/` | nothing by default | historical background only when a live doc points there | routine work |
 | `docs/adr/` | target ADR only | durable architectural decision records | the decision log already answers the question |
 

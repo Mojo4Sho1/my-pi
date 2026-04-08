@@ -18,6 +18,7 @@ For handoff routing, start with `docs/handoff/_HANDOFF_INDEX.md`. For validation
 - `active` — currently being worked on (should match `NEXT_TASK.md`)
 - `queued` — ready to start, dependencies met
 - `blocked` — cannot start, dependency not met
+- `deferred` — intentionally postponed while a higher-priority task or phase is active
 
 ---
 
@@ -52,21 +53,34 @@ For handoff routing, start with `docs/handoff/_HANDOFF_INDEX.md`. For validation
 |----|--------|------|---------------|---------------------|
 | T-09 | done | Implement panic and teardown system | `docs/design/PANIC_AND_TEARDOWN_DESIGN.md` | Run registry, abort propagation, settled-state barrier, `/panic` command; no orphaned subprocesses; typecheck + tests pass |
 
-## Phase: Post-Teardown — Observability First
+## Phase: Stage 5a.7 Contract-and-Artifact Redesign (ACTIVE)
 
 | ID | Status | Task | Specs to Read | Acceptance Criteria |
 |----|--------|------|---------------|---------------------|
 | T-09b | done | Live orchestration widget | See NEXT_TASK.md | Widget shows active specialist, chain progress, token count, elapsed time during orchestration; uses existing setWidget() + hook observers |
-| T-10 | active | Team state machine e2e validation (5a.3b) | `docs/IMPLEMENTATION_PLAN.md` (5a.3b) | Clean build-team run via teamHint with no errors |
-| T-11 | queued | Tester specialist role redesign (5a.3c) | `docs/IMPLEMENTATION_PLAN.md` (5a.3c), Decision #40 | Tester is test author; build-team flow updated |
-| T-12 | queued | Specialist invocation patterns (5a.3d) | `docs/IMPLEMENTATION_PLAN.md` (5a.3d), Decision #41 | Verified build + parallel scout patterns working |
-| T-13 | queued | Token logging and observability (5a.3e) | `docs/IMPLEMENTATION_PLAN.md` (5a.3e) | Per-specialist token counts in orchestrator output |
-| T-14 | queued | Dashboard real-time monitoring (5a.4) | `docs/IMPLEMENTATION_PLAN.md` (5a.4) | Dashboard consumes run registry for live monitoring |
+| T-15 | done | Documentation and roadmap realignment for the contract/artifact redesign | `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`, `docs/IMPLEMENTATION_PLAN.md`, `docs/handoff/` | Handoff docs, status, implementation plan, indexes, and tester definition all point to Stage 5a.7 and no longer route agents into the old priority order |
+| T-16 | active | Preserve structured specialist outputs end-to-end and validate named output fields directly | `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`, `docs/IMPLEMENTATION_PLAN.md` (Stage 5a.7) | Parsed specialist outputs preserve named structured payloads end-to-end and output contracts validate real payload fields with regression coverage |
+| T-17 | queued | Add router-owned team session artifacts and downstream packet construction from validated artifacts only | `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`, `docs/IMPLEMENTATION_PLAN.md` (Stage 5a.7) | Router persists canonical team/specialist artifacts and builds downstream TaskPackets from validated artifact fields only |
+| T-18 | queued | Enforce ownership/edit scope and explicit `partial` routing semantics | `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`, `docs/IMPLEMENTATION_PLAN.md` (Stage 5a.7) | Unauthorized field writes are rejected, `partial` handling is explicit per state, and routing stays deterministic |
+| T-19 | queued | Reconcile tester/build-team behavior across prompts, team definitions, and durable docs | `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`, Decision #40 | Canonical build-team flow is `planner -> builder -> tester -> builder -> reviewer -> done` across code-facing and durable docs |
+| T-20 | queued | Add YAML specialist/team templates and a `build-team` starter spec | `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`, `docs/IMPLEMENTATION_PLAN.md` (Stage 5a.7) | `specs/specialists/` and `specs/teams/` templates exist and a `build-team` starter spec reflects the canonical flow |
+| T-21 | queued | Add validation coverage and run a contradiction audit for the redesigned flow | `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`, `docs/IMPLEMENTATION_PLAN.md` (Stage 5a.7) | Validation covers artifact preservation, ownership guardrails, partial handling, and no durable docs contradict the redesigned flow |
+
+## Phase: Deferred Follow-On Work After Stage 5a.7
+
+| ID | Status | Task | Specs to Read | Acceptance Criteria |
+|----|--------|------|---------------|---------------------|
+| T-10 | deferred | Team state machine e2e validation (5a.3b) | `docs/IMPLEMENTATION_PLAN.md` (5a.3b) | Resume only after Stage 5a.7 lands and validate the canonical build-team flow in a live Pi session |
+| T-11 | deferred | Tester specialist role redesign (5a.3c) | `docs/IMPLEMENTATION_PLAN.md` (5a.3c), Decision #40 | Any residual tester-role cleanup happens after the broader Stage 5a.7 reconciliation |
+| T-12 | deferred | Specialist invocation patterns (5a.3d) | `docs/IMPLEMENTATION_PLAN.md` (5a.3d), Decision #41 | Revisit after the contract/artifact routing model stabilizes under Stage 5a.7 |
+| T-13 | deferred | Token logging and observability (5a.3e) | `docs/IMPLEMENTATION_PLAN.md` (5a.3e) | Revisit after Stage 5a.7 so surfaced token data matches the redesigned artifact flow |
+| T-14 | deferred | Dashboard real-time monitoring (5a.4) | `docs/IMPLEMENTATION_PLAN.md` (5a.4) | Revisit after Stage 5a.7 so `/dashboard` consumes the redesigned artifact and routing substrate |
 
 ---
 
 ## Notes
 
 - Stage 5a.3 validation is complete. All 8 tasks done.
-- T-09 and T-09b are complete. The active handoff target is now T-10 live team validation.
-- Restart Pi before running T-10 so the live extension session picks up the new dashboard widget and teardown code.
+- T-15 completed the documentation-only realignment pass that promotes Stage 5a.7 to the top of the queue.
+- T-16 is now the single active target.
+- T-10 through T-14 remain visible but are intentionally deferred until the Stage 5a.7 redesign lands.

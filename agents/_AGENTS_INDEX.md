@@ -77,13 +77,19 @@ Use this area when the task involves:
 - specialist boundaries
 - specialist input/output expectations
 - creating or revising specialist definitions
+- checking whether a specialist definition still matches current Stage 5a.7 redesign assumptions
 
-Current initial specialist layer:
+Current specialist roster:
 
 - `agents/specialists/planner.md`
 - `agents/specialists/reviewer.md`
 - `agents/specialists/builder.md`
 - `agents/specialists/tester.md`
+- `agents/specialists/spec-writer.md`
+- `agents/specialists/schema-designer.md`
+- `agents/specialists/routing-designer.md`
+- `agents/specialists/critic.md`
+- `agents/specialists/boundary-auditor.md`
 
 Route through:
 

@@ -140,6 +140,26 @@ A lightweight, overwrite-only checkpoint file that an active executor maintains 
 
 ---
 
+## Global Emergency Stop Command (`/panic-all`)
+
+Extend the current `/panic` command with a stronger repo-scoped emergency stop that attempts to terminate all active `my-pi` work across all sessions, not just the current visible run tree.
+
+This should be treated as a high-risk operational command, not a convenience shortcut. It should only target `my-pi`-owned processes and tracked descendant work, and it should require an explicit confirmation step such as an "are you sure?" prompt before execution so it cannot be triggered accidentally.
+
+Potential responsibilities:
+- enumerate active `my-pi` sessions and registered runs across the local machine
+- stop all known descendant subprocesses and session-owned work, even when they were started from another session
+- report what was terminated, what failed to terminate cleanly, and whether any processes could not be confidently attributed to `my-pi`
+
+Key constraints:
+- do not broaden into a generic machine-wide kill command
+- preserve the same ownership and settled-state guarantees introduced for `/panic`
+- confirmation must be explicit and hard to bypass accidentally
+
+**Revisit when:** The current `/panic` flow has been exercised enough to expose real cross-session cleanup gaps, or when users routinely end up with multiple live `my-pi` sessions that cannot be safely recovered from a single-session panic.
+
+---
+
 ## Bounded Parallelism and Fan-Out Merge Contracts
 
 When fan-out states (Decision #21, currently type-stubbed) are implemented, the system needs both a scheduler for bounded parallel execution and explicit merge contracts for branch results.

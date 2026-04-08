@@ -20,11 +20,13 @@
 ## Known gaps / blockers
 
 - [Anything preventing forward progress, or known limitations of recent work]
+- [If earlier tasks were intentionally deferred, note that separately from true blockers]
 
 ## Decision notes for next session
 
 - [Non-obvious decisions made during this session that the next agent needs to know]
 - [Include rationale — "we chose X because Y" not just "we chose X"]
+- [If priority shifted, record which tasks were deferred and why]
 
 ## Next task (single target)
 

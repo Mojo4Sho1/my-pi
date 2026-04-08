@@ -6,7 +6,7 @@ Routing file for specialist definitions in `agents/specialists/`.
 
 ## Subtree role
 
-This subtree contains primitive, narrow-scope worker definitions for the initial specialist layer.
+This subtree contains primitive, narrow-scope worker definitions for the current specialist roster.
 All specialists in this subtree are expected to conform to `agents/AGENT_DEFINITION_CONTRACT.md`, including required `working_style` in the current phase.
 
 ## Access model
@@ -14,7 +14,7 @@ All specialists in this subtree are expected to conform to `agents/AGENT_DEFINIT
 Only orchestrator-class actors have broad default routing.
 Downstream actors are narrow by default.
 
-## Initial specialist set
+## Current specialist set
 
 - `agents/specialists/planner.md`
 - `agents/specialists/reviewer.md`
@@ -47,8 +47,8 @@ Do not use for broad planning or final validation ownership.
 
 ### Tester
 
-Use when implementation needs validation through the smallest appropriate check layer.
-Do not use for broad design decisions or orchestration.
+Use when implementation needs independent test authorship, executable pass conditions, and coverage framing.
+Do not use as a generic test runner, for broad design decisions, or for orchestration.
 
 ### Spec-Writer
 

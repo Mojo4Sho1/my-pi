@@ -1,6 +1,6 @@
 # STATUS.md
 
-Last updated: 2026-04-06 (Stage 5a.2 complete, 5a.3 validation tasks defined)
+Last updated: 2026-04-07 (Stage 5a.7 documentation realignment complete; contract/artifact redesign active)
 
 ## Progress Checklist
 
@@ -40,8 +40,8 @@ Last updated: 2026-04-06 (Stage 5a.2 complete, 5a.3 validation tasks defined)
 - [x] `extensions/specialists/reviewer/index.ts` — `delegate-to-reviewer` tool (review-only, returns findings)
 - [x] `extensions/specialists/reviewer/prompt.ts` — Reviewer-specific prompt config
 - [x] `tests/reviewer.test.ts` — 13 tests
-- [x] `extensions/specialists/tester/index.ts` — `delegate-to-tester` tool (validation-only, returns pass/fail)
-- [x] `extensions/specialists/tester/prompt.ts` — Tester-specific prompt config
+- [x] `extensions/specialists/tester/index.ts` — initial `delegate-to-tester` tool landed; Stage 5a.7 now supersedes the original validation-only posture with a test-author redesign target
+- [x] `extensions/specialists/tester/prompt.ts` — Tester-specific prompt config (to be reconciled with the Stage 5a.7 test-author model)
 - [x] `tests/tester.test.ts` — 13 tests
 - [x] All specialists use shared factory (`createSpecialistExtension`), 118 total tests pass
 
@@ -121,7 +121,7 @@ All 3d tests are **integration tests with mocked subprocesses** (not live sub-ag
 - [x] Critic receives relevant upstream context per review (e.g., plan summary when reviewing a spec) via input contract (Decision #22) — `buildContextFromContract()` in contracts.ts
 - [x] Teams are **opaque to orchestrator**: orchestrator sends team-level TaskPacket, receives team-level ResultPacket
 - [x] Intra-team context passing governed by I/O contracts (not raw result forwarding)
-- [x] Exemplar team: `build-team` (planner → reviewer → builder → tester) — `extensions/teams/definitions.ts`
+- [x] Initial `build-team` exemplar landed in `extensions/teams/definitions.ts`; Stage 5a.7 now supersedes the original handoff order with the canonical target flow `planner -> builder -> tester -> builder -> reviewer -> done`
 - [x] Orchestrator can delegate to a named team — `teamHint` parameter on `orchestrate` tool
 - [x] `tests/team-router.test.ts` — 10 tests (happy path, loops, exhaustion, escalation, errors)
 - [x] `tests/orchestrator-team-e2e.test.ts` — 5 tests (team delegation through orchestrate tool)
@@ -242,20 +242,20 @@ Build projection layer and ship persistent widget for session observability. See
 - [x] Tests for projections, widget state, hook installers, and live artifact payloads
 - [x] All 545 tests pass, TypeScript compiles cleanly
 
-#### 5a.3 — Build-Team Validation on Real Tasks
+#### 5a.3 — Build-Team Validation on Real Tasks [PARTIALLY COMPLETE, DEFERRED UNTIL 5a.7]
 Operational validation pass: run build-team on actual implementation tasks. See Decision #36.
 Methodology and task catalog: `docs/validation/METHODOLOGY.md`
 
 - [x] Define validation methodology (two-layer: task verification + substrate verification)
 - [x] Define 8 validation tasks across 3 tiers (see `docs/validation/`)
-- [ ] **Tier 1:** Task 02 (test README), Task 03 (format helpers)
 - [x] **Tier 1:** Task 01 (JSDoc) — verified 2026-04-07; `extensions/shared/types.ts` already satisfies the task and full validation passed (`docs/validation/results/RESULT_01_JSDOC.md`)
-- [ ] **Tier 2:** Task 04 (contract validation), Task 05 (constants extraction), Task 06 (widget snapshots)
-- [ ] **Tier 3:** Task 07 (new specialist), Task 08 (/dashboard command skeleton) — implementation landed and local verification passed on 2026-04-07 (`docs/validation/results/RESULT_08_DASHBOARD_CMD.md`), but live build-team validation did not complete cleanly because the run exposed a routing gap (`testing` had no `partial` transition) and the follow-up orchestrator run appeared to use stale loaded code
-- [ ] Fix substrate bugs discovered during validation — Task 08 surfaced a real build-team routing bug around `partial` specialist results; repo code was patched to add `partial` transitions and regression coverage, but the live orchestrator/team environment still needs a clean re-run after reload
-- [ ] At least one clean end-to-end run with useful observability data
+- [x] **Tier 1:** Task 02 (test README), Task 03 (format helpers)
+- [x] **Tier 2:** Task 04 (contract validation), Task 05 (constants extraction), Task 06 (widget snapshots)
+- [x] **Tier 3:** Task 07 (new specialist), Task 08 (/dashboard command skeleton) — implementation landed and local verification passed on 2026-04-07 (`docs/validation/results/RESULT_08_DASHBOARD_CMD.md`)
+- [x] Surface real routing/design gaps from live validation attempts, including missing `partial` transitions and build-team semantic drift
+- [ ] Resume live build-team validation only after Stage 5a.7 reconciles contracts, artifacts, and the canonical build-team flow
 
-#### 5a.4 — `/dashboard` Command (Detailed Inspector)
+#### 5a.4 — `/dashboard` Command (Detailed Inspector) [DEFERRED UNTIL 5a.7]
 Near-full-screen read-only session inspector. See Decision #36.
 
 - [ ] Register `/dashboard` via `pi.registerCommand()`
@@ -265,6 +265,17 @@ Near-full-screen read-only session inspector. See Decision #36.
 - [ ] Worklist panel (full item summary, counts by state)
 - [ ] Failures/escalations panel (compact summary, source, category, root cause)
 - [ ] Tests for panel projections and command registration
+
+#### 5a.7 — Contract-Driven Specialists, Team Artifacts, and Packet Routing [ACTIVE]
+Top-priority redesign pass driven by `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`.
+
+- [x] Documentation and roadmap realignment (T-15)
+- [ ] Preserve structured specialist outputs end-to-end and validate named output fields directly (T-16)
+- [ ] Add router-owned team session artifacts and downstream packet construction from validated artifacts only (T-17)
+- [ ] Enforce ownership/edit scope and explicit `partial` routing semantics (T-18)
+- [ ] Reconcile tester/build-team behavior across prompts, team definitions, and durable docs (T-19)
+- [ ] Add YAML specialist/team templates plus a `build-team` starter spec (T-20)
+- [ ] Add validation coverage and run a contradiction audit for the redesigned flow (T-21)
 
 #### 5b — Specialist-Creator Team
 The first meta-team. Its output is a fully working new specialist: agent definition markdown, TypeScript extension, prompt config, and tests. See Decisions #16, #33, #34.
@@ -354,7 +365,8 @@ See `docs/FUTURE_WORK.md` for deferred design ideas (team critic, campaign super
 
 ## Blockers
 
-- **Sub-agent orphaning (Decision #43):** Canceled orchestration tasks can leave orphaned sub-agent subprocesses consuming tokens. Stage 5a.6 (Panic and Teardown) is the blocking fix. No additional orchestration complexity (5a.3b–5a.3e, 5a.4) should be added until teardown is reliable. Design: `docs/design/PANIC_AND_TEARDOWN_DESIGN.md`.
+- No hard repo blocker currently prevents Stage 5a.7 kickoff.
+- T-10 through T-14 are intentionally deferred behind Stage 5a.7; treat that as a priority choice, not a hidden blocker.
 
 ## Risks
 

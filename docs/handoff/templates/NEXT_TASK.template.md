@@ -11,6 +11,7 @@
 
 - [Rationale: what was just completed that unblocks this]
 - [What this enables downstream]
+- [If this task supersedes older queued work, name the deferred task IDs here]
 
 ## Scope (in)
 

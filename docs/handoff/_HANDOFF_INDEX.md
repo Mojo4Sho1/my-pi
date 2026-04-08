@@ -17,6 +17,8 @@ For normal handoff-driven execution:
 
 Do not read every handoff file by default.
 
+If the queue shows deferred work, treat it as intentionally parked. Do not revive deferred tasks just because they were once active; wait until the queue promotes them again.
+
 ## File Authority
 
 | File | Authority | Read when | Skip when |
@@ -34,7 +36,14 @@ Do not read every handoff file by default.
 1. `NEXT_TASK.md`
 2. `CURRENT_STATUS.md`
 3. `TASK_QUEUE.md`
-4. task-local docs such as `docs/validation/_VALIDATION_INDEX.md`
+4. the task-local design or stage doc named by `NEXT_TASK.md`
+
+For the current active queue state, the fastest path is:
+
+1. `docs/handoff/NEXT_TASK.md`
+2. `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`
+3. Stage 5a.7 in `docs/IMPLEMENTATION_PLAN.md`
+4. the code and tests named in `NEXT_TASK.md`
 
 ### Updating handoff state after finishing a task
 
@@ -42,6 +51,12 @@ Do not read every handoff file by default.
 2. `TASK_QUEUE.md`
 3. `NEXT_TASK.md`
 4. `DECISIONS_NEEDED.md` only if a new blocking decision appeared
+
+When a new priority phase supersedes older tasks:
+
+1. mark the parked tasks `deferred` rather than deleting them
+2. record the reason for deferral in `CURRENT_STATUS.md` or `TASK_QUEUE.md`
+3. make sure `NEXT_TASK.md` points only at the single active target
 
 ### Maintaining the handoff system itself
 

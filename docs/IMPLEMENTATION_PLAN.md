@@ -45,6 +45,7 @@ Live execution state belongs in `STATUS.md`. This document defines the sequence 
    - 5a.2: Dashboard substrate + persistent widget
    - 5a.3: Build-team validation on real tasks (specialist chains)
    - 5a.6: Panic and teardown — run registry, abort propagation, `/panic` command (Decision #43, BLOCKING)
+   - 5a.7: Contract-driven specialists, team artifacts, and packet routing
    - 5a.3b: Team state machine end-to-end validation
    - 5a.3c: Tester specialist role redesign (test author, not runner — Decision #40)
    - 5a.3d: Specialist invocation patterns (verified build, parallel scout — Decision #41)
@@ -763,7 +764,7 @@ Enable reusable multi-specialist collaboration patterns as first-class primitive
 - Intra-team context passing governed by I/O contracts (Stage 4a), not raw result forwarding
 - **Intra-team revision loops** (see Decision #23): when critic/reviewer identifies issues, the team router sends critique back to the original author. Critic success transitions forward; critic partial/failure loops back to the author for revision.
 - **Critic context** (see Decision #22): when reviewing an artifact, the critic receives relevant upstream context (e.g., the plan summary when reviewing a spec) via its input contract.
-- Exemplar team: `build-team` (planner → reviewer → builder → tester), demonstrating linear flow with a review gate
+- Initial `build-team` exemplar introduced to prove team routing. Stage 5a.7 supersedes its original handoff order with the canonical target flow `planner -> builder -> tester -> builder -> reviewer -> done`
 - Orchestrator can delegate to a named team via the existing `orchestrate` tool (new delegation mode)
 
 ### Implementation Notes (pre-resolved design decisions)
@@ -811,7 +812,7 @@ The `critique_spec → write_spec` edge has `maxIterations: 3`. After 3 revision
 
 ### Status
 
-**Complete.** Extended state machine with `maxIterations` guards and iteration tracking. Team router (`extensions/teams/router.ts`) executes state machines with revision loops. `build-team` exemplar defined in `extensions/teams/definitions.ts`. Orchestrator gains `teamHint` parameter for team delegation. Fan-out is type stubs only (deferred). 15 new tests across `tests/team-router.test.ts` and `tests/orchestrator-team-e2e.test.ts`. All 230 tests pass.
+**Complete.** Extended state machine with `maxIterations` guards and iteration tracking. Team router (`extensions/teams/router.ts`) executes state machines with revision loops. An initial `build-team` exemplar was defined in `extensions/teams/definitions.ts`; Stage 5a.7 now governs the canonical flow and artifact model that future revisions must follow. Orchestrator gains `teamHint` parameter for team delegation. Fan-out is type stubs only (deferred). 15 new tests across `tests/team-router.test.ts` and `tests/orchestrator-team-e2e.test.ts`. All 230 tests pass.
 
 ### Dependencies
 
@@ -3685,6 +3686,8 @@ interface WorklistProgressView {
 
 Validate the full orchestration stack by running the existing build-team on actual implementation tasks. This is the first real-world stress test of routing, contracts, delegation, session artifacts, token tracking, and the dashboard widget together.
 
+**Deferral note (2026-04-07):** Stage 5a.7 now supersedes this as the immediate priority. Keep this stage for historical continuity and later live validation, but do not resume it until the contract/artifact redesign lands.
+
 See Decision #36.
 
 ### Approach
@@ -3718,6 +3721,8 @@ This is not a code-delivery stage — it's an **operational validation pass**. T
 ### Purpose
 
 Ship a near-full-screen, read-only session inspector opened via `/dashboard`. This provides deeper diagnosis than the persistent widget, with structured panels for different observability concerns.
+
+**Deferral note (2026-04-07):** Keep this stage for link stability, but revisit it only after Stage 5a.7 completes so the inspector reflects the redesigned artifact and routing substrate.
 
 See Decision #36.
 
@@ -3821,16 +3826,61 @@ Prevent runaway token consumption and orphaned sub-agent processes by implementi
 
 ---
 
+## Stage 5a.7 — Contract-Driven Specialists, Team Artifacts, and Packet Routing
+
+### Purpose
+
+Rework the specialist/team execution model around strict machine-readable contracts, canonical machine-first artifacts, router-owned packet construction, and a fully reconciled tester/build-team flow.
+
+**Source of truth:** `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`
+
+### Key deliverables
+
+1. Preserve named structured specialist outputs end-to-end instead of collapsing routing to summary/deliverable fallbacks
+2. Validate output contracts against the actual named payload fields specialists produce
+3. Introduce router-owned team session artifacts and specialist-owned canonical machine artifacts
+4. Build downstream `TaskPacket`s from validated artifact fields only
+5. Enforce ownership/edit-scope guardrails and explicit `partial` handling
+6. Reconcile tester/build-team behavior everywhere to the canonical flow `planner -> builder -> tester -> builder -> reviewer -> done`
+7. Add YAML specialist/team templates plus a starter `build-team` spec as future source-of-truth authoring inputs
+8. Update durable docs and validation coverage so no contradictory explanation of specialist/team handoffs remains
+
+### Exit criteria
+
+- Canonical machine-readable specialist payloads survive the runtime path end-to-end
+- The router validates artifacts directly against named output fields and uses validated fields for downstream packet construction
+- Team execution uses router-owned session artifacts instead of specialist-edited shared state
+- Ownership/edit-scope enforcement and `partial` routing are explicit and deterministic
+- The tester is consistently modeled as a test author across code and docs
+- Durable docs, handoff docs, and validation coverage align on the same contract/artifact architecture
+
+### Dependencies
+
+- Stage 4a complete (contracts)
+- Stage 4b complete (team router)
+- Stage 4d complete (session artifacts and observability substrate)
+- Stage 5a.6 complete (teardown reliability before further orchestration complexity)
+
+### Relationship to nearby stages
+
+- Stage 5a.7 must complete before resuming 5a.3b, 5a.3c, 5a.3d, 5a.3e, or 5a.4
+- Stage 5a.3b remains the live validation follow-on once the redesigned build-team flow exists
+- Stage 5a.3c is largely absorbed by this stage's tester/build-team reconciliation work
+
+---
+
 ## Stage 5a.3b — Team State Machine End-to-End Validation
 
 ### Purpose
 
 Validate that the build-team state machine works end-to-end with real Pi subprocess specialist invocations. Stage 5a.3 validated specialist chains (sequential delegation via `delegationHint`); this stage validates the team router (`teamHint`) with its state machine transitions, revision loops, and session artifacts.
 
+**Deferral note (2026-04-07):** Paused until Stage 5a.7 completes. When resumed, validate the canonical build-team flow defined by the redesign rather than the older exemplar ordering.
+
 ### Key deliverables
 
 - At least one clean build-team run on a real task via `teamHint: "build-team"` with no errors
-- Verify state machine transitions execute in correct order (planning → building → review → testing → done)
+- Verify state machine transitions execute in the canonical Stage 5a.7 order (`planner -> builder -> tester -> builder -> reviewer -> done`)
 - Verify team session artifact is produced with complete state trace
 - Verify `partial` status transitions work (fixed in 5a.3 but not yet validated live)
 - Document any additional substrate bugs found
@@ -3843,7 +3893,7 @@ Validate that the build-team state machine works end-to-end with real Pi subproc
 
 ### Dependencies
 
-- Stage 5a.3 complete (specialist delegation proven)
+- Stage 5a.7 complete
 - `partial` status transitions fixed in team definitions
 
 ---
@@ -3853,6 +3903,8 @@ Validate that the build-team state machine works end-to-end with real Pi subproc
 ### Purpose
 
 Redefine the tester specialist from "test runner" to "test author." Running `make test` is a commodity operation any agent can do — it doesn't warrant a specialist invocation. The tester's value is writing tests independently from the implementation, keeping the builder honest. See Decision #40.
+
+**Deferral note (2026-04-07):** The tester-role redesign is now part of the broader Stage 5a.7 contract/artifact pass. Keep this section for link stability and any residual follow-on cleanup only.
 
 ### Key deliverables
 
@@ -3871,7 +3923,7 @@ Redefine the tester specialist from "test runner" to "test author." Running `mak
 
 ### Dependencies
 
-- Stage 5a.3b complete (team state machine proven before redesigning roles)
+- Stage 5a.7 complete
 
 ---
 
@@ -3880,6 +3932,8 @@ Redefine the tester specialist from "test runner" to "test author." Running `mak
 ### Purpose
 
 Define lightweight orchestrator-managed invocation patterns for tasks that don't need full team machinery. These are not teams (no state machine, no routing) — they are structured patterns the orchestrator executes directly. See Decision #41.
+
+**Deferral note (2026-04-07):** Revisit only after Stage 5a.7 stabilizes the contract/artifact substrate that these patterns will rely on.
 
 ### Design
 
@@ -3922,6 +3976,8 @@ Define lightweight orchestrator-managed invocation patterns for tasks that don't
 ### Purpose
 
 Surface per-specialist token counts and costs in the orchestrator's output so users can monitor efficiency and identify wasteful invocations. Currently token data is tracked internally but buried in session artifacts.
+
+**Deferral note (2026-04-07):** Revisit after Stage 5a.7 so surfaced token data lines up with the redesigned artifact and routing model.
 
 ### Key deliverables
 
@@ -4543,9 +4599,10 @@ Stage 1 (types)
               → Stage 5a.2 (dashboard substrate + persistent widget)
                 → Stage 5a.3 (specialist chain validation)
                   → Stage 5a.6 (panic and teardown — BLOCKING)
-                    → Stage 5a.3b (team state machine e2e) → 5a.3c (tester redesign) → 5a.3d (invocation patterns)
-                    → Stage 5a.3e (token logging)
-                  → Stage 5a.4 (/dashboard command — consumes run registry for real-time monitoring)
+                    → Stage 5a.7 (contract/artifact redesign)
+                      → Stage 5a.3b (team state machine e2e) → 5a.3c (residual tester cleanup) → 5a.3d (invocation patterns)
+                      → Stage 5a.3e (token logging)
+                      → Stage 5a.4 (/dashboard command — consumes redesigned artifacts for real-time monitoring)
               → Stage 5b (specialist-creator team) → 5c (team-creator team)
           → Stage 5d (sequences) → 5e (sequence-creator team)
           → Stage 5f (seed-creator team) [depends on 5b]
