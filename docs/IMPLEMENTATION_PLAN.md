@@ -3686,7 +3686,7 @@ interface WorklistProgressView {
 
 Validate the full orchestration stack by running the existing build-team on actual implementation tasks. This is the first real-world stress test of routing, contracts, delegation, session artifacts, token tracking, and the dashboard widget together.
 
-**Deferral note (2026-04-07):** Stage 5a.7 now supersedes this as the immediate priority. Keep this stage for historical continuity and later live validation, but do not resume it until the contract/artifact redesign lands.
+**Resume note (2026-04-08):** Stage 5a.7 is complete. This stage is now unblocked and should be used for the next live validation pass against the canonical build-team flow.
 
 See Decision #36.
 
@@ -3722,7 +3722,7 @@ This is not a code-delivery stage — it's an **operational validation pass**. T
 
 Ship a near-full-screen, read-only session inspector opened via `/dashboard`. This provides deeper diagnosis than the persistent widget, with structured panels for different observability concerns.
 
-**Deferral note (2026-04-07):** Keep this stage for link stability, but revisit it only after Stage 5a.7 completes so the inspector reflects the redesigned artifact and routing substrate.
+**Post-5a.7 note (2026-04-08):** The Stage 5a.7 dependency is resolved. Revisit this after the resumed 5a.3b live validation pass so the inspector work can be informed by observed runtime needs.
 
 See Decision #36.
 
@@ -3875,7 +3875,7 @@ Rework the specialist/team execution model around strict machine-readable contra
 
 Validate that the build-team state machine works end-to-end with real Pi subprocess specialist invocations. Stage 5a.3 validated specialist chains (sequential delegation via `delegationHint`); this stage validates the team router (`teamHint`) with its state machine transitions, revision loops, and session artifacts.
 
-**Deferral note (2026-04-07):** Paused until Stage 5a.7 completes. When resumed, validate the canonical build-team flow defined by the redesign rather than the older exemplar ordering.
+**Resume note (2026-04-08):** Stage 5a.7 is complete. This is now the next follow-on validation stage and should validate the canonical build-team flow defined by the redesign rather than the older exemplar ordering.
 
 ### Key deliverables
 

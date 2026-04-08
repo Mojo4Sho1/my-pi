@@ -13,7 +13,7 @@ It defines the initial V1 authoring shape for specialist specs and team specs in
 - The Stage 5a.7 redesign doc remains the broad architectural source for the contract/artifact redesign.
 - This schema/spec doc owns the concrete YAML structure decisions for the `specs/` tree.
 - YAML is not yet runtime authority.
-- Current runtime authority remains in TypeScript during T-20.
+- Current runtime authority remains in TypeScript until runtime YAML loading is implemented.
 - When runtime and YAML differ, docs must remain truthful about that gap rather than pretending YAML is already loaded at runtime.
 
 ## Specs Directory Layout

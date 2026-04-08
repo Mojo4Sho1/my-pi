@@ -1,6 +1,6 @@
 # STATUS.md
 
-Last updated: 2026-04-08 (T-20 YAML template/spec layer complete; T-21 validation/audit work active)
+Last updated: 2026-04-08 (T-21 validation/audit complete; Stage 5a.3b live validation next)
 
 ## Progress Checklist
 
@@ -242,7 +242,7 @@ Build projection layer and ship persistent widget for session observability. See
 - [x] Tests for projections, widget state, hook installers, and live artifact payloads
 - [x] All 545 tests pass, TypeScript compiles cleanly
 
-#### 5a.3 — Build-Team Validation on Real Tasks [PARTIALLY COMPLETE, DEFERRED UNTIL 5a.7]
+#### 5a.3 — Build-Team Validation on Real Tasks [PARTIALLY COMPLETE, READY TO RESUME]
 Operational validation pass: run build-team on actual implementation tasks. See Decision #36.
 Methodology and task catalog: `docs/validation/METHODOLOGY.md`
 
@@ -253,9 +253,9 @@ Methodology and task catalog: `docs/validation/METHODOLOGY.md`
 - [x] **Tier 2:** Task 04 (contract validation), Task 05 (constants extraction), Task 06 (widget snapshots)
 - [x] **Tier 3:** Task 07 (new specialist), Task 08 (/dashboard command skeleton) — implementation landed and local verification passed on 2026-04-07 (`docs/validation/results/RESULT_08_DASHBOARD_CMD.md`)
 - [x] Surface real routing/design gaps from live validation attempts, including missing `partial` transitions and build-team semantic drift
-- [ ] Resume live build-team validation only after Stage 5a.7 reconciles contracts, artifacts, and the canonical build-team flow
+- [x] Stage 5a.7 reconciled contracts, artifacts, and the canonical build-team flow, so live build-team validation can resume
 
-#### 5a.4 — `/dashboard` Command (Detailed Inspector) [DEFERRED UNTIL 5a.7]
+#### 5a.4 — `/dashboard` Command (Detailed Inspector) [DEFERRED, POST-5a.3b]
 Near-full-screen read-only session inspector. See Decision #36.
 
 - [ ] Register `/dashboard` via `pi.registerCommand()`
@@ -266,7 +266,7 @@ Near-full-screen read-only session inspector. See Decision #36.
 - [ ] Failures/escalations panel (compact summary, source, category, root cause)
 - [ ] Tests for panel projections and command registration
 
-#### 5a.7 — Contract-Driven Specialists, Team Artifacts, and Packet Routing [ACTIVE]
+#### 5a.7 — Contract-Driven Specialists, Team Artifacts, and Packet Routing [COMPLETE]
 Top-priority redesign pass driven by `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`.
 
 - [x] Documentation and roadmap realignment (T-15)
@@ -275,7 +275,7 @@ Top-priority redesign pass driven by `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TE
 - [x] Enforce ownership/edit scope and explicit `partial` routing semantics (T-18)
 - [x] Reconcile tester/build-team behavior across prompts, team definitions, and durable docs (T-19)
 - [x] Add YAML specialist/team templates plus a `build-team` starter spec (T-20)
-- [ ] Add validation coverage and run a contradiction audit for the redesigned flow (T-21, active)
+- [x] Add validation coverage and run a contradiction audit for the redesigned flow (T-21)
 
 #### 5b — Specialist-Creator Team
 The first meta-team. Its output is a fully working new specialist: agent definition markdown, TypeScript extension, prompt config, and tests. See Decisions #16, #33, #34.
@@ -365,8 +365,8 @@ See `docs/FUTURE_WORK.md` for deferred design ideas (team critic, campaign super
 
 ## Blockers
 
-- No hard repo blocker currently prevents continued Stage 5a.7 progress.
-- T-10 through T-14 are intentionally deferred behind Stage 5a.7; treat that as a priority choice, not a hidden blocker.
+- No hard repo blocker currently prevents resuming Stage 5a.3b live validation.
+- T-11 through T-14 remain follow-on work; keep them behind T-10 unless live validation exposes a reason to reprioritize.
 
 ## Risks
 

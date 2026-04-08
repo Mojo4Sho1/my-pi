@@ -433,12 +433,13 @@ describe("executeTeam", () => {
     const mockSpawn = vi.fn()
       .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Plan", deliverables: ["s1"], modifiedFiles: [] }))
       .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Built", deliverables: ["done"], modifiedFiles: ["x.ts"], changeDescription: "Built v1" }))
-      .mockResolvedValueOnce(makeOutput({ status: "partial", summary: "Some authored tests still depend on a missing seam", deliverables: ["add seam, then run focused tests"], modifiedFiles: ["tests/x.test.ts"], testStrategy: "Start with the blocked regression path", testCasesAuthored: ["blocked regression"], executionCommands: ["make test -- tests/x.test.ts"], expectedPassConditions: ["blocked regression passes"], coverageNotes: ["missing seam currently blocks full coverage"] }))
+      .mockResolvedValueOnce(makeOutput({ status: "partial", summary: "Some authored tests still depend on a missing seam", deliverables: ["add seam, then run focused tests"], modifiedFiles: ["tests/x.test.ts"], testStrategy: "Start with the blocked regression path", testCasesAuthored: ["blocked regression"], executionCommands: ["make test -- tests/x.test.ts"], coverageNotes: ["missing seam currently blocks full coverage"] }))
       .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Built 2", deliverables: ["done"], modifiedFiles: ["x.ts"], changeDescription: "Added seam and ran the authored test", testExecutionResults: ["make test -- tests/x.test.ts -> pass"] }))
       .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Reviewed 2", deliverables: ["ok"], modifiedFiles: [], verdict: "approve", findings: [] }));
 
     const { executeTeam } = await setupTeamRouter(mockSpawn);
     const result = await executeTeam(BUILD_TEAM, makeTeamTaskPacket());
+    const testerArtifact = result.sessionArtifact?.stepArtifacts[2];
 
     expect(result.success).toBe(true);
     expect(result.statesVisited).toEqual([
@@ -450,6 +451,79 @@ describe("executeTeam", () => {
       "done",
     ]);
     expect(result.iterationsUsed["testing->rebuilding"]).toBe(1);
+    expect(testerArtifact?.status).toBe("partial");
+    expect(testerArtifact?.editableFields).toEqual([
+      "coverageNotes",
+      "executionCommands",
+      "expectedPassConditions",
+      "testCasesAuthored",
+      "testResults",
+      "testStrategy",
+    ]);
+    expect(testerArtifact?.validatedOutput).toEqual({
+      testStrategy: "Start with the blocked regression path",
+      testCasesAuthored: ["blocked regression"],
+      executionCommands: ["make test -- tests/x.test.ts"],
+      coverageNotes: ["missing seam currently blocks full coverage"],
+    });
+    expect(testerArtifact?.contractErrors).toContain(
+      "Partial output omitted required field 'expectedPassConditions'"
+    );
+  });
+
+  it("rejects router-owned artifact fields even when a partial tester artifact preserves valid typed fields", async () => {
+    const mockSpawn = vi.fn()
+      .mockResolvedValueOnce(makeOutput({
+        status: "success",
+        summary: "Plan",
+        deliverables: ["s1"],
+        steps: ["step-1"],
+        dependencies: [],
+        risks: [],
+        modifiedFiles: [],
+      }))
+      .mockResolvedValueOnce(makeOutput({
+        status: "success",
+        summary: "Built",
+        deliverables: ["done"],
+        modifiedFiles: ["x.ts"],
+        changeDescription: "Built v1",
+      }))
+      .mockResolvedValueOnce(makeOutput({
+        status: "partial",
+        summary: "Authored tests but attempted to write a router-owned field",
+        deliverables: ["add seam, then run focused tests"],
+        modifiedFiles: ["tests/x.test.ts"],
+        testStrategy: "Start with the blocked regression path",
+        testCasesAuthored: ["blocked regression"],
+        executionCommands: ["make test -- tests/x.test.ts"],
+        coverageNotes: ["missing seam currently blocks full coverage"],
+        artifactId: "attempted-overwrite",
+      }));
+
+    const { executeTeam } = await setupTeamRouter(mockSpawn);
+    const result = await executeTeam(BUILD_TEAM, makeTeamTaskPacket());
+    const testerArtifact = result.sessionArtifact?.stepArtifacts[2];
+
+    expect(result.success).toBe(false);
+    expect(result.resultPacket.status).toBe("failure");
+    expect(result.resultPacket.summary).toContain("ownership/edit-scope violations");
+    expect(result.resultPacket.summary).toContain("artifactId");
+    expect(result.statesVisited).toEqual(["planning", "building", "testing"]);
+    expect(result.sessionArtifact?.terminationReason).toBe("contract_violation");
+    expect(testerArtifact?.status).toBe("partial");
+    expect(testerArtifact?.validatedOutput).toEqual({
+      testStrategy: "Start with the blocked regression path",
+      testCasesAuthored: ["blocked regression"],
+      executionCommands: ["make test -- tests/x.test.ts"],
+      coverageNotes: ["missing seam currently blocks full coverage"],
+    });
+    expect(testerArtifact?.contractErrors).toContain(
+      "Structured output field 'artifactId' is router-owned and cannot be written by the specialist"
+    );
+    expect(testerArtifact?.contractErrors).toContain(
+      "Partial output omitted required field 'expectedPassConditions'"
+    );
   });
 
   it("handles subprocess spawn failure", async () => {

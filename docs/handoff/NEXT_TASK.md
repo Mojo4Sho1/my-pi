@@ -5,95 +5,89 @@
 
 ## Task summary
 
-Implement T-21 from Stage 5a.7 by adding validation coverage and running a contradiction audit for the redesigned contract/artifact flow. The outcome of this task should be stronger regression protection around the redesigned routing model plus durable docs that no longer contradict the canonical tester/build-team semantics or the new `specs/` authoring layer.
+Resume T-10 / Stage 5a.3b by running live build-team validation against the now-stabilized Stage 5a.7 runtime. The goal is to verify the canonical `planner -> builder -> tester -> builder -> reviewer -> done` flow in a real Pi session and capture truthful validation artifacts, not to redesign the substrate again from scratch.
 
 ## Why this task is next
 
-- T-20 is complete, so the durable YAML authoring/spec layer now exists and can be audited instead of guessed at
-- Stage 5a.7 still requires validation coverage and contradiction cleanup before the redesign can be considered fully landed
-- T-10 through T-14 remain intentionally deferred until this redesign pass is internally consistent and validated
+- Stage 5a.7 is complete, so the redesign dependency that had paused live validation is now gone
+- T-21 tightened regression coverage and contradiction-sensitive docs/specs, which means the next uncertainty is live runtime behavior rather than local contract drift
+- T-11 through T-14 remain follow-on work and should stay behind this live validation pass unless T-10 exposes a concrete reason to reprioritize them
 
 ## Scope (in)
 
-- Add or update regression coverage for the redesigned flow where it is still thin:
-  - structured artifact preservation
-  - ownership/edit-scope guardrails
-  - explicit `partial` handling in team routing
-  - canonical tester/build-team artifact handoffs
-- Audit durable docs and routing docs for contradictions against the current Stage 5a.7 model
-- Keep touched docs truthful about proposal docs vs durable specs vs current runtime authority
+- Run at least one bounded live `teamHint: "build-team"` validation task
+- Verify the canonical team-router ordering and session-artifact trace in a real Pi execution
+- Apply the Stage 5a.3 methodology:
+  - task-level verification for the chosen live task
+  - substrate-level verification for widget, artifacts, hooks, tokens, sandbox, loops, and resilience
+- Record findings in `docs/validation/results/`
+- Fix the smallest truthful substrate issues encountered if they are local and clear enough to land within the task
 
 ## Scope (out)
 
-- Runtime loading of YAML specs instead of TypeScript definitions
-- New YAML schema design work unless the audit exposes a real contradiction in the files just added
-- New live Pi validation reruns and deferred `/dashboard` follow-on work (T-10 through T-14)
-- Broad roadmap replanning beyond the contradictions discovered while landing T-21
+- Broad contract/artifact redesign work unless a live run exposes a concrete bug that requires a small fix
+- New YAML runtime loading or schema expansion work
+- New `/dashboard` command design work
+- Resuming T-11 through T-14 preemptively without evidence from the live validation pass
 
 ## Relevant files
 
-- References: `docs/handoff/T21_VALIDATION_AND_CONTRADICTION_AUDIT_IMPLEMENTATION_PLAN.md`
-- References: `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`
-- References: `docs/IMPLEMENTATION_PLAN.md` (Stage 5a.7)
-- References: `specs/schemas/SPECIALIST_AND_TEAM_YAML_SPEC.md`
-- References: `specs/teams/build-team.yaml`
-- References: `extensions/teams/definitions.ts`
-- References: `extensions/shared/contracts.ts`
+- References: `docs/IMPLEMENTATION_PLAN.md` (Stage 5a.3b only)
+- References: `docs/validation/METHODOLOGY.md`
+- References: `docs/validation/_VALIDATION_INDEX.md`
 - References: `extensions/teams/router.ts`
-- References: `extensions/shared/result-parser.ts`
-- References: `tests/team-router.test.ts`
-- References: `tests/session-artifact.test.ts`
-- References: `tests/contracts.test.ts`
-- References: `tests/review-findings.test.ts`
-- References: `extensions/specialists/tester/prompt.ts`
-- References: `extensions/specialists/builder/prompt.ts`
-- References: `extensions/specialists/reviewer/prompt.ts`
+- References: `extensions/teams/definitions.ts`
+- References: `extensions/orchestrator/index.ts`
+- References: `extensions/dashboard/index.ts`
+- References: `extensions/shared/hooks.ts`
+- References: `extensions/shared/subprocess.ts`
+- References: `docs/validation/results/`
 - References: `docs/handoff/CURRENT_STATUS.md`
 - References: `docs/handoff/TASK_QUEUE.md`
 
 ## Recommended first reads
 
-1. `docs/handoff/T21_VALIDATION_AND_CONTRADICTION_AUDIT_IMPLEMENTATION_PLAN.md`
-2. `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`
-3. `docs/IMPLEMENTATION_PLAN.md` (Stage 5a.7 only)
-4. `specs/schemas/SPECIALIST_AND_TEAM_YAML_SPEC.md`
-5. `specs/teams/build-team.yaml`
-6. `extensions/teams/definitions.ts`
-7. the closest regression tests covering contracts, artifacts, and team routing
+1. `docs/IMPLEMENTATION_PLAN.md` (Stage 5a.3b only)
+2. `docs/validation/METHODOLOGY.md`
+3. `docs/validation/_VALIDATION_INDEX.md`
+4. the smallest relevant existing validation result artifact in `docs/validation/results/`
+5. `extensions/teams/router.ts` only if the live run exposes a substrate issue that needs a fix
 
 ## Likely implementation hotspots
 
-- Contract and router regressions should confirm that Stage 5a.7 behavior remains artifact-driven and explicit on `partial`
-- The new `specs/` files should be included in the contradiction audit because they are now part of the durable authoring surface
-- Touched docs should stay explicit that YAML specs are future authoring inputs while TypeScript remains the active runtime layer
+- The first live run should validate the canonical build-team ordering and the session artifact trace rather than re-proving unit-test behavior already covered locally
+- If issues appear, expect the most likely hotspots to be team routing, subprocess execution, dashboard/widget observation, and session-artifact completeness
+- Keep result logging disciplined so the next fresh-context agent can distinguish substrate failure from task-level failure
 
 ## Dependencies / prerequisites
 
-- T-20 complete
-- Stage 4a through 4d substrate available as the runtime reference point
-- Stage 5a.7 remains the active priority over deferred T-10 through T-14 follow-on work
+- Stage 5a.7 complete
+- T-21 complete
+- Stage 5a.3 methodology and result-writing rules available in `docs/validation/METHODOLOGY.md`
 
 ## Acceptance criteria (definition of done)
 
-- Regression coverage proves the redesigned artifact preservation, ownership guardrails, and explicit `partial` semantics are still enforced
-- The canonical `build-team` flow remains aligned across runtime code, tests, and durable docs/specs
-- No touched durable doc contradicts the Stage 5a.7 tester/build-team and contract/artifact model
+- At least one live `build-team` run completes cleanly or fails with a precise, reproducible substrate blocker
+- The canonical Stage 5a.7 flow is either observed in the live trace or the exact divergence is documented
+- A validation result artifact is written under `docs/validation/results/`
+- Any landed fixes remain bounded and truthful
 - Update `docs/handoff/CURRENT_STATUS.md`
 - Update `docs/handoff/TASK_QUEUE.md`
 - Update `docs/handoff/NEXT_TASK.md`
 
 ## Verification checklist
 
-- [ ] Add or tighten regression coverage where Stage 5a.7 enforcement is still under-specified
-- [ ] Audit touched durable docs and specs for contradictions against the canonical runtime flow
-- [ ] Keep touched docs truthful about YAML being future authoring input, not current runtime execution authority
-- [ ] Run `make typecheck`
-- [ ] Run `make test`
+- [ ] Run a live `teamHint: "build-team"` task
+- [ ] Evaluate task-level verification for the chosen live task
+- [ ] Evaluate the Stage 5a.3 substrate checks (tokens, widget, session artifacts, hooks, sandbox, loops, resilience)
+- [ ] Write a result artifact in `docs/validation/results/`
+- [ ] Run `make typecheck` and `make test` if code changes land
 - [ ] Update `CURRENT_STATUS.md`
-- [ ] Update `TASK_QUEUE.md` and promote the next queued Stage 5a.7 task
+- [ ] Update `TASK_QUEUE.md`
+- [ ] Update `NEXT_TASK.md`
 
 ## Risks / rollback notes
 
-- Avoid drifting into new runtime design or YAML loading work; this task is validation plus contradiction cleanup only
-- Keep the audit bounded to files touched while making T-21 land; broader cleanup should be recorded, not silently expanded
-- If tests expose deeper behavioral drift, fix the smallest truthful slice needed to re-establish Stage 5a.7 consistency
+- Live Pi behavior may expose environment-specific blockers; record exact behavior instead of smoothing it over with guesses
+- Avoid turning this into a new redesign pass. If a live run finds deeper drift, fix the smallest truthful slice and log any remaining follow-on work
+- Keep the result artifact clear about what was directly observed versus inferred from local regression coverage
