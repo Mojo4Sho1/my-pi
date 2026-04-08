@@ -434,6 +434,7 @@ export async function delegateToSpecialist(input: DelegationInput): Promise<Dele
       summary: parsed.summary,
       deliverables: parsed.deliverables,
       modifiedFiles: parsed.modifiedFiles,
+      structuredOutput: parsed.structuredOutput,
       sourceAgent: agentId,
     });
     const adequacyResult = validateAdequacy(promptConfig.adequacyChecks, tempResult);
@@ -471,6 +472,7 @@ export async function delegateToSpecialist(input: DelegationInput): Promise<Dele
     summary: parsed.summary,
     deliverables: parsed.deliverables,
     modifiedFiles: parsed.modifiedFiles,
+    structuredOutput: parsed.structuredOutput,
     escalation: parsed.escalation,
     sourceAgent: parsed.sourceAgent,
     });
@@ -560,7 +562,7 @@ export function buildContextForSpecialist(
       if (!plannerResult) return undefined;
       return {
         planSummary: plannerResult.summary,
-        planDeliverables: plannerResult.deliverables,
+        planSteps: plannerResult.structuredOutput?.steps ?? plannerResult.deliverables,
       };
     }
 
@@ -569,8 +571,9 @@ export function buildContextForSpecialist(
       const builderResult = priorResults.find(r => r.sourceAgent === "specialist_builder");
       if (!builderResult) return undefined;
       return {
-        modifiedFiles: builderResult.modifiedFiles,
-        implementationSummary: builderResult.summary,
+        modifiedFiles: builderResult.structuredOutput?.modifiedFiles ?? builderResult.modifiedFiles,
+        implementationSummary:
+          builderResult.structuredOutput?.changeDescription ?? builderResult.summary,
       };
     }
 

@@ -37,7 +37,7 @@ describe("delegateToSpecialist", () => {
   }
 
   it("returns a successful result packet on good specialist output", async () => {
-    const successOutput = '```json\n{"status":"success","summary":"Done","deliverables":["feature"],"modifiedFiles":["src/index.ts"]}\n```';
+    const successOutput = '```json\n{"status":"success","summary":"Done","deliverables":["feature"],"modifiedFiles":["src/index.ts"],"changeDescription":"Implemented the requested feature"}\n```';
 
     vi.doMock("../extensions/shared/subprocess.js", () => ({
       spawnSpecialistAgent: vi.fn().mockResolvedValue({
@@ -63,6 +63,10 @@ describe("delegateToSpecialist", () => {
     expect(result.resultPacket.status).toBe("success");
     expect(result.resultPacket.summary).toBe("Done");
     expect(result.resultPacket.sourceAgent).toBe("specialist_builder");
+    expect(result.resultPacket.structuredOutput).toMatchObject({
+      changeDescription: "Implemented the requested feature",
+      modifiedFiles: ["src/index.ts"],
+    });
     expect(result.tokenUsage).toEqual({
       inputTokens: 150,
       outputTokens: 50,

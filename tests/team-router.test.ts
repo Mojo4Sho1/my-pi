@@ -45,6 +45,9 @@ describe("executeTeam", () => {
         status: "success",
         summary: "Plan created",
         deliverables: ["step-1", "step-2"],
+        steps: ["step-1", "step-2"],
+        dependencies: ["step-2 depends on step-1"],
+        risks: ["integration mismatch"],
         modifiedFiles: [],
       }))
       .mockResolvedValueOnce(makeOutput({
@@ -52,18 +55,24 @@ describe("executeTeam", () => {
         summary: "Built feature",
         deliverables: ["Added handler"],
         modifiedFiles: ["src/index.ts"],
+        changeDescription: "Built feature with handler wiring",
       }))
       .mockResolvedValueOnce(makeOutput({
         status: "success",
         summary: "Review passed",
         deliverables: ["No issues found"],
         modifiedFiles: [],
+        verdict: "approve",
+        findings: [],
       }))
       .mockResolvedValueOnce(makeOutput({
         status: "success",
         summary: "Tests pass",
         deliverables: ["All checks pass"],
         modifiedFiles: [],
+        passed: true,
+        evidence: ["targeted tests green"],
+        failures: [],
       }));
 
     const { executeTeam } = await setupTeamRouter(mockSpawn);
@@ -74,6 +83,60 @@ describe("executeTeam", () => {
     expect(result.resultPacket.sourceAgent).toBe("team_build-team");
     expect(result.statesVisited).toEqual(["planning", "building", "review", "testing", "done"]);
     expect(mockSpawn).toHaveBeenCalledTimes(4);
+    expect(result.sessionArtifact?.specialistSummaries.every((summary) => summary.contractSatisfied)).toBe(true);
+  });
+
+  it("builds downstream team context from preserved structured payload fields", async () => {
+    const mockSpawn = vi.fn()
+      .mockResolvedValueOnce(makeOutput({
+        status: "success",
+        summary: "Plan created",
+        deliverables: ["fallback step"],
+        steps: ["step-1: scaffold", "step-2: implement"],
+        dependencies: ["step-2 depends on step-1"],
+        risks: ["watch migrations"],
+        modifiedFiles: [],
+      }))
+      .mockResolvedValueOnce(makeOutput({
+        status: "success",
+        summary: "Built feature",
+        deliverables: ["fallback build summary"],
+        modifiedFiles: ["src/index.ts"],
+        changeDescription: "Implemented the feature with scoped edits",
+      }))
+      .mockResolvedValueOnce(makeOutput({
+        status: "success",
+        summary: "Review passed",
+        deliverables: [],
+        modifiedFiles: [],
+        verdict: "approve",
+        findings: [],
+      }))
+      .mockResolvedValueOnce(makeOutput({
+        status: "success",
+        summary: "Tests pass",
+        deliverables: [],
+        modifiedFiles: [],
+        passed: true,
+        evidence: ["targeted checks pass"],
+        failures: [],
+      }));
+
+    const { executeTeam } = await setupTeamRouter(mockSpawn);
+    await executeTeam(BUILD_TEAM, makeTeamTaskPacket());
+
+    const builderTaskPrompt: string = mockSpawn.mock.calls[1][1];
+    expect(builderTaskPrompt).toContain("planSteps");
+    expect(builderTaskPrompt).toContain("step-1: scaffold");
+    expect(builderTaskPrompt).not.toContain("fallback step");
+
+    const reviewTaskPrompt: string = mockSpawn.mock.calls[2][1];
+    expect(reviewTaskPrompt).toContain("implementationSummary");
+    expect(reviewTaskPrompt).toContain("Implemented the feature with scoped edits");
+
+    const testerTaskPrompt: string = mockSpawn.mock.calls[3][1];
+    expect(testerTaskPrompt).toContain("implementationSummary");
+    expect(testerTaskPrompt).toContain("Implemented the feature with scoped edits");
   });
 
   it("handles building failure with loop back to planning then eventual success", async () => {

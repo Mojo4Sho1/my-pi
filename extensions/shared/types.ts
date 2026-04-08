@@ -56,6 +56,8 @@ export interface ResultPacket {
   deliverables: string[];
   /** Files that were modified */
   modifiedFiles: string[];
+  /** Canonical machine-readable specialist output preserved for validation and routing */
+  structuredOutput?: Record<string, unknown>;
   /** Escalation details if status is "escalation" */
   escalation?: {
     reason: string;
@@ -143,7 +145,7 @@ export interface SpecialistConfig extends AgentDefinition {
  * Lists the primitive field shapes supported by typed input and output contracts.
  * These values let contracts describe the structured data specialists exchange through context and deliverables.
  */
-export type ContractFieldType = "string" | "string[]" | "boolean" | "number" | "object";
+export type ContractFieldType = "string" | "string[]" | "boolean" | "number" | "object" | "object[]";
 
 /**
  * Describes one named field in an input or output contract.

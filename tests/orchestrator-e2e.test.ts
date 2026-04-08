@@ -19,6 +19,7 @@ interface OutputOverrides {
   deliverables?: string[];
   modifiedFiles?: string[];
   escalation?: { reason: string; suggestedAction: string };
+  extraFields?: Record<string, unknown>;
 }
 
 /** Build a SubAgentResult that spawnSpecialistAgent would resolve with. */
@@ -28,6 +29,7 @@ function makeOutput(overrides: OutputOverrides = {}) {
     summary: overrides.summary ?? "Done",
     deliverables: overrides.deliverables ?? [],
     modifiedFiles: overrides.modifiedFiles ?? [],
+    ...(overrides.extraFields ?? {}),
     ...(overrides.escalation ? { escalation: overrides.escalation } : {}),
   });
   return {
@@ -103,8 +105,21 @@ describe("orchestrator e2e", () => {
   describe("full workflow integration", () => {
     it("planner + builder both succeed", async () => {
       const mockSpawn = vi.fn()
-        .mockResolvedValueOnce(makeOutput({ summary: "Planned in 3 steps", deliverables: ["step1", "step2", "step3"] }))
-        .mockResolvedValueOnce(makeOutput({ summary: "Built the feature", modifiedFiles: ["src/index.ts"] }));
+        .mockResolvedValueOnce(makeOutput({
+          summary: "Planned in 3 steps",
+          extraFields: {
+            steps: ["step1", "step2", "step3"],
+            dependencies: ["step2 depends on step1"],
+            risks: ["watch for edge cases"],
+          },
+        }))
+        .mockResolvedValueOnce(makeOutput({
+          summary: "Built the feature",
+          modifiedFiles: ["src/index.ts"],
+          extraFields: {
+            changeDescription: "Built the feature with the planned flow",
+          },
+        }));
 
       const execute = await setupOrchestrator(mockSpawn);
       const result = await callOrchestrate(execute);
@@ -113,6 +128,12 @@ describe("orchestrator e2e", () => {
       expect(result.details.overallStatus).toBe("success");
       expect(result.details.specialistsInvoked).toEqual(["specialist_planner", "specialist_builder"]);
       expect(result.details.results).toHaveLength(2);
+      expect(result.details.results[0].structuredOutput).toMatchObject({
+        steps: ["step1", "step2", "step3"],
+      });
+      expect(result.details.results[1].structuredOutput).toMatchObject({
+        changeDescription: "Built the feature with the planned flow",
+      });
       expect(result.content[0].text).toContain("Planned in 3 steps");
       expect(result.content[0].text).toContain("Built the feature");
     });
@@ -198,7 +219,11 @@ describe("orchestrator e2e", () => {
       const mockSpawn = vi.fn()
         .mockResolvedValueOnce(makeOutput({
           summary: "3-step plan",
-          deliverables: ["step-1: scaffold", "step-2: implement", "step-3: wire up"],
+          extraFields: {
+            steps: ["step-1: scaffold", "step-2: implement", "step-3: wire up"],
+            dependencies: ["step-2 depends on step-1"],
+            risks: ["wiring drift"],
+          },
         }))
         .mockResolvedValueOnce(makeOutput({ summary: "Built it" }));
 
@@ -210,7 +235,7 @@ describe("orchestrator e2e", () => {
       expect(builderTaskPrompt).toContain("Additional context:");
       expect(builderTaskPrompt).toContain("planSummary");
       expect(builderTaskPrompt).toContain("3-step plan");
-      expect(builderTaskPrompt).toContain("planDeliverables");
+      expect(builderTaskPrompt).toContain("planSteps");
       expect(builderTaskPrompt).toContain("step-1: scaffold");
     });
 
@@ -220,6 +245,9 @@ describe("orchestrator e2e", () => {
         .mockResolvedValueOnce(makeOutput({
           summary: "Built the auth module",
           modifiedFiles: ["src/auth.ts", "src/login.ts"],
+          extraFields: {
+            changeDescription: "Built the auth module and wired the login flow",
+          },
         }))
         .mockResolvedValueOnce(makeOutput({ summary: "Tests pass" }));
 
@@ -235,7 +263,7 @@ describe("orchestrator e2e", () => {
       expect(testerTaskPrompt).toContain("modifiedFiles");
       expect(testerTaskPrompt).toContain("src/auth.ts");
       expect(testerTaskPrompt).toContain("implementationSummary");
-      expect(testerTaskPrompt).toContain("Built the auth module");
+      expect(testerTaskPrompt).toContain("Built the auth module and wired the login flow");
     });
 
     it("first specialist (planner) receives no context", async () => {

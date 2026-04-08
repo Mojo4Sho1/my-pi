@@ -138,6 +138,7 @@ export function createSpecialistExtension(config: SpecialistExtensionConfig) {
           summary: parsed.summary,
           deliverables: parsed.deliverables,
           modifiedFiles: parsed.modifiedFiles,
+          structuredOutput: parsed.structuredOutput,
           escalation: parsed.escalation,
           sourceAgent: parsed.sourceAgent,
         });

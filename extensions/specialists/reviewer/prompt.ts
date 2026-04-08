@@ -46,7 +46,7 @@ export const REVIEWER_PROMPT_CONFIG: SpecialistPromptConfig = {
   outputContract: {
     fields: [
       { name: "verdict", type: "string", required: true, description: "Review verdict: approve | request_changes | comment | blocked" },
-      { name: "findings", type: "object", required: true, description: "Array of ReviewFinding objects: [{id, priority, category, title, explanation, evidence, suggestedAction, fileRefs?}]" },
+      { name: "findings", type: "object[]", required: true, description: "Array of ReviewFinding objects: [{id, priority, category, title, explanation, evidence, suggestedAction, fileRefs?}]" },
       { name: "summary", type: "string", required: true, description: "Brief summary of review outcome" },
     ],
   },

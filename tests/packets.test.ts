@@ -75,6 +75,34 @@ describe("createResultPacket", () => {
 
     expect(packet.escalation?.reason).toBe("Missing dependency");
   });
+
+  it("preserves structured output when provided", () => {
+    const packet = createResultPacket({
+      taskId: "task_abc123",
+      status: "success",
+      summary: "Plan created",
+      deliverables: [],
+      modifiedFiles: [],
+      structuredOutput: {
+        status: "success",
+        summary: "Plan created",
+        steps: ["step-1"],
+        dependencies: [],
+        risks: [],
+        modifiedFiles: [],
+      },
+      sourceAgent: "specialist_planner",
+    });
+
+    expect(packet.structuredOutput).toEqual({
+      status: "success",
+      summary: "Plan created",
+      steps: ["step-1"],
+      dependencies: [],
+      risks: [],
+      modifiedFiles: [],
+    });
+  });
 });
 
 describe("validateTaskPacket", () => {
@@ -229,5 +257,13 @@ describe("validateResultPacket", () => {
       modifiedFiles: "not-array",
     });
     expect(errors).toContain("modifiedFiles must be an array");
+  });
+
+  it("catches non-object structuredOutput", () => {
+    const errors = validateResultPacket({
+      ...validPacket,
+      structuredOutput: ["not", "an", "object"],
+    });
+    expect(errors).toContain("structuredOutput must be an object when provided");
   });
 });

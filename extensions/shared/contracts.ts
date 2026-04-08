@@ -14,6 +14,25 @@ import type {
   ResultPacket,
 } from "./types.js";
 
+const SHARED_RESULT_FIELD_TYPES: Readonly<Record<string, ContractFieldType>> = {
+  summary: "string",
+  deliverables: "string[]",
+  modifiedFiles: "string[]",
+};
+
+const INPUT_FIELD_ALIASES: Readonly<Record<string, readonly string[]>> = {
+  modifiedFiles: ["modifiedFiles"],
+  planSummary: ["summary"],
+  planSteps: ["steps", "deliverables"],
+  planDeliverables: ["steps", "deliverables"],
+  implementationSummary: ["changeDescription", "summary"],
+  changeDescription: ["changeDescription", "summary"],
+  specSummary: ["summary"],
+  specDeliverables: ["deliverables"],
+  schemaSummary: ["summary"],
+  schemaDeliverables: ["deliverables"],
+};
+
 /**
  * Check whether a runtime value matches a declared ContractFieldType.
  */
@@ -29,23 +48,25 @@ function matchesType(value: unknown, expectedType: ContractFieldType): boolean {
       return typeof value === "number";
     case "object":
       return typeof value === "object" && value !== null && !Array.isArray(value);
+    case "object[]":
+      return Array.isArray(value) && value.every((v) => typeof v === "object" && v !== null && !Array.isArray(v));
     default:
       return false;
   }
 }
 
 /**
- * Validate that a structured deliverables object satisfies an output contract.
+ * Validate that a structured output payload satisfies an output contract.
  * Returns an array of error strings (empty if valid).
  */
 export function validateOutputContract(
-  deliverables: Record<string, unknown>,
+  outputPayload: Record<string, unknown> | undefined,
   contract: OutputContract
 ): string[] {
   const errors: string[] = [];
 
   for (const field of contract.fields) {
-    const value = deliverables[field.name];
+    const value = outputPayload?.[field.name];
 
     if (value === undefined || value === null) {
       if (field.required) {
@@ -111,7 +132,8 @@ export function validateInputContract(
 /**
  * Check if an output contract can satisfy an input contract statically
  * (without runtime data). Verifies that every required input field has
- * a matching output field with a compatible type.
+ * a matching upstream field, allowing for shared ResultPacket fields and
+ * transitional alias mappings used by runtime packet construction.
  */
 export function contractsCompatible(
   outputContract: OutputContract,
@@ -127,11 +149,35 @@ export function contractsCompatible(
   for (const inputField of inputContract.fields) {
     if (!inputField.required) continue;
 
-    const outputField = outputFieldMap.get(inputField.name);
-    if (!outputField) {
-      missingFields.push(inputField.name);
-    } else if (outputField.type !== inputField.type) {
-      missingFields.push(`${inputField.name} (type mismatch: output=${outputField.type}, input=${inputField.type})`);
+    const candidateNames = [inputField.name, ...(INPUT_FIELD_ALIASES[inputField.name] ?? [])];
+    let compatible = false;
+    let mismatchMessage: string | undefined;
+
+    for (const candidateName of candidateNames) {
+      const outputField = outputFieldMap.get(candidateName);
+      if (outputField) {
+        if (outputField.type === inputField.type) {
+          compatible = true;
+          break;
+        }
+
+        mismatchMessage = `${inputField.name} (type mismatch: output=${outputField.type}, input=${inputField.type})`;
+        continue;
+      }
+
+      const sharedType = SHARED_RESULT_FIELD_TYPES[candidateName];
+      if (sharedType) {
+        if (sharedType === inputField.type) {
+          compatible = true;
+          break;
+        }
+
+        mismatchMessage = `${inputField.name} (type mismatch: output=${sharedType}, input=${inputField.type})`;
+      }
+    }
+
+    if (!compatible) {
+      missingFields.push(mismatchMessage ?? inputField.name);
     }
   }
 
@@ -146,8 +192,8 @@ export function contractsCompatible(
  * using the specialist's input contract to select fields.
  *
  * For each field in the input contract that has a `sourceSpecialist`,
- * finds the matching prior result and extracts the field value from
- * either the result's summary, modifiedFiles, or deliverables.
+ * finds the matching prior result and extracts the field value from the
+ * preserved structured payload first, then shared ResultPacket fields.
  *
  * Returns undefined if no fields could be extracted.
  */
@@ -190,18 +236,24 @@ function extractFieldFromResult(
   fieldName: string,
   result: ResultPacket
 ): unknown {
-  // Direct ResultPacket property mappings
+  const structuredValue = result.structuredOutput?.[fieldName];
+  if (structuredValue !== undefined) {
+    return structuredValue;
+  }
+
+  // Direct ResultPacket property mappings and transitional aliases
   switch (fieldName) {
     case "modifiedFiles":
-      return result.modifiedFiles;
+      return result.structuredOutput?.modifiedFiles ?? result.modifiedFiles;
     case "implementationSummary":
+      return result.structuredOutput?.changeDescription ?? result.summary;
     case "planSummary":
       return result.summary;
     case "planDeliverables":
     case "planSteps":
-      return result.deliverables;
+      return result.structuredOutput?.steps ?? result.deliverables;
     case "changeDescription":
-      return result.summary;
+      return result.structuredOutput?.changeDescription ?? result.summary;
     case "specSummary":
       return result.summary;
     case "specDeliverables":

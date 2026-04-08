@@ -12,6 +12,7 @@ export interface ParsedSpecialistResult {
   summary: string;
   deliverables: string[];
   modifiedFiles: string[];
+  structuredOutput?: Record<string, unknown>;
   escalation?: { reason: string; suggestedAction: string };
   sourceAgent: string;
 }
@@ -107,6 +108,7 @@ function tryParseResult(jsonStr: string, sourceAgentId: string): ParseResult | n
         summary: obj.summary,
         deliverables: Array.isArray(obj.deliverables) ? obj.deliverables : [],
         modifiedFiles: Array.isArray(obj.modifiedFiles) ? obj.modifiedFiles : [],
+        structuredOutput: obj,
         escalation: obj.escalation && typeof obj.escalation === "object"
           ? {
               reason: String(obj.escalation.reason || ""),

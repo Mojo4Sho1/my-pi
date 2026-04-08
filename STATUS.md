@@ -1,6 +1,6 @@
 # STATUS.md
 
-Last updated: 2026-04-07 (Stage 5a.7 documentation realignment complete; contract/artifact redesign active)
+Last updated: 2026-04-07 (T-16 structured-output preservation complete; T-17 artifact-routing work active)
 
 ## Progress Checklist
 
@@ -270,7 +270,7 @@ Near-full-screen read-only session inspector. See Decision #36.
 Top-priority redesign pass driven by `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`.
 
 - [x] Documentation and roadmap realignment (T-15)
-- [ ] Preserve structured specialist outputs end-to-end and validate named output fields directly (T-16)
+- [x] Preserve structured specialist outputs end-to-end and validate named output fields directly (T-16)
 - [ ] Add router-owned team session artifacts and downstream packet construction from validated artifacts only (T-17)
 - [ ] Enforce ownership/edit scope and explicit `partial` routing semantics (T-18)
 - [ ] Reconcile tester/build-team behavior across prompts, team definitions, and durable docs (T-19)

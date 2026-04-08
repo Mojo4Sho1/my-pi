@@ -92,6 +92,14 @@ export function validateResultPacket(packet: unknown): string[] {
     errors.push("deliverables must be an array");
   if (!Array.isArray(p.modifiedFiles))
     errors.push("modifiedFiles must be an array");
+  if (
+    p.structuredOutput !== undefined &&
+    (typeof p.structuredOutput !== "object" ||
+      p.structuredOutput === null ||
+      Array.isArray(p.structuredOutput))
+  ) {
+    errors.push("structuredOutput must be an object when provided");
+  }
   if (typeof p.sourceAgent !== "string" || !p.sourceAgent)
     errors.push("sourceAgent is required");
   if (typeof p.createdAt !== "string" || !p.createdAt)

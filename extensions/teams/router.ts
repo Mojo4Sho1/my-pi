@@ -366,11 +366,10 @@ export async function executeTeam(
       let contractSatisfied = true;
       if (promptConfig.outputContract) {
         try {
-          const deliverableObj: Record<string, unknown> = {};
-          for (const d of resultPacket.deliverables) {
-            deliverableObj[`deliverable_${resultPacket.deliverables.indexOf(d)}`] = d;
-          }
-          const errors = validateOutputContract(deliverableObj, promptConfig.outputContract);
+          const errors = validateOutputContract(
+            resultPacket.structuredOutput,
+            promptConfig.outputContract
+          );
           contractSatisfied = errors.length === 0;
         } catch {
           contractSatisfied = false;

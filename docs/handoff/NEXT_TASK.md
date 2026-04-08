@@ -5,25 +5,24 @@
 
 ## Task summary
 
-Implement T-16 from Stage 5a.7 by preserving structured specialist outputs end-to-end and validating named output fields directly. The outcome of this task should be a code path where parsed specialist payloads remain canonical machine-readable artifacts for routing and contract checks, instead of being collapsed to generic summaries or placeholder deliverables.
+Implement T-17 from Stage 5a.7 by introducing router-owned canonical team/specialist artifacts and using validated artifact fields as the only source for downstream packet construction. The outcome of this task should be a team-routing path where the router owns persisted machine-first artifacts for each step and derives the next `TaskPacket` from validated artifact data instead of from loose prior-result summaries.
 
 ## Why this task is next
 
-- T-15 completed the documentation and roadmap realignment, so fresh-context agents now route into Stage 5a.7 instead of the older live-validation queue
-- T-16 is the first implementation task in the redesign sequence and unblocks router-owned artifacts, ownership guardrails, and tester/build-team reconciliation
-- The design document explicitly calls for preserving named structured outputs before the router can safely construct downstream packets from validated artifact fields
+- T-16 is complete, so the runtime now preserves canonical structured specialist payloads and validates them directly
+- T-17 is the next redesign dependency because router-owned artifacts and artifact-driven packet construction are the bridge between preserved structured outputs and stronger ownership/routing guardrails
+- The design document explicitly calls for router-built downstream packets from validated artifacts before ownership enforcement (T-18) and broader flow reconciliation (T-19)
 
 ## Scope (in)
 
-- Audit the existing result-parsing, packet, and contract-validation path for places where named structured fields are dropped or replaced with generic summaries
-- Update shared types and parsing so structured specialist payloads remain available end-to-end as the canonical machine-readable routing substrate
-- Replace placeholder-style output validation with validation against the actual named payload fields specialists produce
-- Add or update regression tests covering planner-to-builder and builder-to-tester style payload preservation at the structured-field level
-- Update durable docs only where needed to reflect the implemented structured-output behavior truthfully
+- Introduce router-owned machine-first artifact structures for team sessions and per-specialist team steps
+- Persist/link those artifacts from the team router after validation, without letting specialists directly own team-session state
+- Rebuild downstream `TaskPacket.context` from validated artifact fields only, using the preserved structured payloads as the canonical source
+- Add or update regression tests covering artifact persistence/linkage and artifact-driven downstream packet construction
+- Update durable docs only where needed to reflect the implemented artifact-routing behavior truthfully
 
 ## Scope (out)
 
-- Router-owned team session artifact persistence and downstream packet rebuilding from validated artifacts only (that is T-17)
 - Ownership/edit-scope enforcement and explicit per-state `partial` handling (that is T-18)
 - Full tester/build-team reconciliation across prompts and team definitions (that is T-19)
 - YAML specialist/team template creation (that is T-20)
@@ -33,47 +32,44 @@ Implement T-16 from Stage 5a.7 by preserving structured specialist outputs end-t
 
 - References: `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`
 - References: `docs/IMPLEMENTATION_PLAN.md` (Stage 5a.7)
-- References: `extensions/shared/result-parser.ts`
 - References: `extensions/shared/types.ts`
+- References: `extensions/shared/packets.ts`
 - References: `extensions/shared/contracts.ts`
-- References: `extensions/shared/specialist-extension.ts`
 - References: `extensions/orchestrator/delegate.ts`
 - References: `extensions/teams/router.ts`
-- References: `tests/result-parser.test.ts`
+- References: `tests/session-artifact.test.ts`
 - References: `tests/contracts.test.ts`
-- References: `tests/orchestrator-context.test.ts`
-- References: `tests/orchestrator-delegate.test.ts`
 - References: `tests/team-router.test.ts`
+- References: `tests/orchestrator-team-e2e.test.ts`
 
 ## Recommended first reads
 
 1. `docs/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`
 2. `docs/IMPLEMENTATION_PLAN.md` (Stage 5a.7 only)
-3. `extensions/shared/result-parser.ts`
-4. `extensions/shared/contracts.ts`
-5. `extensions/orchestrator/delegate.ts`
-6. `extensions/teams/router.ts`
-7. `tests/result-parser.test.ts` and `tests/contracts.test.ts`
+3. `extensions/teams/router.ts`
+4. `extensions/shared/types.ts`
+5. `extensions/shared/contracts.ts`
+6. `tests/team-router.test.ts`
+7. `tests/session-artifact.test.ts`
 
 ## Likely implementation hotspots
 
-- `extensions/shared/result-parser.ts` still treats generic `deliverables` as the primary parsed structured substrate for most specialists
-- `extensions/shared/contracts.ts` still validates output through deliverables-shaped objects and generic field extraction helpers
-- `extensions/orchestrator/delegate.ts` still forwards context through summary-and-deliverables mappings for several specialist paths
-- `extensions/teams/router.ts` still converts deliverables into `deliverable_<n>` style fields when building downstream context
-- `extensions/shared/specialist-extension.ts` is in the direct specialist execution path and may need to preserve any richer parsed payload data
+- `extensions/teams/router.ts` currently executes transitions in-memory without router-owned canonical per-step artifacts
+- `extensions/shared/types.ts` will likely need explicit artifact types and refs for team-session and specialist-step records
+- `extensions/shared/contracts.ts` is the most likely place to centralize artifact-to-context field extraction once packet construction stops reading loose prior results
+- `extensions/orchestrator/delegate.ts` may need minor interface adjustments if team routing starts carrying artifact-backed result metadata through delegation boundaries
 
 ## Dependencies / prerequisites
 
-- T-15 documentation realignment complete
+- T-16 structured-output preservation complete
 - Stage 4a through 4d substrate available as the starting point
 - Decision #40 remains the durable tester-role direction, but full reconciliation is deferred to T-19
 
 ## Acceptance criteria (definition of done)
 
-- Named structured payload fields from specialist outputs are preserved end-to-end in the runtime path instead of being reduced to summary-only routing inputs
-- Output contract validation checks the actual named payload fields the specialist produced
-- Regression tests cover at least one success path where downstream context is built from preserved structured payload data
+- Router-owned team/specialist artifacts exist in the runtime path and are treated as the canonical machine-first records for team execution
+- Downstream `TaskPacket` construction uses validated artifact fields only rather than ad hoc prior-result summaries
+- Regression tests cover at least one success path where downstream context is rebuilt from validated artifacts
 - Docs touched by the implementation remain truthful about the current Stage 5a.7 behavior
 - Update `docs/handoff/CURRENT_STATUS.md`
 - Update `docs/handoff/TASK_QUEUE.md`
@@ -81,12 +77,12 @@ Implement T-16 from Stage 5a.7 by preserving structured specialist outputs end-t
 
 ## Verification checklist
 
-- [ ] Audit where structured output is currently parsed, stored, validated, and forwarded
-- [ ] Decide what the canonical runtime carrier for preserved structured payloads is before changing downstream call sites
-- [ ] Preserve named payload fields in the canonical runtime data path
-- [ ] Replace placeholder-style output validation with named-field validation
-- [ ] Add regression tests for structured payload preservation and validation
-- [ ] Verify the tested forwarding path no longer depends on synthetic `deliverable_<n>` mapping
+- [ ] Audit the current team-router/session-artifact path for where router-owned canonical artifacts should be introduced
+- [ ] Decide the runtime artifact shapes and references before changing downstream packet construction
+- [ ] Persist/link canonical team-session and specialist-step artifacts from the router
+- [ ] Rebuild downstream context from validated artifact fields only
+- [ ] Add regression tests for artifact persistence/linkage and artifact-driven packet construction
+- [ ] Verify the tested forwarding path no longer depends on loose prior-result summary mapping where validated artifacts are available
 - [ ] `make typecheck` passes after code changes
 - [ ] `make test` passes after code changes
 - [ ] Update `CURRENT_STATUS.md` with results
@@ -94,6 +90,6 @@ Implement T-16 from Stage 5a.7 by preserving structured specialist outputs end-t
 
 ## Risks / rollback notes
 
-- The current runtime may depend on summary/deliverable fallback behavior in more places than expected, so changes here can ripple into synthesis or team routing
-- Avoid quietly introducing router-owned artifact persistence or ownership enforcement in this task; those belong to T-17 and T-18
-- If structured output preservation exposes contradictions in current prompts or contracts, record them explicitly but keep the implementation bounded to T-16
+- The current team router assumes in-memory `ResultPacket` accumulation, so artifact ownership and refs can ripple into session-artifact, logging, and test expectations
+- Avoid quietly introducing ownership enforcement or `partial` routing policy in this task; those belong to T-18
+- If artifact-backed packet rebuilding exposes contradictions in current prompt contracts or team definitions, record them explicitly but keep the implementation bounded to T-17

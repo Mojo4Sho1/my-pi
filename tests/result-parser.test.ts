@@ -21,6 +21,12 @@ describe("parseSpecialistOutput", () => {
     expect(result.summary).toBe("Added error handling to auth module");
     expect(result.deliverables).toEqual(["Try-catch wrappers for API calls"]);
     expect(result.modifiedFiles).toEqual(["src/auth/index.ts"]);
+    expect(result.structuredOutput).toEqual({
+      status: "success",
+      summary: "Added error handling to auth module",
+      deliverables: ["Try-catch wrappers for API calls"],
+      modifiedFiles: ["src/auth/index.ts"],
+    });
     expect(result.sourceAgent).toBe(AGENT_ID);
   });
 
@@ -124,7 +130,8 @@ describe("parseSpecialistOutput", () => {
 
   it("returns rawJson when JSON is found", () => {
     const text = `\`\`\`json\n{"status": "success", "summary": "done", "verdict": "approve", "findings": []}\n\`\`\``;
-    const { rawJson } = parseSpecialistOutput(text, AGENT_ID);
+    const { result, rawJson } = parseSpecialistOutput(text, AGENT_ID);
+    expect(result.structuredOutput).toEqual(rawJson);
     expect(rawJson).toBeDefined();
     expect(rawJson!.status).toBe("success");
     expect(rawJson!.verdict).toBe("approve");

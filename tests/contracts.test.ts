@@ -57,6 +57,14 @@ describe("validateOutputContract", () => {
     expect(validateOutputContract({ meta: { a: 1 } }, objContract)).toEqual([]);
     expect(validateOutputContract({ meta: [1, 2] }, objContract)).toHaveLength(1);
   });
+
+  it("treats missing structured output as missing required fields", () => {
+    const errors = validateOutputContract(undefined, contract);
+    expect(errors).toEqual([
+      "Missing required output field 'steps'",
+      "Missing required output field 'risks'",
+    ]);
+  });
 });
 
 describe("validateInputContract", () => {
@@ -118,11 +126,11 @@ describe("contractsCompatible", () => {
       fields: [{ name: "steps", type: "string[]", required: true, description: "Steps" }],
     };
     const input: InputContract = {
-      fields: [{ name: "modifiedFiles", type: "string[]", required: true, description: "Files" }],
+      fields: [{ name: "customField", type: "string[]", required: true, description: "Files" }],
     };
     const result = contractsCompatible(output, input);
     expect(result.compatible).toBe(false);
-    expect(result.missingFields).toContain("modifiedFiles");
+    expect(result.missingFields).toContain("customField");
   });
 
   it("returns incompatible on type mismatch", () => {
@@ -153,6 +161,14 @@ describe("buildContextFromContract", () => {
     summary: "Plan: add tests",
     deliverables: ["step-1: write tests", "step-2: run tests"],
     modifiedFiles: [],
+    structuredOutput: {
+      status: "success",
+      summary: "Plan: add tests",
+      steps: ["step-1: write tests", "step-2: run tests"],
+      dependencies: ["step-2 depends on step-1"],
+      risks: ["tests may need fixtures"],
+      modifiedFiles: [],
+    },
     sourceAgent: "specialist_planner",
   });
 
@@ -162,6 +178,12 @@ describe("buildContextFromContract", () => {
     summary: "Implemented handler",
     deliverables: ["Added handler module"],
     modifiedFiles: ["src/handler.ts"],
+    structuredOutput: {
+      status: "success",
+      summary: "Implemented handler",
+      modifiedFiles: ["src/handler.ts"],
+      changeDescription: "Added handler module with request validation",
+    },
     sourceAgent: "specialist_builder",
   });
 
@@ -202,7 +224,7 @@ describe("buildContextFromContract", () => {
     const context = buildContextFromContract(input, [plannerResult, builderResult]);
     expect(context).toEqual({
       modifiedFiles: ["src/handler.ts"],
-      implementationSummary: "Implemented handler",
+      implementationSummary: "Added handler module with request validation",
     });
   });
 

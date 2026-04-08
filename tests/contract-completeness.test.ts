@@ -46,6 +46,8 @@ function sampleValueForType(type: ContractFieldType): unknown {
       return 1;
     case "object":
       return { sample: true };
+    case "object[]":
+      return [{ sample: true }];
   }
 }
 

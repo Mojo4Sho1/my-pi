@@ -10,6 +10,14 @@ function makePlannerResult(overrides?: Partial<Parameters<typeof createResultPac
     summary: "Planned the feature in 3 steps",
     deliverables: ["step-1: scaffold", "step-2: implement", "step-3: test"],
     modifiedFiles: [],
+    structuredOutput: {
+      status: "success",
+      summary: "Planned the feature in 3 steps",
+      steps: ["step-1: scaffold", "step-2: implement", "step-3: test"],
+      dependencies: ["step-2 depends on step-1", "step-3 depends on step-2"],
+      risks: ["integration drift"],
+      modifiedFiles: [],
+    },
     sourceAgent: "specialist_planner",
     ...overrides,
   });
@@ -22,6 +30,12 @@ function makeBuilderResult(overrides?: Partial<Parameters<typeof createResultPac
     summary: "Implemented the feature with 2 file changes",
     deliverables: ["Added handler", "Updated config"],
     modifiedFiles: ["src/handler.ts", "src/config.ts"],
+    structuredOutput: {
+      status: "success",
+      summary: "Implemented the feature with 2 file changes",
+      modifiedFiles: ["src/handler.ts", "src/config.ts"],
+      changeDescription: "Added handler and updated config wiring",
+    },
     sourceAgent: "specialist_builder",
     ...overrides,
   });
@@ -40,13 +54,13 @@ describe("buildContextForSpecialist", () => {
   });
 
   describe("builder", () => {
-    it("returns planSummary and planDeliverables when planner result exists", () => {
+    it("returns planSummary and planSteps when planner result exists", () => {
       const plannerResult = makePlannerResult();
       const context = buildContextForSpecialist("builder", [plannerResult]);
 
       expect(context).toEqual({
         planSummary: "Planned the feature in 3 steps",
-        planDeliverables: ["step-1: scaffold", "step-2: implement", "step-3: test"],
+        planSteps: ["step-1: scaffold", "step-2: implement", "step-3: test"],
       });
     });
 
@@ -67,7 +81,7 @@ describe("buildContextForSpecialist", () => {
 
       expect(context).toEqual({
         modifiedFiles: ["src/handler.ts", "src/config.ts"],
-        implementationSummary: "Implemented the feature with 2 file changes",
+        implementationSummary: "Added handler and updated config wiring",
       });
     });
 
@@ -88,7 +102,7 @@ describe("buildContextForSpecialist", () => {
 
       expect(context).toEqual({
         modifiedFiles: ["src/handler.ts", "src/config.ts"],
-        implementationSummary: "Implemented the feature with 2 file changes",
+        implementationSummary: "Added handler and updated config wiring",
       });
     });
 
@@ -103,11 +117,11 @@ describe("buildContextForSpecialist", () => {
   });
 
   describe("no full ResultPacket leakage", () => {
-    it("builder context contains only planSummary and planDeliverables", () => {
+    it("builder context contains only planSummary and planSteps", () => {
       const context = buildContextForSpecialist("builder", [makePlannerResult()]);
       expect(context).toBeDefined();
       const keys = Object.keys(context!);
-      expect(keys).toEqual(["planSummary", "planDeliverables"]);
+      expect(keys).toEqual(["planSummary", "planSteps"]);
     });
 
     it("reviewer context contains only modifiedFiles and implementationSummary", () => {
