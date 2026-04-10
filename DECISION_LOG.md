@@ -444,3 +444,25 @@ A `/panic` extension command provides emergency stop: it traverses the run regis
 - Observability (future widget) consumes teardown state, not the reverse
 
 **Implementation priority:** This must be implemented before additional orchestration complexity is added. See Stage 5a.6 in the implementation plan. Historical design: `docs/archive/design/PANIC_AND_TEARDOWN_DESIGN.md`.
+
+### 44. Layered context initialization as a first-class architectural rule (2026-04-10) [active]
+
+Fresh agents in `my-pi` should load context through a role-aware layered model rather than broad ad hoc repo reading. The layers are:
+
+1. runtime identity and global operating rules
+2. repo routing and conventions
+3. role or stage contract
+4. selective stable reference material
+5. run-specific working artifacts
+
+**Role breadth:** The orchestrator may load broader routing and reference context so it can package downstream work correctly. Specialists remain narrow by default and should receive their working context through packets and validated upstream artifacts.
+
+**Structural distinction:** Stable reference material and current-run working artifacts are different classes of input and should stay conceptually separate. Durable guidance lives in `docs/` and `specs/`; current-run inputs live in packets, session artifacts, and active task artifacts.
+
+**Config-root direction:** Future onboarding manifests and related policy files should live under `specs/` rather than a new `.pi/` root. If the policy/onboarding surface later overloads `specs/`, a dedicated config root may be introduced as a separate decision.
+
+**Scope of this decision:** This pass establishes durable documentation and conventions only. It does not claim automated onboarding bundle assembly or runtime manifest loading.
+
+**Companion durable reference:** `docs/LAYERED_ONBOARDING.md`
+
+**Companion ADR:** `docs/adr/0002_LAYERED_CONTEXT_INITIALIZATION.md`

@@ -70,8 +70,8 @@ For handoff routing, start with `docs/handoff/_HANDOFF_INDEX.md`. For validation
 
 | ID | Status | Task | Specs to Read | Acceptance Criteria |
 |----|--------|------|---------------|---------------------|
-| T-22 | queued | Onboarding Stage 1: Durable onboarding documentation | `docs/design/onboarding_layed_context.md`, `docs/design/ONBOARDING_IMPLEMENTATION_PLAN.md` (Stage 1) | `docs/LAYERED_ONBOARDING.md` exists with all 5 layers; ADR 0002 exists; decision log entry added |
-| T-23 | queued | Onboarding Stage 2: Update conventions and routing docs | `docs/design/ONBOARDING_IMPLEMENTATION_PLAN.md` (Stage 2), `docs/REPO_CONVENTIONS.md` | REPO_CONVENTIONS has onboarding section; INDEX.md, _DOCS_INDEX.md, AGENTS.md updated with new routes |
+| T-22 | done | Onboarding Stage 1: Durable onboarding documentation | `docs/design/onboarding_layed_context.md`, `docs/design/ONBOARDING_IMPLEMENTATION_PLAN.md` (Stage 1) | `docs/LAYERED_ONBOARDING.md` exists with all 5 layers; ADR 0002 exists; decision log entry added |
+| T-23 | active | Onboarding Stage 2: Update conventions and routing docs | `docs/design/ONBOARDING_IMPLEMENTATION_PLAN.md` (Stage 2), `docs/REPO_CONVENTIONS.md` | REPO_CONVENTIONS has onboarding section; INDEX.md, _DOCS_INDEX.md, AGENTS.md updated with new routes |
 | T-24 | queued | Onboarding Stage 3: Structural scaffolding (policies, onboarding, artifacts) | `docs/design/ONBOARDING_IMPLEMENTATION_PLAN.md` (Stage 3), `specs/_SPECS_INDEX.md` | `specs/policies/`, `specs/onboarding/`, `artifacts/` exist with indexes and initial YAML content |
 | T-25 | queued | Onboarding Stage 4: Onboarding-aware spec fields | `docs/design/ONBOARDING_IMPLEMENTATION_PLAN.md` (Stage 4), `specs/schemas/SPECIALIST_AND_TEAM_YAML_SPEC.md` | Schema doc has V1.1 onboarding fields; templates and build-team.yaml updated |
 | T-26 | queued | Onboarding Stage 5: Validation, archival, cleanup | `docs/design/ONBOARDING_IMPLEMENTATION_PLAN.md` (Stage 5), `docs/design/onboarding_layed_context.md` | All 6 scenarios validated; design doc archived; future work items in FUTURE_WORK.md |
@@ -100,3 +100,5 @@ For handoff routing, start with `docs/handoff/_HANDOFF_INDEX.md`. For validation
 - T-21 completed the validation/audit pass: regression coverage now protects the most contradiction-prone Stage 5a.7 seams, and the durable docs/specs touched by the redesign remain explicit about YAML authoring versus TypeScript runtime authority.
 - T-10 is deferred while the layered context initialization side quest (T-22 through T-26) runs. It will resume as the active target after T-26 completes.
 - T-22 through T-26 implement the onboarding design from `docs/design/onboarding_layed_context.md`. The staged implementation plan is at `docs/design/ONBOARDING_IMPLEMENTATION_PLAN.md`.
+- T-22 is complete: the durable onboarding reference, ADR 0002, and Decision #44 are now in the repo.
+- T-23 is now the single active target.
