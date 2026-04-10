@@ -1,93 +1,81 @@
 # Next Task
 
-**Last updated:** 2026-04-08
+**Last updated:** 2026-04-10
 **Owner:** Joe
 
 ## Task summary
 
-Resume T-10 / Stage 5a.3b by running live build-team validation against the now-stabilized Stage 5a.7 runtime. The goal is to verify the canonical `planner -> builder -> tester -> builder -> reviewer -> done` flow in a real Pi session and capture truthful validation artifacts, not to redesign the substrate again from scratch.
+T-22 — Implement durable onboarding documentation (Stage 1 of 5 in the layered context initialization side quest).
+
+Create the core reference doc (`docs/LAYERED_ONBOARDING.md`), an ADR (`docs/adr/0002_LAYERED_CONTEXT_INITIALIZATION.md`), and a decision log entry that together define the layered onboarding model for fresh agents.
 
 ## Why this task is next
 
-- Stage 5a.7 is complete, so the redesign dependency that had paused live validation is now gone
-- T-21 tightened regression coverage and contradiction-sensitive docs/specs, which means the next uncertainty is live runtime behavior rather than local contract drift
-- T-11 through T-14 remain follow-on work and should stay behind this live validation pass unless T-10 exposes a concrete reason to reprioritize them
+- The onboarding side quest (T-22 through T-26) was prioritized to establish the onboarding architecture before resuming live validation (T-10)
+- Stage 1 creates the foundational documentation that all subsequent stages reference
+- T-10 (live build-team validation) is deferred and will resume after T-26 completes
 
 ## Scope (in)
 
-- Run at least one bounded live `teamHint: "build-team"` validation task
-- Verify the canonical team-router ordering and session-artifact trace in a real Pi execution
-- Apply the Stage 5a.3 methodology:
-  - task-level verification for the chosen live task
-  - substrate-level verification for widget, artifacts, hooks, tokens, sandbox, loops, and resilience
-- Record findings in `docs/validation/results/`
-- Fix the smallest truthful substrate issues encountered if they are local and clear enough to land within the task
+- Create `docs/LAYERED_ONBOARDING.md` — the full layered onboarding model (5 layers: L0–L4), onboarding profiles (orchestrator, specialist, team-state), stable-ref vs working-artifact distinction, factory-vs-run distinction, access model, relationship to contract-driven routing and index-first routing
+- Create `docs/adr/0002_LAYERED_CONTEXT_INITIALIZATION.md` — ADR recording the decision
+- Add entry to `DECISION_LOG.md` — reference the ADR
 
 ## Scope (out)
 
-- Broad contract/artifact redesign work unless a live run exposes a concrete bug that requires a small fix
-- New YAML runtime loading or schema expansion work
-- New `/dashboard` command design work
-- Resuming T-11 through T-14 preemptively without evidence from the live validation pass
+- Updating routing docs, conventions, indexes (that's Stage 2 / T-23)
+- Creating directory scaffolding or YAML manifests (Stages 3–4 / T-24, T-25)
+- Validation or archival of the design doc (Stage 5 / T-26)
 
 ## Relevant files
 
-- References: `docs/IMPLEMENTATION_PLAN.md` (Stage 5a.3b only)
-- References: `docs/validation/METHODOLOGY.md`
-- References: `docs/validation/_VALIDATION_INDEX.md`
-- References: `extensions/teams/router.ts`
-- References: `extensions/teams/definitions.ts`
-- References: `extensions/orchestrator/index.ts`
-- References: `extensions/dashboard/index.ts`
-- References: `extensions/shared/hooks.ts`
-- References: `extensions/shared/subprocess.ts`
-- References: `docs/validation/results/`
-- References: `docs/handoff/CURRENT_STATUS.md`
-- References: `docs/handoff/TASK_QUEUE.md`
+- Design doc: `docs/design/onboarding_layed_context.md`
+- Staged implementation plan: `docs/design/ONBOARDING_IMPLEMENTATION_PLAN.md` (read Stage 1 section)
+- Existing ADR for reference format: `docs/adr/0001_INDEX_FIRST_CONTEXT_ROUTING.md`
+- Repo conventions: `docs/REPO_CONVENTIONS.md`
+- Root bootstrap: `AGENTS.md`, `INDEX.md`
+- Decision log: `DECISION_LOG.md`
 
 ## Recommended first reads
 
-1. `docs/IMPLEMENTATION_PLAN.md` (Stage 5a.3b only)
-2. `docs/validation/METHODOLOGY.md`
-3. `docs/validation/_VALIDATION_INDEX.md`
-4. the smallest relevant existing validation result artifact in `docs/validation/results/`
-5. `extensions/teams/router.ts` only if the live run exposes a substrate issue that needs a fix
-
-## Likely implementation hotspots
-
-- The first live run should validate the canonical build-team ordering and the session artifact trace rather than re-proving unit-test behavior already covered locally
-- If issues appear, expect the most likely hotspots to be team routing, subprocess execution, dashboard/widget observation, and session-artifact completeness
-- Keep result logging disciplined so the next fresh-context agent can distinguish substrate failure from task-level failure
+1. `docs/design/ONBOARDING_IMPLEMENTATION_PLAN.md` (Stage 1 section)
+2. `docs/design/onboarding_layed_context.md` (full design doc — source of truth for the model)
+3. `docs/adr/0001_INDEX_FIRST_CONTEXT_ROUTING.md` (ADR format reference)
+4. `AGENTS.md` and `INDEX.md` (understand current bootstrap path)
+5. `docs/REPO_CONVENTIONS.md` (truthfulness rule)
 
 ## Dependencies / prerequisites
 
-- Stage 5a.7 complete
-- T-21 complete
-- Stage 5a.3 methodology and result-writing rules available in `docs/validation/METHODOLOGY.md`
+- None — this is the first stage of the side quest
 
 ## Acceptance criteria (definition of done)
 
-- At least one live `build-team` run completes cleanly or fails with a precise, reproducible substrate blocker
-- The canonical Stage 5a.7 flow is either observed in the live trace or the exact divergence is documented
-- A validation result artifact is written under `docs/validation/results/`
-- Any landed fixes remain bounded and truthful
-- Update `docs/handoff/CURRENT_STATUS.md`
-- Update `docs/handoff/TASK_QUEUE.md`
-- Update `docs/handoff/NEXT_TASK.md`
+- `docs/LAYERED_ONBOARDING.md` exists and covers all 5 context layers (L0–L4) with purpose, examples, and "this layer answers" for each
+- `docs/LAYERED_ONBOARDING.md` covers orchestrator, specialist, and team-state onboarding profiles
+- `docs/LAYERED_ONBOARDING.md` clearly labels what is implemented now (conventions, structure, docs) vs what is planned (automated bundle assembly, runtime manifest loading)
+- `docs/adr/0002_LAYERED_CONTEXT_INITIALIZATION.md` exists and follows the format of ADR 0001
+- `DECISION_LOG.md` has a new entry referencing the ADR
+- All three files cross-reference each other
 
 ## Verification checklist
 
-- [ ] Run a live `teamHint: "build-team"` task
-- [ ] Evaluate task-level verification for the chosen live task
-- [ ] Evaluate the Stage 5a.3 substrate checks (tokens, widget, session artifacts, hooks, sandbox, loops, resilience)
-- [ ] Write a result artifact in `docs/validation/results/`
-- [ ] Run `make typecheck` and `make test` if code changes land
-- [ ] Update `CURRENT_STATUS.md`
-- [ ] Update `TASK_QUEUE.md`
-- [ ] Update `NEXT_TASK.md`
+- [ ] `docs/LAYERED_ONBOARDING.md` covers all 5 layers with concrete examples from this repo
+- [ ] ADR follows the format of `docs/adr/0001_INDEX_FIRST_CONTEXT_ROUTING.md`
+- [ ] Truthfulness rule respected: no claims of automated onboarding
+- [ ] Decision log entry added with correct decision number
+- [ ] Update `docs/handoff/CURRENT_STATUS.md`
+- [ ] Update `docs/handoff/TASK_QUEUE.md` (mark T-22 done)
+- [ ] Update `docs/handoff/NEXT_TASK.md` (point to T-23)
+
+## Handoff protocol
+
+After completing this task, follow the per-stage handoff protocol defined in `docs/design/ONBOARDING_IMPLEMENTATION_PLAN.md` (Handoff Integration section):
+1. Update `CURRENT_STATUS.md` with what was completed
+2. Mark T-22 as `done` in `TASK_QUEUE.md`
+3. Update this file (`NEXT_TASK.md`) to point to T-23
 
 ## Risks / rollback notes
 
-- Live Pi behavior may expose environment-specific blockers; record exact behavior instead of smoothing it over with guesses
-- Avoid turning this into a new redesign pass. If a live run finds deeper drift, fix the smallest truthful slice and log any remaining follow-on work
-- Keep the result artifact clear about what was directly observed versus inferred from local regression coverage
+- The main risk is over-documenting or under-documenting. The LAYERED_ONBOARDING.md should be comprehensive but scannable — not a wall of text
+- Do not claim automated onboarding bundle assembly or runtime manifest loading as implemented — those are future work
+- Keep the doc aligned with the design doc's model but grounded in what this repo actually has today
