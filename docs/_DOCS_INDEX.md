@@ -17,6 +17,8 @@ Use this file to decide which documentation area is authoritative for the curren
 | If you need... | Read next | Why |
 |---|---|---|
 | repo navigation rules | `docs/REPO_CONVENTIONS.md` | Naming, index-first behavior, truthfulness rules |
+| layered onboarding model | `docs/LAYERED_ONBOARDING.md` | Durable reference for onboarding layers, onboarding profiles, and factory-vs-run structure |
+| layered onboarding ADR | `docs/adr/0002_LAYERED_CONTEXT_INITIALIZATION.md` | Companion decision record for the onboarding model |
 | implementation stage routing | `docs/_IMPLEMENTATION_PLAN_INDEX.md` | Smallest path into the implementation plan |
 | archived contract/artifact redesign rationale | `docs/archive/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md` | Historical rationale for the completed Stage 5a.7 redesign |
 | durable YAML authoring specs | `specs/_SPECS_INDEX.md` | Cross-tree route into the durable `specs/` authoring layer |
@@ -34,6 +36,7 @@ Use this file to decide which documentation area is authoritative for the curren
 
 | File | Authority | Read when | Skip when |
 |---|---|---|---|
+| `docs/LAYERED_ONBOARDING.md` | Durable onboarding model | clarifying onboarding layers, role breadth, stable-vs-working distinctions, or factory-vs-run rules | the task only needs a narrower routing or conventions answer |
 | `docs/PROJECT_FOUNDATION.md` | Stable architecture | clarifying scope, doctrine, platform posture | you only need current stage/task details |
 | `docs/ORCHESTRATION_MODEL.md` | Vocabulary and hierarchy | clarifying object types or control model | the task is local and already uses familiar terms |
 | `docs/IMPLEMENTATION_PLAN.md` | Detailed staged build spec | after routing through `docs/_IMPLEMENTATION_PLAN_INDEX.md` to a specific section | routine work that only needs one stage or task |

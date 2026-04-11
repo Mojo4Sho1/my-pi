@@ -18,6 +18,7 @@ Use this file to choose the next smallest routing document. Do not treat it as a
 | If you need... | Read next | Notes |
 |---|---|---|
 | documentation routing | `docs/_DOCS_INDEX.md` | Main router for the docs tree |
+| layered onboarding model | `docs/LAYERED_ONBOARDING.md` | Durable reference for onboarding layers, profiles, and factory-vs-run distinction |
 | YAML authoring specs | `specs/_SPECS_INDEX.md` | Durable authoring/spec route for specialist and team YAML |
 | agent-definition routing | `agents/_AGENTS_INDEX.md` | Main router for orchestrator/specialist/team definitions |
 | current project state | `STATUS.md` | Live execution and roadmap state |

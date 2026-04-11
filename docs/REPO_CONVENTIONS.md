@@ -14,6 +14,19 @@ Use this file to decide how to route through the repo efficiently and truthfully
 4. Treat `docs/archive/` as background or historical material, not default working context.
 5. If a task is narrow, keep the read set narrow. Broad reads need a concrete reason.
 
+## Layered Onboarding
+
+Fresh agents should load context in layers and keep stable reference material separate from current-run working artifacts.
+
+- Stable reference material lives in places such as `docs/`, `docs/adr/`, `DECISION_LOG.md`, `specs/`, and the repo's index files.
+- Working artifacts are current packets, validated upstream outputs, team/session artifacts, active task files, and handoff targets for the current run.
+- Specialists default to narrow onboarding: the minimum routing context they need, their role contract, and the current packet or upstream artifacts.
+- The orchestrator has broader but still bounded onboarding: it may read indexes, routing docs, and future policies/manifests so it can package narrowed downstream context.
+- Machine-first artifacts such as YAML and JSON are the canonical runtime-routing inputs; Markdown remains the human-facing explanation layer.
+- `my-pi` follows factory-vs-run discipline: configure durable repo structure once, then produce bounded run artifacts under that structure.
+
+See `docs/LAYERED_ONBOARDING.md` for the full model, profiles, and truthful implementation status.
+
 ## Index Naming
 
 All local index files in this repo should:

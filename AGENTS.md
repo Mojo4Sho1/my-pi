@@ -85,6 +85,7 @@ Supporting: `agents/` (definition specs), `docs/` (architectural reference), `te
 |---|---|
 | `INDEX.md` | Root bootstrap router for the repo |
 | `docs/REPO_CONVENTIONS.md` | Repo navigation rules, index naming, and truthfulness conventions |
+| `docs/LAYERED_ONBOARDING.md` | Durable reference for layered context initialization, role breadth, and factory-vs-run structure |
 | `docs/_DOCS_INDEX.md` | Router for the docs tree |
 | `docs/_IMPLEMENTATION_PLAN_INDEX.md` | Router for the staged implementation plan |
 | `STATUS.md` | Current project state and queued work |
@@ -115,7 +116,7 @@ See `STATUS.md` for live project state. The project follows a staged implementat
 2. **First specialist extension (builder)** (complete)
 3. **Remaining specialists + orchestrator** (complete)
 4. **Team routing and validation** (complete)
-5. **Meta-teams and expansion** (5a.7 active; 5a.3 is a deferred follow-on)
+5. **Meta-teams and expansion** (5a.7 complete; layered onboarding side quest T-24 active; 5a.3 remains a deferred follow-on until T-26 completes)
 6. **Reflective expertise layer** (future)
 7. **Command surface** (future)
 

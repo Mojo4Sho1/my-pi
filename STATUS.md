@@ -1,6 +1,6 @@
 # STATUS.md
 
-Last updated: 2026-04-10 (T-22 durable onboarding docs complete; T-23 conventions/routing updates next)
+Last updated: 2026-04-11 (T-23 onboarding routing docs complete; T-24 structural scaffolding next)
 
 ## Progress Checklist
 
@@ -367,7 +367,7 @@ See `docs/FUTURE_WORK.md` for deferred design ideas (team critic, campaign super
 ## Blockers
 
 - No hard repo blocker currently prevents resuming Stage 5a.3b live validation once it returns to the front of the queue.
-- T-10 is intentionally deferred while T-22 through T-26 establish the layered onboarding architecture.
+- T-10 is intentionally deferred while the layered onboarding side quest continues through T-26.
 - T-11 through T-14 remain follow-on work; keep them behind T-10 unless live validation exposes a reason to reprioritize.
 
 ## Risks
