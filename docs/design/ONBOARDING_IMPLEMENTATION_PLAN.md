@@ -2,7 +2,7 @@
 
 ## Context
 
-The design doc at `docs/design/onboarding_layed_context.md` defines a layered context initialization model for fresh agents in my-pi. The goal: agents load the right context layers, in the right order, for their role and current step — instead of ad hoc broad reading.
+The source design doc at `docs/archive/design/onboarding_layed_context.md` defines a layered context initialization model for fresh agents in my-pi. The goal: agents load the right context layers, in the right order, for their role and current step — instead of ad hoc broad reading.
 
 The repo already has strong foundations (index-first routing, YAML specs, contract-driven routing, ADR system). This plan fills the gaps: durable onboarding documentation, structural separation of policies/onboarding under `specs/`, updated conventions, and onboarding-aware spec fields.
 
@@ -28,7 +28,7 @@ The repo already has strong foundations (index-first routing, YAML specs, contra
    - Summary: implement durable onboarding documentation (Stage 1 of layered context initialization)
    - Rationale: this side quest establishes the onboarding architecture that all future stages benefit from
    - Scope: create `docs/LAYERED_ONBOARDING.md`, ADR 0002, decision log entry
-   - Spec reference: `docs/design/ONBOARDING_IMPLEMENTATION_PLAN.md` and `docs/design/onboarding_layed_context.md`
+   - Spec reference: `docs/design/ONBOARDING_IMPLEMENTATION_PLAN.md` and `docs/archive/design/onboarding_layed_context.md`
    - Acceptance criteria from Stage 1 verification below
 
 3. **Update `docs/handoff/CURRENT_STATUS.md`** — Record:
@@ -42,7 +42,7 @@ The repo already has strong foundations (index-first routing, YAML specs, contra
 
 **Goal:** Add the core documentation that defines the layered onboarding model so all future agents understand it.
 
-**Prerequisites:** Read `AGENTS.md`, `INDEX.md`, `docs/REPO_CONVENTIONS.md`, `docs/design/onboarding_layed_context.md`
+**Prerequisites:** Read `AGENTS.md`, `INDEX.md`, `docs/REPO_CONVENTIONS.md`, `docs/archive/design/onboarding_layed_context.md`
 
 ### Tasks
 
@@ -225,7 +225,7 @@ The repo already has strong foundations (index-first routing, YAML specs, contra
 
 **Goal:** Validate the implementation against the design doc's scenarios, archive the design doc, and ensure everything is consistent.
 
-**Prerequisites:** Read `docs/design/onboarding_layed_context.md` (the design doc — especially the Validation Scenarios and Acceptance Criteria sections), then read all files created/modified in Stages 1–4.
+**Prerequisites:** Read `docs/archive/design/onboarding_layed_context.md` (the source design doc — especially the Validation Scenarios and Acceptance Criteria sections), then read all files created/modified in Stages 1–4.
 
 ### Tasks
 
@@ -241,7 +241,7 @@ The repo already has strong foundations (index-first routing, YAML specs, contra
 
 3. **Check cross-references:** ensure all new docs reference each other correctly, all index files are updated, no broken links
 
-4. **Archive the design doc:** Move `docs/design/onboarding_layed_context.md` to `docs/archive/design/` per repo convention (design docs are temporary; the durable docs now live at `docs/LAYERED_ONBOARDING.md` and the ADR)
+4. **Archive the design doc:** Archive the source design doc under `docs/archive/design/onboarding_layed_context.md` per repo convention (design docs are temporary; the durable docs now live at `docs/LAYERED_ONBOARDING.md` and the ADR)
 
 5. **Update `STATUS.md`** to reflect the completed onboarding work
 
@@ -255,7 +255,7 @@ The repo already has strong foundations (index-first routing, YAML specs, contra
    - **Runtime Manifest Loading** — Code that reads `onboarding.profile` from a specialist spec and uses the referenced manifest to dynamically construct the system prompt context at invocation time. *Revisit when:* automated bundle assembly is in scope and the manifest format has stabilized through manual use.
 
 ### Files changed
-- `docs/design/onboarding_layed_context.md` → `docs/archive/design/onboarding_layed_context.md` (move)
+- `docs/archive/design/onboarding_layed_context.md` (archived source design doc)
 - `STATUS.md` (edit)
 - `DECISION_LOG.md` (edit — new entry for specs/ extension decision)
 - `docs/FUTURE_WORK.md` (edit — 5 new entries)
@@ -303,11 +303,11 @@ The following tasks should be added to `TASK_QUEUE.md` under a new phase header:
 
 | ID | Status | Task | Specs to Read | Acceptance Criteria |
 |----|--------|------|---------------|---------------------|
-| T-22 | queued | Onboarding Stage 1: Durable onboarding documentation | `docs/design/onboarding_layed_context.md`, `docs/design/ONBOARDING_IMPLEMENTATION_PLAN.md` (Stage 1) | `docs/LAYERED_ONBOARDING.md` exists with all 5 layers; ADR 0002 exists; decision log entry added |
+| T-22 | queued | Onboarding Stage 1: Durable onboarding documentation | `docs/archive/design/onboarding_layed_context.md`, `docs/design/ONBOARDING_IMPLEMENTATION_PLAN.md` (Stage 1) | `docs/LAYERED_ONBOARDING.md` exists with all 5 layers; ADR 0002 exists; decision log entry added |
 | T-23 | queued | Onboarding Stage 2: Update conventions and routing docs | `docs/design/ONBOARDING_IMPLEMENTATION_PLAN.md` (Stage 2), `docs/REPO_CONVENTIONS.md` | REPO_CONVENTIONS has onboarding section; INDEX.md, _DOCS_INDEX.md, AGENTS.md updated with new routes |
 | T-24 | queued | Onboarding Stage 3: Structural scaffolding (policies, onboarding, artifacts) | `docs/design/ONBOARDING_IMPLEMENTATION_PLAN.md` (Stage 3), `specs/_SPECS_INDEX.md` | `specs/policies/`, `specs/onboarding/`, `artifacts/` exist with indexes and initial YAML content |
 | T-25 | queued | Onboarding Stage 4: Onboarding-aware spec fields | `docs/design/ONBOARDING_IMPLEMENTATION_PLAN.md` (Stage 4), `specs/schemas/SPECIALIST_AND_TEAM_YAML_SPEC.md` | Schema doc has V1.1 onboarding fields; templates and build-team.yaml updated |
-| T-26 | queued | Onboarding Stage 5: Validation, archival, cleanup | `docs/design/ONBOARDING_IMPLEMENTATION_PLAN.md` (Stage 5), `docs/design/onboarding_layed_context.md` | All 6 scenarios validated; design doc archived; future work items in FUTURE_WORK.md |
+| T-26 | queued | Onboarding Stage 5: Validation, archival, cleanup | `docs/design/ONBOARDING_IMPLEMENTATION_PLAN.md` (Stage 5), `docs/archive/design/onboarding_layed_context.md` | All 6 scenarios validated; design doc archived; future work items in FUTURE_WORK.md |
 
 ### Per-Stage Handoff Protocol
 

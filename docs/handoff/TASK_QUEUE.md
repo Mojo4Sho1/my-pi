@@ -66,21 +66,21 @@ For handoff routing, start with `docs/handoff/_HANDOFF_INDEX.md`. For validation
 | T-20 | done | Add YAML specialist/team templates and a `build-team` starter spec | `docs/archive/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`, `docs/IMPLEMENTATION_PLAN.md` (Stage 5a.7) | `specs/specialists/` and `specs/teams/` templates exist and a `build-team` starter spec reflects the canonical flow |
 | T-21 | done | Add validation coverage and run a contradiction audit for the redesigned flow | `docs/archive/design/CONTRACT-DRIVEN_SPECIALISTS_TEAM_ARTIFACTS_AND_PACKET_ROUTING_DESIGN.md`, `docs/IMPLEMENTATION_PLAN.md` (Stage 5a.7) | Validation covers artifact preservation, ownership guardrails, partial handling, spec/runtime parity, and no durable docs contradict the redesigned flow |
 
-## Phase: Layered Context Initialization (Side Quest — ACTIVE)
+## Phase: Layered Context Initialization (Side Quest — COMPLETE)
 
 | ID | Status | Task | Specs to Read | Acceptance Criteria |
 |----|--------|------|---------------|---------------------|
-| T-22 | done | Onboarding Stage 1: Durable onboarding documentation | `docs/design/onboarding_layed_context.md`, `docs/design/ONBOARDING_IMPLEMENTATION_PLAN.md` (Stage 1) | `docs/LAYERED_ONBOARDING.md` exists with all 5 layers; ADR 0002 exists; decision log entry added |
+| T-22 | done | Onboarding Stage 1: Durable onboarding documentation | `docs/archive/design/onboarding_layed_context.md`, `docs/design/ONBOARDING_IMPLEMENTATION_PLAN.md` (Stage 1) | `docs/LAYERED_ONBOARDING.md` exists with all 5 layers; ADR 0002 exists; decision log entry added |
 | T-23 | done | Onboarding Stage 2: Update conventions and routing docs | `docs/design/ONBOARDING_IMPLEMENTATION_PLAN.md` (Stage 2), `docs/REPO_CONVENTIONS.md` | REPO_CONVENTIONS has onboarding section; INDEX.md, _DOCS_INDEX.md, AGENTS.md updated with new routes |
 | T-24 | done | Onboarding Stage 3: Structural scaffolding (policies, onboarding, artifacts) | `docs/design/ONBOARDING_IMPLEMENTATION_PLAN.md` (Stage 3), `specs/_SPECS_INDEX.md` | `specs/policies/`, `specs/onboarding/`, `artifacts/` exist with indexes and initial YAML content |
 | T-25 | done | Onboarding Stage 4: Onboarding-aware spec fields | `docs/design/ONBOARDING_IMPLEMENTATION_PLAN.md` (Stage 4), `specs/schemas/SPECIALIST_AND_TEAM_YAML_SPEC.md` | Schema doc has V1.1 onboarding fields; templates and build-team.yaml updated |
-| T-26 | active | Onboarding Stage 5: Validation, archival, cleanup | `docs/design/ONBOARDING_IMPLEMENTATION_PLAN.md` (Stage 5), `docs/design/onboarding_layed_context.md` | All 6 scenarios validated; design doc archived; future work items in FUTURE_WORK.md |
+| T-26 | done | Onboarding Stage 5: Validation, archival, cleanup | `docs/design/ONBOARDING_IMPLEMENTATION_PLAN.md` (Stage 5), `docs/archive/design/onboarding_layed_context.md` | All 6 scenarios validated; design doc archived; future work items in FUTURE_WORK.md |
 
-## Phase: Post-Stage 5a.7 Follow-On Work (DEFERRED — resumes after T-26)
+## Phase: Post-Stage 5a.7 Follow-On Work (ACTIVE)
 
 | ID | Status | Task | Specs to Read | Acceptance Criteria |
 |----|--------|------|---------------|---------------------|
-| T-10 | deferred | Team state machine e2e validation (5a.3b) | `docs/IMPLEMENTATION_PLAN.md` (5a.3b), `docs/validation/METHODOLOGY.md` | Resume live build-team validation now that Stage 5a.7 is complete; record task-level and substrate-level findings truthfully |
+| T-10 | active | Team state machine e2e validation (5a.3b) | `docs/IMPLEMENTATION_PLAN.md` (5a.3b), `docs/validation/METHODOLOGY.md` | Resume live build-team validation now that Stage 5a.7 is complete; record task-level and substrate-level findings truthfully |
 | T-11 | deferred | Tester specialist role redesign (5a.3c) | `docs/IMPLEMENTATION_PLAN.md` (5a.3c), Decision #40 | Only revisit if live validation exposes residual tester-role drift after the completed 5a.7 reconciliation |
 | T-12 | deferred | Specialist invocation patterns (5a.3d) | `docs/IMPLEMENTATION_PLAN.md` (5a.3d), Decision #41 | Revisit after T-10 once live validation confirms the redesigned routing model in practice |
 | T-13 | deferred | Token logging and observability (5a.3e) | `docs/IMPLEMENTATION_PLAN.md` (5a.3e) | Revisit after T-10 so surfaced token data matches the observed live validation flow |
@@ -98,10 +98,10 @@ For handoff routing, start with `docs/handoff/_HANDOFF_INDEX.md`. For validation
 - T-19 completed the tester/build-team reconciliation pass: tester is now modeled as a test author in runtime code, `build-team` runs `planner -> builder -> tester -> builder -> reviewer`, and regression coverage proves tester-authored artifact routing plus the post-tester builder repair loop.
 - T-20 completed the durable specs-layer pass: `specs/` now contains the schema/reference doc, reusable templates, and a starter `build-team` spec aligned to the canonical flow.
 - T-21 completed the validation/audit pass: regression coverage now protects the most contradiction-prone Stage 5a.7 seams, and the durable docs/specs touched by the redesign remain explicit about YAML authoring versus TypeScript runtime authority.
-- T-10 is deferred while the layered context initialization side quest (T-22 through T-26) runs. It will resume as the active target after T-26 completes.
-- T-22 through T-26 implement the onboarding design from `docs/design/onboarding_layed_context.md`. The staged implementation plan is at `docs/design/ONBOARDING_IMPLEMENTATION_PLAN.md`.
+- T-10 is active again now that the layered context initialization side quest is complete.
+- T-22 through T-26 implemented the onboarding design from `docs/archive/design/onboarding_layed_context.md`. The staged implementation plan remains at `docs/design/ONBOARDING_IMPLEMENTATION_PLAN.md`.
 - T-22 is complete: the durable onboarding reference, ADR 0002, and Decision #44 are now in the repo.
 - T-23 is complete: the onboarding model is now on the normal bootstrap path through `AGENTS.md`, `INDEX.md`, and `docs/_DOCS_INDEX.md`.
 - T-24 is complete: the repo now has durable policy/onboarding scaffolding under `specs/` plus a distinct `artifacts/` runtime root.
 - T-25 is complete: the durable schema doc, reusable templates, and starter `build-team` spec now carry truthful declarative onboarding metadata.
-- T-26 is now the single active target.
+- T-26 is complete: the onboarding side quest now has validated durable docs, archived design rationale, a recorded config-root follow-on decision, and explicit future-work entries.

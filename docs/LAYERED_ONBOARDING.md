@@ -6,7 +6,7 @@ Companion records:
 
 - `DECISION_LOG.md` Decision #44
 - `docs/adr/0002_LAYERED_CONTEXT_INITIALIZATION.md`
-- source proposal: `docs/design/onboarding_layed_context.md`
+- source proposal: `docs/archive/design/onboarding_layed_context.md`
 
 ## Purpose
 
@@ -23,12 +23,13 @@ Implemented now:
 - index-first routing through `AGENTS.md`, `INDEX.md`, and local indexes
 - narrow-by-default specialist execution with bounded packets
 - contract-driven routing and validation in the TypeScript runtime
+- declarative onboarding manifests under `specs/onboarding/`
+- onboarding policy scaffolding under `specs/policies/`
+- optional onboarding metadata in the specialist/team YAML spec layer
 - durable docs and ADRs that explain the onboarding model
 
 Planned, not implemented yet:
 
-- declarative onboarding manifests under `specs/onboarding/`
-- onboarding policy files under `specs/policies/`
 - automated onboarding bundle assembly
 - runtime manifest loading that builds prompts directly from onboarding metadata
 

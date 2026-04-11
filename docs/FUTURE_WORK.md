@@ -338,3 +338,53 @@ Token cost calculation, budget tracking, compaction-risk views, and budget enfor
 **Source:** `docs/archive/design/dashboard.md`, Tokens Panel "v1 Scope" section (explicitly excluded from v1).
 
 **Revisit when:** Token tracking data (Stage 5a.1) reveals cost patterns worth managing, and a reliable cost model exists for the models in use.
+
+---
+
+## Automated Onboarding Bundle Assembly
+
+Runtime code that reads onboarding manifests and spec-level onboarding metadata to assemble the context bundle for specialists and teams automatically. This would likely touch orchestrator context packaging and the shared specialist-prompt construction path.
+
+**Source:** `docs/archive/design/onboarding_layed_context.md` and `docs/design/ONBOARDING_IMPLEMENTATION_PLAN.md` (Stage 5 future work).
+
+**Revisit when:** The declarative onboarding manifests under `specs/onboarding/` have stayed stable for multiple stages and manual context construction in the orchestrator has become a real bottleneck.
+
+---
+
+## Dedicated Config Root Migration
+
+Move onboarding and policy configuration out of `specs/` into a dedicated root such as `config/` or `.pi/` if the current structure becomes overloaded or conceptually confusing. The orchestrator would read the config root for policy/manifests; specialists would still receive context through packets rather than direct broad repo access.
+
+**Source:** `docs/archive/design/onboarding_layed_context.md` and Decision #45.
+
+**Revisit when:** `specs/` grows enough that the distinction between durable authoring specs and operational onboarding/policy config becomes a source of friction for fresh agents.
+
+---
+
+## Per-Specialist Onboarding Manifests
+
+Add individual manifests such as `specs/onboarding/builder.yaml` when the default specialist profile plus spec-level onboarding metadata is no longer expressive enough for the repo's specialist mix.
+
+**Source:** `docs/archive/design/onboarding_layed_context.md` and `docs/design/ONBOARDING_IMPLEMENTATION_PLAN.md` (Stage 5 future work).
+
+**Revisit when:** Multiple specialists need meaningfully different onboarding profiles that cannot be expressed cleanly through `specialist-default` plus per-spec `onboarding.*` fields.
+
+---
+
+## Onboarding Seed Scaffolding
+
+Provide a seed template that scaffolds the layered onboarding structure itself: indexes, conventions docs, ADR stubs, `specs/policies/`, `specs/onboarding/`, and runtime artifact roots.
+
+**Source:** `docs/archive/design/onboarding_layed_context.md`.
+
+**Revisit when:** Seed creation work becomes active and there is demand for bootstrapping new repos with the layered onboarding structure already in place.
+
+---
+
+## Runtime Manifest Loading
+
+Teach the runtime to read `onboarding.profile` and related spec metadata directly from YAML and use those manifests to build prompt/context inputs at invocation time.
+
+**Source:** `docs/archive/design/onboarding_layed_context.md` and `docs/design/ONBOARDING_IMPLEMENTATION_PLAN.md` (Stage 5 future work).
+
+**Revisit when:** Automated onboarding bundle assembly is in scope and the manifest/spec metadata format has stabilized through manual use.

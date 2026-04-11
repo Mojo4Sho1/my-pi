@@ -53,4 +53,4 @@ Governance:
 
 - `DECISION_LOG.md` remains the canonical active/superseded decision ledger
 - `docs/LAYERED_ONBOARDING.md` is the durable operational reference for the model
-- the design proposal remains at `docs/design/onboarding_layed_context.md` until a later archival pass
+- the archived source proposal lives at `docs/archive/design/onboarding_layed_context.md`

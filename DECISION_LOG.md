@@ -466,3 +466,17 @@ Fresh agents in `my-pi` should load context through a role-aware layered model r
 **Companion durable reference:** `docs/LAYERED_ONBOARDING.md`
 
 **Companion ADR:** `docs/adr/0002_LAYERED_CONTEXT_INITIALIZATION.md`
+
+### 45. Onboarding policies and manifests stay under `specs/` until proven otherwise (2026-04-11) [active]
+
+The layered onboarding rollout keeps policy files and onboarding manifests under `specs/` rather than introducing a new top-level config root such as `.pi/` or `config/`.
+
+**What lands now:** `specs/policies/` and `specs/onboarding/` are the durable home for onboarding-policy scaffolding, orchestrator/specialist manifests, and related future declarative onboarding inputs.
+
+**Why:** This keeps the factory configuration close to the durable authoring/spec layer it complements, avoids a premature repo-root split, and preserves the project's bias toward minimal structural expansion until the need is concrete.
+
+**Future escalation trigger:** If policy/onboarding material grows large enough to overload `specs/` or the distinction between authoring specs and operational configuration becomes confusing for fresh agents, a dedicated config root may be introduced as a later migration.
+
+**Scope:** This decision governs directory placement and routing only. It does not imply runtime manifest loading or automatic onboarding bundle assembly.
+
+**Source design:** `docs/archive/design/onboarding_layed_context.md`

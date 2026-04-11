@@ -1,6 +1,10 @@
 # STATUS.md
 
-Last updated: 2026-04-11 (T-23 onboarding routing docs complete; T-24 structural scaffolding next)
+Last updated: 2026-04-11 (onboarding side quest T-22-T-26 complete; T-10 live build-team validation resumes)
+
+Current focus: T-10 team state machine end-to-end validation (Stage 5a.3b) is active again now that the layered onboarding side quest is complete.
+
+Recent completion: T-22 through T-26 landed the durable layered onboarding model, added declarative onboarding scaffolding under `specs/`, validated all 6 design scenarios and all 9 acceptance criteria, archived the source design doc, and recorded the config-root follow-on as Decision #45 plus explicit `docs/FUTURE_WORK.md` entries.
 
 ## Progress Checklist
 
@@ -242,7 +246,7 @@ Build projection layer and ship persistent widget for session observability. See
 - [x] Tests for projections, widget state, hook installers, and live artifact payloads
 - [x] All 545 tests pass, TypeScript compiles cleanly
 
-#### 5a.3 — Build-Team Validation on Real Tasks [PARTIALLY COMPLETE, DEFERRED WHILE T-22-T-26 RUN]
+#### 5a.3 — Build-Team Validation on Real Tasks [PARTIALLY COMPLETE, ACTIVE]
 Operational validation pass: run build-team on actual implementation tasks. See Decision #36.
 Methodology and task catalog: `docs/validation/METHODOLOGY.md`
 
@@ -254,7 +258,7 @@ Methodology and task catalog: `docs/validation/METHODOLOGY.md`
 - [x] **Tier 3:** Task 07 (new specialist), Task 08 (/dashboard command skeleton) — implementation landed and local verification passed on 2026-04-07 (`docs/validation/results/RESULT_08_DASHBOARD_CMD.md`)
 - [x] Surface real routing/design gaps from live validation attempts, including missing `partial` transitions and build-team semantic drift
 - [x] Stage 5a.7 reconciled contracts, artifacts, and the canonical build-team flow, so live build-team validation can resume
-- [x] Follow-on side quest T-22 established the durable layered onboarding model before resuming the live validation track
+- [x] Follow-on side quest T-22 through T-26 established and validated the durable layered onboarding model before resuming the live validation track
 
 #### 5a.4 — `/dashboard` Command (Detailed Inspector) [DEFERRED, POST-5a.3b]
 Near-full-screen read-only session inspector. See Decision #36.
@@ -366,8 +370,7 @@ See `docs/FUTURE_WORK.md` for deferred design ideas (team critic, campaign super
 
 ## Blockers
 
-- No hard repo blocker currently prevents resuming Stage 5a.3b live validation once it returns to the front of the queue.
-- T-10 is intentionally deferred while the layered onboarding side quest continues through T-26.
+- No hard repo blocker currently prevents Stage 5a.3b live validation from resuming now.
 - T-11 through T-14 remain follow-on work; keep them behind T-10 unless live validation exposes a reason to reprioritize.
 
 ## Risks
