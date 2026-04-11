@@ -5,6 +5,24 @@ specialist_id: specialist_example
 display_name: Example Specialist
 role: example-role
 purpose: Describe the bounded responsibility this specialist owns.
+onboarding:
+  # Declarative metadata for future orchestrator context construction.
+  # This documents onboarding intent; it is not runtime-loaded yet.
+  profile: specialist-default
+  layer1_conventions:
+    - path: INDEX.md
+      section: Route from here
+      reason: Start from the root router before opening broader references.
+    - path: docs/REPO_CONVENTIONS.md
+      section: Layered Onboarding
+      reason: Keep role-specific onboarding narrow and truthful.
+  layer3_refs:
+    - path: docs/LAYERED_ONBOARDING.md
+      section: Specialist profile
+      reason: Explains the default narrow specialist onboarding model.
+    - path: DECISION_LOG.md
+      reason: Pull only the smallest relevant durable decisions for the task family.
+  notes: Declare durable onboarding hints here for the orchestrator; do not treat this block as active runtime input yet.
 when_to_use:
   activation_conditions:
     - Use when the task needs this specialist's bounded capability.

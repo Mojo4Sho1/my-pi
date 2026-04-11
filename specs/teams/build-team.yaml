@@ -4,6 +4,27 @@ schema_version: "v1"
 team_id: build-team
 display_name: Build Team
 purpose: Plan, implement, author focused tests, run and fix against those tests, then review the final result.
+onboarding:
+  profile: orchestrator
+  layer3_refs:
+    - path: docs/LAYERED_ONBOARDING.md
+      section: Team-state profile
+      reason: Build-team specialists need team-state-specific L4 inputs rather than broad repo reads.
+    - path: docs/ORCHESTRATION_MODEL.md
+      reason: Keeps the durable team spec aligned with the orchestrator-first execution hierarchy.
+    - path: DECISION_LOG.md
+      section: Decision #25
+      reason: Reinforces fresh-context execution through bounded artifacts instead of long-lived shared history.
+  team_state_context:
+    - current team state
+    - current team objective
+    - current team session artifact reference
+    - current loop iteration counters for rebuilding and review loops
+    - planner artifact when entering building
+    - builder artifact when entering testing or review
+    - tester artifact when entering rebuilding or review
+    - transition semantics for success, partial, failure, and escalation
+  upstream_artifacts: []
 members:
   - specialist_planner
   - specialist_builder

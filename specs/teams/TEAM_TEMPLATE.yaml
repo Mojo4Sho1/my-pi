@@ -4,6 +4,23 @@ schema_version: "v1"
 team_id: example-team
 display_name: Example Team
 purpose: Describe the end-to-end outcome this team is responsible for producing.
+onboarding:
+  # Declarative metadata for future orchestrator/team-state context assembly.
+  # This documents onboarding intent; it is not runtime-loaded yet.
+  profile: orchestrator
+  layer3_refs:
+    - path: docs/LAYERED_ONBOARDING.md
+      section: Team-state profile
+      reason: Explains which team-state inputs should be packaged for downstream specialists.
+    - path: docs/ORCHESTRATION_MODEL.md
+      reason: Keeps the team aligned with the repo's orchestrator/team/specialist hierarchy.
+  team_state_context:
+    - current team state
+    - current team objective
+    - current team session artifact reference
+    - upstream validated artifacts required by the active state contract
+    - transition semantics for success, partial, failure, and escalation
+  upstream_artifacts: []
 members:
   - specialist_planner
   - specialist_builder

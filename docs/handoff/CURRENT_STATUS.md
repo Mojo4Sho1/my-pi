@@ -5,7 +5,7 @@
 
 ## Current focus
 
-Layered context initialization side quest (T-25 through T-26). Stages 1 through 3 are now complete; the remaining work moves from structural scaffolding into onboarding-aware spec metadata.
+Layered context initialization side quest (T-26). Stages 1 through 4 are now complete; the remaining work is the final validation, archival, and cleanup pass.
 
 **Implementation plan:** `docs/design/ONBOARDING_IMPLEMENTATION_PLAN.md`
 
@@ -28,16 +28,21 @@ T-10 (live build-team validation) is deferred and will resume after T-26 complet
   - `specs/onboarding/` now exists with `_ONBOARDING_INDEX.md`, `orchestrator.yaml`, and `specialist-default.yaml`
   - `artifacts/` now exists with `_ARTIFACTS_INDEX.md` plus placeholder `team-sessions/` and `validation/` directories
   - `specs/_SPECS_INDEX.md`, `INDEX.md`, and `AGENTS.md` now route to the new structure while staying explicit that TypeScript remains the runtime authority
+- Stage 4 (onboarding-aware spec fields) completed:
+  - `specs/schemas/SPECIALIST_AND_TEAM_YAML_SPEC.md` now defines optional V1.1 onboarding metadata for specialist and team specs
+  - `specs/specialists/SPECIALIST_TEMPLATE.yaml` and `specs/teams/TEAM_TEMPLATE.yaml` now include truthful declarative `onboarding:` examples
+  - `specs/teams/build-team.yaml` now carries realistic onboarding metadata aligned to the canonical build-team flow
+  - The spec layer remains explicit that onboarding metadata is declarative and not auto-loaded by the runtime yet
 
 ## Passing checks
 
-- Run timestamp: `2026-04-08` (last code change — no code changes in this session)
+- Run timestamp: `2026-04-11`
 - `make typecheck`: pass
 - `make test`: pass
 
 ## Known gaps / blockers
 
-- T-25 is now the active target; T-26 remains queued behind it
+- T-26 is now the active target
 - T-10 is deferred — do not resume until T-26 is complete
 - `/next` skill not loading in Pi remains a separate background issue
 
@@ -55,10 +60,10 @@ T-10 (live build-team validation) is deferred and will resume after T-26 complet
 
 ## Next task (single target)
 
-T-25 — Onboarding Stage 4: Onboarding-aware spec fields (see `NEXT_TASK.md`)
+T-26 — Onboarding Stage 5: Validation, archival, cleanup (see `NEXT_TASK.md`)
 
 ## Definition of done for next task
 
-- `specs/schemas/SPECIALIST_AND_TEAM_YAML_SPEC.md` defines optional onboarding metadata for specialists and teams
-- `specs/specialists/SPECIALIST_TEMPLATE.yaml`, `specs/teams/TEAM_TEMPLATE.yaml`, and `specs/teams/build-team.yaml` show truthful onboarding examples
-- No file claims that onboarding metadata is auto-loaded at runtime yet
+- Validate the onboarding work against the 6 scenarios and 9 acceptance criteria from `docs/design/onboarding_layed_context.md`
+- Archive `docs/design/onboarding_layed_context.md` under `docs/archive/design/`
+- Update `STATUS.md`, `DECISION_LOG.md`, and `docs/FUTURE_WORK.md` truthfully for the completed side quest
