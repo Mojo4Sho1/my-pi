@@ -1,0 +1,60 @@
+# Default orchestrator onboarding manifest scaffold.
+# This is durable configuration and documentation, not active runtime loading.
+schema_version: "v1"
+manifest_id: orchestrator
+display_name: Orchestrator Onboarding Manifest
+applies_to: orchestrator
+policy_ref: specs/policies/onboarding-policy.yaml
+source_of_truth_note: Current runtime authority still lives in TypeScript; this manifest is not runtime-loaded yet.
+layers:
+  l0:
+    description: Runtime identity and global operating rules.
+    sources:
+      - path: AGENTS.md
+        reason: Defines repo-level operating rules and execution expectations.
+  l1:
+    description: Repo routing and conventions.
+    sources:
+      - path: INDEX.md
+        reason: Root bootstrap router.
+      - path: docs/REPO_CONVENTIONS.md
+        reason: Routing, truthfulness, and onboarding conventions.
+      - path: docs/_DOCS_INDEX.md
+        reason: Documentation router for selective downstream reads.
+      - path: specs/_SPECS_INDEX.md
+        reason: Spec-tree router for YAML authoring and future onboarding config.
+  l2:
+    description: Orchestrator role contract and delegation responsibilities.
+    sources:
+      - path: agents/orchestrator.md
+        reason: Durable orchestrator role spec.
+      - path: extensions/orchestrator/index.ts
+        reason: Current runtime orchestrator entry point and tool surface.
+      - path: extensions/orchestrator/delegate.ts
+        reason: Delegation lifecycle and context packaging responsibilities.
+  l3:
+    description: Stable references selected through indexes and task relevance.
+    sources:
+      - path: docs/LAYERED_ONBOARDING.md
+        reason: Durable layered-onboarding reference.
+      - path: docs/ORCHESTRATION_MODEL.md
+        reason: System vocabulary and hierarchy.
+      - path: DECISION_LOG.md
+        reason: Durable decision context when the task depends on prior decisions.
+      - path: specs/policies/onboarding-policy.yaml
+        reason: Shared default onboarding policy.
+  l4:
+    description: Current run inputs for the active orchestration episode.
+    sources:
+      - path: current TaskPacket
+        reason: Bounded task payload for the current invocation.
+      - path: docs/handoff/NEXT_TASK.md
+        reason: Current bounded relay target when the work is handoff-driven.
+      - path: artifacts/team-sessions/
+        reason: Team-session artifacts when the run is team-backed.
+      - path: user objective
+        reason: Active user goal for the current session.
+responsibility_notes:
+  - Route through indexes before opening broader references.
+  - Package narrow downstream context instead of forwarding broad repo context.
+  - Treat manifests as durable scaffolding until runtime loading is implemented.

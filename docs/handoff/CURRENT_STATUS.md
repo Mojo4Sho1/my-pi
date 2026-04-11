@@ -5,7 +5,7 @@
 
 ## Current focus
 
-Layered context initialization side quest (T-24 through T-26). Stages 1 and 2 are now complete; the remaining work moves from routing docs into structural scaffolding.
+Layered context initialization side quest (T-25 through T-26). Stages 1 through 3 are now complete; the remaining work moves from structural scaffolding into onboarding-aware spec metadata.
 
 **Implementation plan:** `docs/design/ONBOARDING_IMPLEMENTATION_PLAN.md`
 
@@ -23,6 +23,11 @@ T-10 (live build-team validation) is deferred and will resume after T-26 complet
   - `docs/REPO_CONVENTIONS.md` now has a concise layered-onboarding section that points to `docs/LAYERED_ONBOARDING.md`
   - `INDEX.md` and `docs/_DOCS_INDEX.md` now route fresh agents to the onboarding reference and ADR 0002
   - `AGENTS.md` now lists `docs/LAYERED_ONBOARDING.md` in Key Documents and no longer describes Stage 5a.7 as active
+- Stage 3 (structural scaffolding) completed:
+  - `specs/policies/` now exists with `_POLICIES_INDEX.md` and `onboarding-policy.yaml`
+  - `specs/onboarding/` now exists with `_ONBOARDING_INDEX.md`, `orchestrator.yaml`, and `specialist-default.yaml`
+  - `artifacts/` now exists with `_ARTIFACTS_INDEX.md` plus placeholder `team-sessions/` and `validation/` directories
+  - `specs/_SPECS_INDEX.md`, `INDEX.md`, and `AGENTS.md` now route to the new structure while staying explicit that TypeScript remains the runtime authority
 
 ## Passing checks
 
@@ -32,7 +37,7 @@ T-10 (live build-team validation) is deferred and will resume after T-26 complet
 
 ## Known gaps / blockers
 
-- T-24 is now the active target; T-25 and T-26 remain queued behind it
+- T-25 is now the active target; T-26 remains queued behind it
 - T-10 is deferred — do not resume until T-26 is complete
 - `/next` skill not loading in Pi remains a separate background issue
 
@@ -50,10 +55,10 @@ T-10 (live build-team validation) is deferred and will resume after T-26 complet
 
 ## Next task (single target)
 
-T-24 — Onboarding Stage 3: Structural scaffolding for policies, onboarding, and artifacts (see `NEXT_TASK.md`)
+T-25 — Onboarding Stage 4: Onboarding-aware spec fields (see `NEXT_TASK.md`)
 
 ## Definition of done for next task
 
-- `specs/policies/`, `specs/onboarding/`, and `artifacts/` exist with routing docs and initial YAML or placeholder content
-- `specs/_SPECS_INDEX.md`, `INDEX.md`, and `AGENTS.md` route to the new structure truthfully
-- The new scaffolding stays explicit that current runtime authority still lives in TypeScript
+- `specs/schemas/SPECIALIST_AND_TEAM_YAML_SPEC.md` defines optional onboarding metadata for specialists and teams
+- `specs/specialists/SPECIALIST_TEMPLATE.yaml`, `specs/teams/TEAM_TEMPLATE.yaml`, and `specs/teams/build-team.yaml` show truthful onboarding examples
+- No file claims that onboarding metadata is auto-loaded at runtime yet

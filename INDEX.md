@@ -42,6 +42,7 @@ Use this file to choose the next smallest routing document. Do not treat it as a
 |---|---|---|
 | `extensions/` | Pi extensions and internal TypeScript libraries. Main build target. | task-relevant source files only |
 | `specs/` | Durable YAML authoring/spec layer for specialists and teams. Current runtime still loads TypeScript. | `specs/_SPECS_INDEX.md` |
+| `artifacts/` | Runtime and session artifact root. Distinct from stable `specs/` config and durable `docs/` references. | `artifacts/_ARTIFACTS_INDEX.md` |
 | `agents/` | Agent definition specs that the extensions implement. | `agents/_AGENTS_INDEX.md` |
 | `docs/` | Architecture, roadmap, validation, and handoff docs. | `docs/_DOCS_INDEX.md` |
 | `skills/` | Pi skills (future) | task-relevant files only |

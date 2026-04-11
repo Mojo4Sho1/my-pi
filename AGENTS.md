@@ -63,11 +63,14 @@ make test-watch # Run tests in watch mode
 This repo is a Pi package (`package.json` with `pi` key):
 - `extensions/` -- TypeScript extensions (orchestrator, specialists, shared types) -- **main build target**
 - `specs/` -- durable YAML authoring/spec layer for specialists and teams; not runtime-loaded yet
+- `artifacts/` -- runtime/session artifact root for team sessions and future per-run validation outputs
 - `skills/` -- Pi skills (future)
 - `prompts/` -- Pi prompts (future)
 - `themes/` -- Pi themes
 
 Supporting: `agents/` (definition specs), `docs/` (architectural reference), `tests/` (validation)
+
+Stable config belongs under `specs/`; run-specific outputs belong under `artifacts/`. Current runtime authority still lives in TypeScript until future manifest loading is implemented.
 
 ## Gotchas
 
@@ -100,7 +103,7 @@ Supporting: `agents/` (definition specs), `docs/` (architectural reference), `te
 
 ## How to Implement the Next Stage
 
-**Before broad documentation reads, route through `INDEX.md` and the nearest local index.** For staged work, start with `docs/_IMPLEMENTATION_PLAN_INDEX.md`, then read only the relevant section of `docs/IMPLEMENTATION_PLAN.md`.
+**Before broad documentation reads, route through `INDEX.md` and the nearest local index.** For staged work, start with `docs/_IMPLEMENTATION_PLAN_INDEX.md`, then read only the relevant section of `docs/IMPLEMENTATION_PLAN.md`, unless `NEXT_TASK.md` or a task-local plan points to a more specific staged plan such as `docs/design/ONBOARDING_IMPLEMENTATION_PLAN.md`.
 
 - Read the full `docs/IMPLEMENTATION_PLAN.md` only when doing architecture-wide replanning, plan maintenance, cross-stage design work, or an explicitly requested full-plan review.
 - If the implementation plan section already has detailed specs, **execute directly** rather than spending tokens on planning.
@@ -116,7 +119,7 @@ See `STATUS.md` for live project state. The project follows a staged implementat
 2. **First specialist extension (builder)** (complete)
 3. **Remaining specialists + orchestrator** (complete)
 4. **Team routing and validation** (complete)
-5. **Meta-teams and expansion** (5a.7 complete; layered onboarding side quest T-24 active; 5a.3 remains a deferred follow-on until T-26 completes)
+5. **Meta-teams and expansion** (5a.7 complete; layered onboarding side quest T-25 next; 5a.3 remains a deferred follow-on until T-26 completes)
 6. **Reflective expertise layer** (future)
 7. **Command surface** (future)
 

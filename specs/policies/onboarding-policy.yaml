@@ -1,0 +1,108 @@
+# Default layered-onboarding policy scaffold.
+# This is durable configuration and documentation, not active runtime loading.
+schema_version: "v1"
+policy_id: onboarding-policy
+display_name: Default Onboarding Policy
+purpose: Define the default breadth and routing rules for layered context initialization.
+status: draft-scaffold
+source_of_truth_note: Current runtime authority still lives in TypeScript; this policy is not runtime-loaded yet.
+global_rules:
+  index_first_routing:
+    enabled: true
+    canonical_entrypoint: INDEX.md
+    conventions_path: docs/REPO_CONVENTIONS.md
+    note: Local indexes remain the preferred way to discover narrower reference files.
+  machine_first_artifacts:
+    canonical_for_routing: true
+    note: YAML and JSON are the canonical routing artifacts; Markdown remains the human explanation layer.
+profiles:
+  orchestrator:
+    breadth: broader-but-bounded
+    layer_rules:
+      l0:
+        mode: full
+        sources:
+          - AGENTS.md
+      l1:
+        mode: full
+        sources:
+          - INDEX.md
+          - docs/REPO_CONVENTIONS.md
+          - docs/_DOCS_INDEX.md
+          - specs/_SPECS_INDEX.md
+      l2:
+        mode: selective
+        sources:
+          - extensions/orchestrator/index.ts
+          - agents/orchestrator.md
+      l3:
+        mode: selective-via-indexes
+        sources:
+          - docs/LAYERED_ONBOARDING.md
+          - DECISION_LOG.md
+          - docs/ORCHESTRATION_MODEL.md
+          - specs/policies/onboarding-policy.yaml
+      l4:
+        mode: current-task-only
+        sources:
+          - docs/handoff/NEXT_TASK.md
+          - current TaskPacket
+          - team session artifact when applicable
+    responsibility: Read broad enough context to package narrow downstream packets truthfully.
+  specialist:
+    breadth: narrow-by-default
+    layer_rules:
+      l0:
+        mode: minimal
+        sources:
+          - AGENTS.md
+      l1:
+        mode: minimal
+        sources:
+          - INDEX.md
+          - nearest relevant local index
+      l2:
+        mode: own-contract-only
+        sources:
+          - own specialist spec
+          - own prompt config
+      l3:
+        mode: selectively-provided
+        sources:
+          - task-relevant stable references only
+      l4:
+        mode: current-packet-only
+        sources:
+          - current TaskPacket
+          - upstream validated artifacts required by contract
+    responsibility: Stay inside packet scope and specialist-owned output boundaries.
+  team_state:
+    breadth: specialist-plus-team-state
+    layer_rules:
+      l0:
+        mode: minimal
+        sources:
+          - AGENTS.md
+      l1:
+        mode: minimal
+        sources:
+          - INDEX.md
+          - nearest relevant local index
+      l2:
+        mode: own-contract-only
+        sources:
+          - own specialist spec
+          - team definition for current state
+      l3:
+        mode: selectively-provided
+        sources:
+          - task-relevant stable references only
+      l4:
+        mode: team-state-context
+        sources:
+          - current TaskPacket
+          - team objective
+          - current team state
+          - upstream validated artifacts required by the downstream contract
+          - team session artifact reference
+    responsibility: Act like a narrow specialist while honoring explicit team-state context.

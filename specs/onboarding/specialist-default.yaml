@@ -1,0 +1,46 @@
+# Default specialist onboarding manifest scaffold.
+# This is durable configuration and documentation, not active runtime loading.
+schema_version: "v1"
+manifest_id: specialist-default
+display_name: Specialist Default Onboarding Manifest
+applies_to: specialist
+policy_ref: specs/policies/onboarding-policy.yaml
+source_of_truth_note: Current runtime authority still lives in TypeScript; this manifest is not runtime-loaded yet.
+layers:
+  l0:
+    description: Minimal runtime identity and global rules.
+    sources:
+      - path: AGENTS.md
+        reason: Shared operating rules for agents in this repo.
+  l1:
+    description: Minimal repo routing and conventions for the current role.
+    sources:
+      - path: INDEX.md
+        reason: Root bootstrap router.
+      - path: nearest relevant local index
+        reason: Keeps specialists narrow and task-specific.
+  l2:
+    description: Specialist role contract and owned artifact shape.
+    sources:
+      - path: own specialist spec
+        reason: Durable role definition for the assigned specialist.
+      - path: own prompt config
+        reason: Current runtime prompt contract and output expectations.
+      - path: own artifact template
+        reason: Structured output shape owned by the specialist.
+  l3:
+    description: Stable references selected only when relevant to the task type.
+    sources:
+      - path: task-relevant stable references only
+        reason: Avoid broad architecture reads by default.
+  l4:
+    description: Current run inputs only.
+    sources:
+      - path: current TaskPacket
+        reason: Current bounded task payload.
+      - path: upstream validated artifacts required by contract
+        reason: Narrow downstream inputs packaged by the orchestrator or router.
+responsibility_notes:
+  - Default to narrow onboarding and packet-scoped execution.
+  - Read only the stable references needed for the current task family.
+  - Treat this manifest as declarative metadata until runtime loading exists.
