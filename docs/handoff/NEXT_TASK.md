@@ -14,6 +14,12 @@ Read these four files in order before doing anything else. Do not read more by d
 
 If you finish those four reads and still feel underspecified for the active target below, the task is genuinely under-specified — record that in the verification checklist rather than expanding scope on your own.
 
+## Branch guard
+
+Expected branch: `taxonomy-migration`.
+
+Before editing, run `git branch --show-current`. If the result is not `taxonomy-migration`, stop and report the mismatch. The taxonomy migration phase (T-27 through T-34) is intentionally isolated from `main` until the final merge checkpoint.
+
 ## Single active target
 
 **T-28 — Specialist Taxonomy Migration, Stage 3 (team documentation migration).**
@@ -66,6 +72,7 @@ Read these lazily and only as needed for T-28:
 ## Verification checklist
 
 - [ ] Read `INDEX.md`, `AGENTS.md`, `docs/handoff/CURRENT_STATUS.md`, this file.
+- [ ] Confirm the current branch is `taxonomy-migration`.
 - [ ] Read the Stage 3 section of `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` and decision entries D-O5, D-O6, D-T8, D-T9.
 - [ ] Update `agents/teams/_TEAMS_INDEX.md` and `agents/teams/specialist-creator.md` only as needed.
 - [ ] Confirm no file under `extensions/`, `tests/`, `package.json`, `tsconfig.json`, or any runtime/router file was modified.

@@ -108,6 +108,7 @@ re-decide entries marked `Open`, `Proposed`, or `Deferred` in
 | T-31 | blocked | Stage 5 — Router and team definition migration (taxonomy) | `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` (Stage 5), Decision D-O6 | Default and conditional teams expressed as state-machine target model; bounded retries; explicit completion/escalation states. Blocked on T-30. |
 | T-32 | blocked | Stage 6 — Layered taxonomy validation | `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` (Stage 6), Decisions D-A2, D-D1, D-O3, D-O6, D-O7 | Specialist taxonomy, alias lifecycle, team state-machine, context/contract layer, and runtime/docs-alignment validation in place with staged enforcement. Blocked on T-29 (and T-30/T-31 for runtime/state-machine layers). |
 | T-33 | blocked | Stage 7 — Cleanup, alias lifecycle advancement, and deprecation | `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` (Stage 7), Decisions D-D1, D-O1, D-O4 | `tester` alias advances through `deprecated -> blocked-for-new-use -> removal-candidate -> removed` with explicit gating; D-O1 file rename strategy resolved; transitional notes removed. Blocked on T-32. |
+| T-34 | blocked | Merge taxonomy migration branch back to main | `docs/handoff/CURRENT_STATUS.md`, `docs/handoff/TASK_QUEUE.md`, `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` | T-27..T-33 are done; required checks pass; `taxonomy-migration` is reviewed; branch is merged into `main`; main handoff docs are updated after merge. Blocked on T-33. |
 
 ---
 
@@ -128,4 +129,5 @@ re-decide entries marked `Open`, `Proposed`, or `Deferred` in
 - T-24 is complete: the repo now has durable policy/onboarding scaffolding under `specs/` plus a distinct `artifacts/` runtime root.
 - T-25 is complete: the durable schema doc, reusable templates, and starter `build-team` spec now carry truthful declarative onboarding metadata.
 - T-26 is complete: the onboarding side quest now has validated durable docs, archived design rationale, a recorded config-root follow-on decision, and explicit future-work entries.
-- T-27 is complete (Specialist Taxonomy Migration, Stage 2): specialist specs now carry explicit base-class/variant annotations, migration notes, D-D1 lifecycle statuses where aliases are deprecated, and D-O7 context-order notes. T-28 is now `active`; T-29..T-33 remain queued/blocked behind it.
+- Specialist Taxonomy Migration work is isolated on the `taxonomy-migration` branch. Fresh agents assigned T-27 through T-34 should verify `git branch --show-current` before editing and stop if they are not on that branch.
+- T-27 is complete (Specialist Taxonomy Migration, Stage 2): specialist specs now carry explicit base-class/variant annotations, migration notes, D-D1 lifecycle statuses where aliases are deprecated, and D-O7 context-order notes. T-28 is now `active`; T-29..T-34 remain queued/blocked behind it.
