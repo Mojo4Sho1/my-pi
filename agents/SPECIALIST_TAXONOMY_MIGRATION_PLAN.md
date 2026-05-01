@@ -307,7 +307,8 @@ Likely future work:
       ```
 - [ ] Runtime metadata mirrors or consumes the YAML/documentation
       metadata defined in Stage 3.5 rather than independently
-      redefining it.
+      redefining it. For this stage, mirror the V2 YAML shape in
+      TypeScript; do not implement runtime YAML loading.
 - [ ] Populate runtime specialist registrations with canonical base
       class and variant values consistent with the taxonomy.
 - [ ] Generic Builder remains registered as `builder` (per D-O5). No
@@ -323,6 +324,10 @@ Likely future work:
 - [ ] Add `builder-test` as the canonical runtime identifier.
       `tester` resolves as a deprecated alias during the transition,
       with the lifecycle state set to `deprecated` (per D-D1).
+- [ ] Alias resolution may be generic in shape if that fits the
+      existing code, but only `tester` -> `builder-test` becomes
+      behaviorally active in this stage. Proposed Scribe/Reviewer
+      variant aliases remain future-compatible metadata only.
 - [ ] Runtime validation ensures each variant prefix matches its
       base class.
 
@@ -333,6 +338,8 @@ Acceptance criteria for this stage (when it is started):
 - Identifier transitions preserve current behavior until the cleanup
   stage.
 - `tester` references continue to resolve via the deprecated alias.
+- `builder-test` references resolve as the canonical name for the
+  same test-authoring specialist.
 - The default everyday team continues to use `builder` as the
   generic Builder.
 - Tests still pass without taxonomy-driven assertions yet (those

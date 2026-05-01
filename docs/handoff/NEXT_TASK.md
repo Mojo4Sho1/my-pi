@@ -52,6 +52,7 @@ Read these lazily and only as needed for T-30:
   - `baseClass`
   - `variant`
   - `artifactResponsibility`
+- Prefer placing this grouped taxonomy object directly on existing specialist runtime/config objects if that matches the current code shape. Do not create a separate registry unless the existing implementation already points that way.
 - Preserve generic `builder` as the canonical generic Builder; do not rename it to `builder-code`.
 - Model `tester` as transitional metadata toward canonical `builder-test`:
   - canonical name: `builder-test`
@@ -61,17 +62,28 @@ Read these lazily and only as needed for T-30:
   - deprecated alias: `tester`
   - migration status: `transitional`
   - alias lifecycle state: `deprecated`
-- Add or update runtime alias resolution so current `tester` references continue to work during the transition.
+- Add or update runtime alias resolution so current `tester` references continue to work during the transition and canonical `builder-test` can resolve through the same mechanism.
 - Ensure runtime metadata mirrors the V2 YAML/schema checkpoint rather than redefining incompatible shapes.
 - Add focused tests for taxonomy metadata shape and alias resolution if existing tests do not cover the new behavior.
 
 If a required condition is already satisfied, record it as satisfied in the handoff update instead of rewriting text for cosmetic reasons.
+
+## Implementation clarifications
+
+- Alias resolution should be generic in shape if that is natural in the existing code, but only `tester` -> `builder-test` is required to become behaviorally active in T-30.
+- Do not activate proposed aliases such as `spec-writer` -> `scribe-spec`, `schema-designer` -> `scribe-schema`, `routing-designer` -> `scribe-routing`, `critic` -> `reviewer-critic`, or `boundary-auditor` -> `reviewer-boundary-auditor`. Those remain future-compatible metadata only unless a later task explicitly promotes them.
+- `builder-test` should become the canonical taxonomy/runtime-resolvable name for the test-authoring specialist, while `tester` remains a deprecated compatibility alias.
+- T-30 should not load YAML at runtime. Mirror the V2 YAML shape in TypeScript runtime metadata; runtime YAML loading is a later capability.
+- Test coverage should focus on the taxonomy metadata shape and alias resolution. Update existing orchestrator/team tests only where needed to prove both `tester` compatibility and `builder-test` resolution; do not migrate whole team routing in this task.
+- Keep the concrete runtime behavior centered on the canonical D-O4 migration (`tester` -> `builder-test`). Other reclassifications can use the same metadata shape later without being activated now.
 
 ## Out of scope
 
 - Router/team definition migration for T-31.
 - Layered validation enforcement for T-32, beyond focused tests needed to protect T-30 behavior.
 - Alias cleanup or removal for T-33.
+- Runtime YAML loading.
+- Activating proposed Scribe/Reviewer variant aliases beyond `tester` -> `builder-test`.
 - Specialist filename rename strategy D-O1.
 - Re-deciding any item marked `Open`, `Proposed`, or `Deferred`.
 - Broad refactors unrelated to taxonomy metadata.
@@ -81,6 +93,7 @@ If a required condition is already satisfied, record it as satisfied in the hand
 - Specialist runtime configurations declare grouped taxonomy metadata.
 - Identifier transitions preserve current behavior.
 - `tester` references continue to resolve through the deprecated alias path.
+- `builder-test` resolves as the canonical name for the same specialist during the transition.
 - `builder` remains the generic Builder.
 - Runtime metadata is compatible with the V2 YAML/schema checkpoint.
 - Required TypeScript checks pass.

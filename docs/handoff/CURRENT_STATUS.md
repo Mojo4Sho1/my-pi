@@ -80,6 +80,7 @@ T-10 (live build-team validation, Stage 5a.3b) is parked while the taxonomy migr
 ## Known gaps / blockers
 
 - None blocking T-30. The required T-29 YAML schema/template checkpoint is complete.
+- T-30 ambiguity has been narrowed: implement a generic alias-resolution shape only if natural, but make only `tester` -> `builder-test` behaviorally active; do not activate proposed Scribe/Reviewer variant aliases; do not load YAML at runtime.
 - T-10 is parked behind the active taxonomy migration phase, not blocked. A future agent will return to it after T-27..T-33.
 - D-O1 (specialist filename rename strategy) remains `Open` and is intentionally not resolved by T-27. It is the only decision-log Open item left in the taxonomy track.
 - `/next` skill not loading in Pi remains a separate background issue.
@@ -106,6 +107,7 @@ T-30 — Specialist Taxonomy Migration, Stage 4 (Runtime/type metadata migration
 
 - Specialist runtime configurations declare grouped taxonomy metadata.
 - `builder` remains the generic Builder; no `builder-code` rename occurs.
-- `tester` enters alias-first migration toward canonical `builder-test` while current `tester` references keep working.
+- `builder-test` becomes the canonical runtime-resolvable name for test authoring while current `tester` references keep working as a deprecated compatibility alias.
 - Runtime metadata mirrors the V2 YAML/schema checkpoint shape.
+- YAML is not loaded at runtime in T-30.
 - Typecheck and tests pass.
