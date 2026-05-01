@@ -1,8 +1,15 @@
 # Canonical starter build-team authoring spec for Stage 5a.7.
 # This is a future source-of-truth authoring input, not current runtime authority.
-schema_version: "v1"
+schema_version: "v2"
+artifact_kind: team_definition
 team_id: build-team
+canonical_name: build-team
+current_runtime_id: build-team
 display_name: Build Team
+migration_status: active
+migration_notes:
+  - This YAML is a future authoring source for taxonomy/routing metadata; current runtime authority remains TypeScript.
+  - T-30 or later may mirror this metadata into runtime types.
 purpose: Plan, implement, author focused tests, run and fix against those tests, then review the final result.
 onboarding:
   profile: orchestrator
@@ -26,10 +33,16 @@ onboarding:
     - transition semantics for success, partial, failure, and escalation
   upstream_artifacts: []
 members:
-  - specialist_planner
-  - specialist_builder
-  - specialist_tester
-  - specialist_reviewer
+  - planner
+  - builder
+  - builder-test
+  - reviewer
+aliases:
+  - name: specialist_tester
+    canonical_target: builder-test
+    reason: Current runtime still exposes tester-oriented identifiers before alias migration.
+    lifecycle_state: deprecated
+    cleanup_condition: Advance after T-30 adds canonical builder-test runtime metadata and compatibility alias handling.
 entry_contract:
   fields:
     - name: objective
@@ -47,6 +60,8 @@ state_machine:
     - failed
   states:
     planning:
+      type: specialist
+      target: planner
       transitions:
         - on: success
           to: building
@@ -57,6 +72,8 @@ state_machine:
         - on: escalation
           to: failed
     building:
+      type: specialist
+      target: builder
       transitions:
         - on: success
           to: testing
@@ -69,6 +86,8 @@ state_machine:
         - on: escalation
           to: failed
     testing:
+      type: specialist
+      target: builder-test
       transitions:
         - on: success
           to: rebuilding
@@ -81,6 +100,8 @@ state_machine:
         - on: escalation
           to: failed
     rebuilding:
+      type: specialist
+      target: builder
       transitions:
         - on: success
           to: review
@@ -93,6 +114,8 @@ state_machine:
         - on: escalation
           to: failed
     review:
+      type: specialist
+      target: reviewer
       transitions:
         - on: success
           to: done
@@ -105,15 +128,19 @@ state_machine:
         - on: escalation
           to: failed
     done:
+      type: terminal
+      target: orchestrator
       transitions: []
     failed:
+      type: terminal
+      target: orchestrator
       transitions: []
 state_to_specialist_mapping:
-  planning: specialist_planner
-  building: specialist_builder
-  testing: specialist_tester
-  rebuilding: specialist_builder
-  review: specialist_reviewer
+  planning: planner
+  building: builder
+  testing: builder-test
+  rebuilding: builder
+  review: reviewer
   done: orchestrator
   failed: orchestrator
 per_state_expected_artifact:

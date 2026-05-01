@@ -1,34 +1,19 @@
-# Reusable team authoring template.
-# This is a future source-of-truth authoring input, not an active runtime loader.
+# Canonical conditional design-to-build team authoring spec.
+# This is a future source-of-truth authoring input, not current runtime authority.
 schema_version: "v2"
 artifact_kind: team_definition
-team_id: example-team
-canonical_name: example-team
-current_runtime_id: example-team
-display_name: Example Team
+team_id: design-to-build-team
+canonical_name: design-to-build-team
+current_runtime_id: design-to-build-team
+display_name: Design To Build Team
 migration_status: active
 migration_notes:
-  - This template is state-machine ready and remains declarative until runtime YAML loading exists.
-purpose: Describe the end-to-end outcome this team is responsible for producing.
-onboarding:
-  # Declarative metadata for future orchestrator/team-state context assembly.
-  # This documents onboarding intent; it is not runtime-loaded yet.
-  profile: orchestrator
-  layer3_refs:
-    - path: docs/LAYERED_ONBOARDING.md
-      section: Team-state profile
-      reason: Explains which team-state inputs should be packaged for downstream specialists.
-    - path: docs/ORCHESTRATION_MODEL.md
-      reason: Keeps the team aligned with the repo's orchestrator/team/specialist hierarchy.
-  team_state_context:
-    - current team state
-    - current team objective
-    - current team session artifact reference
-    - upstream validated artifacts required by the active state contract
-    - transition semantics for success, partial, failure, and escalation
-  upstream_artifacts: []
+  - D-T9 conditional Scribe insertion expressed as state-machine-ready YAML.
+  - Use only when a task needs specification, schema, or routing design before implementation.
+purpose: Add a Scribe design pass before bounded implementation and review.
 members:
   - planner
+  - scribe-spec
   - builder
   - reviewer
 aliases: []
@@ -37,11 +22,11 @@ entry_contract:
     - name: objective
       type: string
       required: true
-      description: The primary task objective for the team.
-    - name: relevant_files
-      type: string[]
-      required: false
-      description: Optional initial file scope for the team.
+      description: Primary design-to-build objective.
+    - name: designNeed
+      type: string
+      required: true
+      description: Why a Scribe design pass is required.
 state_machine:
   start_state: planning
   terminal_states:
@@ -53,24 +38,38 @@ state_machine:
       target: planner
       transitions:
         - on: success
-          to: implementation
+          to: scribing
         - on: partial
           to: failed
         - on: failure
           to: failed
         - on: escalation
           to: failed
-    implementation:
+    scribing:
+      type: specialist
+      target: scribe-spec
+      transitions:
+        - on: success
+          to: building
+        - on: partial
+          to: planning
+          max_iterations: 1
+        - on: failure
+          to: planning
+          max_iterations: 1
+        - on: escalation
+          to: failed
+    building:
       type: specialist
       target: builder
       transitions:
         - on: success
           to: review
         - on: partial
-          to: planning
+          to: scribing
           max_iterations: 1
         - on: failure
-          to: planning
+          to: scribing
           max_iterations: 1
         - on: escalation
           to: failed
@@ -81,10 +80,10 @@ state_machine:
         - on: success
           to: done
         - on: partial
-          to: implementation
+          to: building
           max_iterations: 1
         - on: failure
-          to: implementation
+          to: building
           max_iterations: 1
         - on: escalation
           to: failed
@@ -98,7 +97,8 @@ state_machine:
       transitions: []
 state_to_specialist_mapping:
   planning: planner
-  implementation: builder
+  scribing: scribe-spec
+  building: builder
   review: reviewer
   done: orchestrator
   failed: orchestrator
@@ -106,7 +106,7 @@ per_state_expected_artifact:
   planning:
     consumes:
       - objective
-      - relevant_files
+      - designNeed
     produces:
       - steps
       - dependencies
@@ -118,12 +118,30 @@ per_state_expected_artifact:
     read_only_fields:
       - artifactId
       - teamSessionId
-  implementation:
+      - taskPacketId
+  scribing:
     consumes:
       - steps
       - dependencies
       - risks
     produces:
+      - purpose
+      - boundaries
+      - successCriteria
+    editable_fields:
+      - purpose
+      - boundaries
+      - successCriteria
+    read_only_fields:
+      - artifactId
+      - teamSessionId
+      - taskPacketId
+  building:
+    consumes:
+      - purpose
+      - boundaries
+      - successCriteria
+    produces:
       - modifiedFiles
       - changeDescription
     editable_fields:
@@ -132,6 +150,7 @@ per_state_expected_artifact:
     read_only_fields:
       - artifactId
       - teamSessionId
+      - taskPacketId
   review:
     consumes:
       - modifiedFiles
@@ -147,6 +166,7 @@ per_state_expected_artifact:
     read_only_fields:
       - artifactId
       - teamSessionId
+      - taskPacketId
   done:
     consumes:
       - verdict
@@ -169,19 +189,24 @@ per_state_expected_artifact:
       - prior_step_artifacts
 transition_rules:
   planning:
-    success: Move to the first implementation state once a plan artifact exists.
-    partial: Stop as failed because the starter flow does not accept advisory planning output.
-    failure: Stop as failed because no executable plan artifact was produced.
+    success: Move to Scribe design once planning succeeds.
+    partial: Stop as failed because the design gate needs a complete plan.
+    failure: Stop as failed.
     escalation: Stop as failed and surface the escalation.
-  implementation:
-    success: Move forward once implementation artifacts satisfy the next state's contract.
-    partial: Loop upstream for replanning within the declared iteration limit.
-    failure: Loop upstream for replanning within the declared iteration limit.
+  scribing:
+    success: Move to implementation once the design artifact exists.
+    partial: Return to planning within the loop limit.
+    failure: Return to planning within the loop limit.
+    escalation: Stop as failed and surface the escalation.
+  building:
+    success: Move to review.
+    partial: Return to scribing within the loop limit.
+    failure: Return to scribing within the loop limit.
     escalation: Stop as failed and surface the escalation.
   review:
     success: Finish the team run.
-    partial: Loop back for another implementation pass within the declared iteration limit.
-    failure: Loop back for another implementation pass within the declared iteration limit.
+    partial: Return to building within the loop limit.
+    failure: Return to building within the loop limit.
     escalation: Stop as failed and surface the escalation.
   done:
     success: Terminal state; no further routing.
@@ -194,24 +219,33 @@ transition_rules:
     failure: Terminal state; no further routing.
     escalation: Terminal state; no further routing.
 partial_handling:
-  planning: Treat partial output as terminal failure for this team.
-  implementation: Route partial output to planning with the explicit loop limit.
-  review: Route partial output to implementation with the explicit loop limit.
+  planning: Treat partial planning as terminal failure.
+  scribing: Route partial design output to planning.
+  building: Route partial implementation to scribing.
+  review: Route partial review to building.
 loop_limits:
-  - from: implementation
+  - from: scribing
     to: planning
     on: partial
     max_iterations: 1
-  - from: implementation
+  - from: scribing
     to: planning
     on: failure
     max_iterations: 1
+  - from: building
+    to: scribing
+    on: partial
+    max_iterations: 1
+  - from: building
+    to: scribing
+    on: failure
+    max_iterations: 1
   - from: review
-    to: implementation
+    to: building
     on: partial
     max_iterations: 1
   - from: review
-    to: implementation
+    to: building
     on: failure
     max_iterations: 1
 exit_contract:
@@ -223,12 +257,12 @@ exit_contract:
     - name: modifiedFiles
       type: string[]
       required: true
-      description: Final changed files surfaced from the implementation path.
+      description: Files changed by the builder.
 final_result_requirements:
   required_fields:
     - passed
     - modifiedFiles
   derived_from_states:
-    - implementation
+    - building
     - review
-  success_condition: The team reaches done with the required exit fields present.
+  success_condition: Reach done after design, implementation, and review artifacts satisfy their contracts.

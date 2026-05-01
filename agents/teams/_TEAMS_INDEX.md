@@ -24,6 +24,12 @@ Per the taxonomy doc:
 
 These canonical flows describe the conceptual team shapes. Runtime team definitions in `extensions/teams/definitions.ts` continue to use current identifiers (for example, `tester` rather than `builder-test`) until the runtime migration stages complete; see `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md`.
 
+## Flow Notation
+
+Linear flows such as `planner -> builder -> reviewer` are human-readable shorthand for simple team shapes. Per D-O6 in `agents/SPECIALIST_TAXONOMY_DECISION_LOG.md`, runtime-capable team definitions should evolve toward state-machine definitions with explicit nodes, transitions, retry policies, completion states, and escalation states.
+
+Conditional expansions should be encoded as transition logic or optional nodes in that future state-machine model, not as unrelated duplicate teams. For example, the design-to-build expansion inserts Scribe only when blueprint artifacts are needed; Scribe is not mandatory for every implementation team.
+
 ## Current teams
 
 - `agents/teams/specialist-creator.md`

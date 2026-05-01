@@ -1,6 +1,6 @@
 # Next Task
 
-**Last updated:** 2026-04-30
+**Last updated:** 2026-05-01
 **Owner:** Joe
 
 ## Cold-start orientation
@@ -22,78 +22,95 @@ Before editing, run `git branch --show-current`. If the result is not `taxonomy-
 
 ## Single active target
 
-**T-28 — Specialist Taxonomy Migration, Stage 3 (team documentation migration).**
+**T-30 — Specialist Taxonomy Migration, Stage 4 (Runtime/type metadata migration).**
 
-This task is documentation-only. No runtime code, TypeScript, router files, package files, tests, or files under `extensions/` or `tests/` are to be changed in this task.
+This is the first runtime/type migration after the YAML schema checkpoint. It may touch TypeScript runtime metadata and tests as needed, but it must preserve current behavior while introducing grouped taxonomy metadata and alias-first migration support.
 
-The work is bounded to team documentation under `agents/teams/` plus related routing/handoff references. A successful run of T-28 will align team docs with the canonical taxonomy without changing runtime team definitions.
-
-Do only T-28 in this pass. Do not pull T-29 or later work forward; after T-28 is complete, update the handoff docs so the next fresh agent receives T-29.
+Do only T-30 in this pass. Do not pull T-31 router/team migration, T-32 validation enforcement, or T-33 cleanup forward.
 
 ## Why this task is next
 
-- T-27 is complete: specialist specs now declare base class, variant, migration notes, D-D1 alias lifecycle status where relevant, and D-O7 context-order notes.
-- The next smallest migration step is Stage 3: team documentation should reflect the default everyday team, conditional Scribe insertion, and the future state-machine direction.
-- T-10 remains parked while the taxonomy migration phase is active. A future agent will return to it after the taxonomy documentation and schema checkpoints land.
+- T-27 is complete: specialist specs declare base class, variant, migration notes, D-D1 alias lifecycle status where relevant, and D-O7 context-order notes.
+- T-28 is complete: team docs reflect the default everyday team, conditional Scribe insertion, linear flow shorthand, and D-O6 state-machine direction.
+- T-29 is complete: V2 YAML schema/template/checkpoint artifacts now exist under `specs/`, including contract layers, context bundle template, output templates, examples, and state-machine-ready team specs.
+- Runtime/type metadata migration was blocked on T-29 and is now unblocked.
+- T-10 remains parked while the taxonomy migration phase is active.
 
 ## Authoritative inputs
 
-Read these lazily and only as needed for T-28:
+Read these lazily and only as needed for T-30:
 
-1. `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` (Stage 3 section only)
-2. `agents/SPECIALIST_TAXONOMY_AND_CONTEXT_MODEL.md` (team sections and current specialist reclassification)
-3. `agents/SPECIALIST_TAXONOMY_DECISION_LOG.md` entries D-O5, D-O6, D-T8, and D-T9
-4. `agents/teams/_TEAMS_INDEX.md`
-5. `agents/teams/specialist-creator.md`
+1. `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` (Stage 4 section only)
+2. `agents/SPECIALIST_TAXONOMY_AND_CONTEXT_MODEL.md` (base classes, variants, and artifact responsibility model)
+3. `agents/SPECIALIST_TAXONOMY_DECISION_LOG.md` entries D-O3, D-O4, D-O5, D-D1, and D-A4
+4. `specs/schemas/SPECIALIST_AND_TEAM_YAML_SPEC.md` (V2 taxonomy fields and alias lifecycle fields)
+5. `specs/examples/builder-test.specialist.example.yaml` (example of `tester` -> `builder-test` alias-first metadata)
 
-## Concrete edits required by T-28
+## Concrete edits required by T-30
 
-- `agents/teams/_TEAMS_INDEX.md` should document the default everyday team `planner -> builder -> reviewer`.
-- It should document the conditional design-to-build team `planner -> scribe -> builder -> reviewer`.
-- It should describe simple linear flows as human-readable shorthand only and point toward future state-machine team definitions per D-O6.
-- It should avoid committing to a specific test-authoring expansion flow beyond the settled taxonomy rule that `builder-test` is a Builder variant.
-- Existing team specs should reference the taxonomy doc and note planned member identifier migration without changing runtime identifiers.
-- `agents/teams/specialist-creator.md` should note future reclassification of its members under the new variant names without changing runtime member identifiers.
+- Add grouped runtime taxonomy metadata for specialists:
+  - `baseClass`
+  - `variant`
+  - `artifactResponsibility`
+- Preserve generic `builder` as the canonical generic Builder; do not rename it to `builder-code`.
+- Model `tester` as transitional metadata toward canonical `builder-test`:
+  - canonical name: `builder-test`
+  - current runtime id: `tester`
+  - base class: `Builder`
+  - variant: `builder-test`
+  - deprecated alias: `tester`
+  - migration status: `transitional`
+  - alias lifecycle state: `deprecated`
+- Add or update runtime alias resolution so current `tester` references continue to work during the transition.
+- Ensure runtime metadata mirrors the V2 YAML/schema checkpoint rather than redefining incompatible shapes.
+- Add focused tests for taxonomy metadata shape and alias resolution if existing tests do not cover the new behavior.
 
 If a required condition is already satisfied, record it as satisfied in the handoff update instead of rewriting text for cosmetic reasons.
 
 ## Out of scope
 
-- Runtime team definition changes under `extensions/teams/`.
-- Any changes under `extensions/`, `tests/`, `package.json`, or `tsconfig.json`.
-- Specialist file renames or runtime identifier renames.
-- YAML schema/template work for T-29.
+- Router/team definition migration for T-31.
+- Layered validation enforcement for T-32, beyond focused tests needed to protect T-30 behavior.
+- Alias cleanup or removal for T-33.
+- Specialist filename rename strategy D-O1.
 - Re-deciding any item marked `Open`, `Proposed`, or `Deferred`.
+- Broad refactors unrelated to taxonomy metadata.
 
 ## Acceptance criteria
 
-- Team documentation does not imply that Scribe is mandatory for every implementation team.
-- Team documentation does not imply that running tests alone requires a separate specialist.
-- Team documentation makes clear that linear flows are shorthand and the canonical direction is a state-machine model (D-O6).
-- Existing team specs reference the taxonomy and planned member identifier migration.
-- No runtime team definition has been changed.
+- Specialist runtime configurations declare grouped taxonomy metadata.
+- Identifier transitions preserve current behavior.
+- `tester` references continue to resolve through the deprecated alias path.
+- `builder` remains the generic Builder.
+- Runtime metadata is compatible with the V2 YAML/schema checkpoint.
+- Required TypeScript checks pass.
+- Existing tests pass, plus any focused tests added for T-30.
 
 ## Verification checklist
 
 - [ ] Read `INDEX.md`, `AGENTS.md`, `docs/handoff/CURRENT_STATUS.md`, this file.
 - [ ] Confirm the current branch is `taxonomy-migration`.
-- [ ] Read the Stage 3 section of `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` and decision entries D-O5, D-O6, D-T8, D-T9.
-- [ ] Update `agents/teams/_TEAMS_INDEX.md` and `agents/teams/specialist-creator.md` only as needed.
-- [ ] Confirm no file under `extensions/`, `tests/`, `package.json`, `tsconfig.json`, or any runtime/router file was modified.
-- [ ] Run `git status` and confirm only documentation files relevant to T-28 changed.
+- [ ] Read the Stage 4 section of `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` and decision entries D-O3, D-O4, D-O5, D-D1, D-A4.
+- [ ] Update only runtime/type metadata, alias-resolution behavior, and focused tests needed for T-30.
+- [ ] Confirm no router/team migration or alias cleanup work from T-31/T-33 was pulled forward.
+- [ ] Run `make typecheck`.
+- [ ] Run `make test`.
+- [ ] Run `git status` and confirm changed files are relevant to T-30.
 
-## Handoff protocol after completing T-28
+## Handoff protocol after completing T-30
 
-1. Update `docs/handoff/CURRENT_STATUS.md` to record T-28 complete and what concretely changed in team docs.
+1. Update `docs/handoff/CURRENT_STATUS.md` to record T-30 complete and what concretely changed in runtime/type taxonomy metadata.
 2. In `docs/handoff/TASK_QUEUE.md`:
-   - Mark T-28 `done`.
-   - Mark T-29 (Stage 3.5 — YAML schema and template design) `active`.
-3. Update this file (`NEXT_TASK.md`) so it points at T-29 with the same cold-start orientation structure used here.
+   - Mark T-30 `done`.
+   - Mark T-31 (Stage 5 — Router and team definition migration) `active`.
+   - If T-31 remains blocked for a newly discovered reason, record that explicitly rather than silently advancing it.
+3. Update this file (`NEXT_TASK.md`) so it points at T-31 with the same cold-start orientation structure used here.
 4. Do not touch `DECISIONS_NEEDED.md` unless you discovered a genuine new authority gap.
 
 ## Risks / gotchas
 
-- Do not change runtime team definitions while aligning team docs.
-- Do not imply `builder-code` is required; D-O5 keeps `builder` as the generic Builder.
-- Do not resolve D-O1 filename strategy.
-- Do not start T-29 schema/template directories during T-28.
+- Do not rename specialist files.
+- Do not remove the `tester` compatibility path.
+- Do not rename generic `builder` to `builder-code`.
+- Do not start T-31 state-machine router migration in the same pass.
+- Keep YAML/runtime authority truthful: TypeScript remains the active runtime, but it should mirror the V2 YAML metadata.

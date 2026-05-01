@@ -1,24 +1,41 @@
 # Current Status
 
-**Last updated:** 2026-04-30
+**Last updated:** 2026-05-01
 **Owner:** Joe
 
 ## Current focus
 
-**Specialist Taxonomy Migration phase is now active.** The active target is **T-28 — Stage 3 (team documentation migration)**, a documentation-only task under `agents/teams/`.
+**Specialist Taxonomy Migration phase is now active.** The active target is **T-30 — Stage 4 (Runtime/type metadata migration)**, the first runtime/type pass after the YAML schema checkpoint.
 
 T-10 (live build-team validation, Stage 5a.3b) is parked while the taxonomy migration phase runs. The layered onboarding side quest (T-22–T-26) and the 2026-04-30 taxonomy decision pass are both complete.
 
 **Branch guard:** Taxonomy migration work T-27 through T-34 belongs on `taxonomy-migration`. A fresh agent should run `git branch --show-current` before editing and stop if the result is not `taxonomy-migration`.
 
 **Authoritative inputs for the active task:**
-- `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` (Stage 3)
-- `agents/SPECIALIST_TAXONOMY_AND_CONTEXT_MODEL.md` (team sections and current specialist reclassification)
-- `agents/SPECIALIST_TAXONOMY_DECISION_LOG.md` (entries D-O5, D-O6, D-T8, D-T9)
+- `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` (Stage 4)
+- `agents/SPECIALIST_TAXONOMY_AND_CONTEXT_MODEL.md` (base classes, variants, and artifact responsibilities)
+- `agents/SPECIALIST_TAXONOMY_DECISION_LOG.md` (entries D-O3, D-O4, D-O5, D-D1, plus D-A4 for YAML/runtime mirroring)
+- `specs/schemas/SPECIALIST_AND_TEAM_YAML_SPEC.md` (V2 taxonomy fields and alias lifecycle fields)
 - `docs/handoff/NEXT_TASK.md` (cold-start orientation and concrete edit list)
 
 ## Completed in current focus
 
+- T-29 (Specialist Taxonomy Migration, Stage 3.5) completed:
+  - `specs/schemas/SPECIALIST_AND_TEAM_YAML_SPEC.md` now defines the V2 schema surface for specialist definitions, team definitions, context bundles, contract layers, invocation addenda, output template references, and effective-contract assembly.
+  - The schema doc includes a field glossary, required/optional rules, D-D1 alias/deprecation lifecycle fields, migration-status fields, validation expectations, and schema V2 open questions.
+  - `specs/specialists/SPECIALIST_TEMPLATE.yaml`, `specs/teams/TEAM_TEMPLATE.yaml`, and `specs/teams/build-team.yaml` now carry V2 taxonomy/state-machine-ready fields while staying explicit that YAML is not runtime-loaded yet.
+  - `specs/contracts/universal.md` and `specs/contracts/repository.md` define the committed universal and repository contract layers.
+  - `specs/context/CONTEXT_BUNDLE_TEMPLATE.yaml` defines context bundles with `presentation_order` and `authority_order` per D-O7.
+  - `specs/templates/` now contains stable output template references for plan, implementation, test, review, specification, schema, routing-design, critique, boundary-audit, and example artifacts.
+  - `specs/examples/` includes clearly marked example specialist, team, and effective-contract artifacts. The effective-contract example is explicitly marked example-only; generated effective contracts are still not committed by default.
+  - `specs/teams/default-everyday-team.yaml` and `specs/teams/design-to-build-team.yaml` provide state-machine-ready YAML for the settled default and conditional team shapes.
+  - No runtime code, TypeScript files, router files, package files, or tests were changed for T-29.
+- T-28 (Specialist Taxonomy Migration, Stage 3) completed:
+  - `agents/teams/_TEAMS_INDEX.md` documents the default everyday team `planner -> builder -> reviewer`.
+  - `agents/teams/_TEAMS_INDEX.md` documents the conditional design-to-build team `planner -> scribe -> builder -> reviewer` and states that Scribe is conditional, not mandatory.
+  - `agents/teams/_TEAMS_INDEX.md` now calls linear flows human-readable shorthand and points to the D-O6 state-machine direction for runtime-capable team definitions.
+  - Team docs avoid committing to a specific test-authoring expansion flow beyond the settled taxonomy rule that `builder-test` is a Builder variant.
+  - `agents/teams/specialist-creator.md` references the taxonomy and migration plan, and notes planned member reclassification under new variant names without changing runtime member identifiers.
 - T-27 (Specialist Taxonomy Migration, Stage 2) completed:
   - Every specialist definition now carries explicit `base_class`, `variant`, `canonical_name`, alias, migration-status, and artifact-responsibility metadata.
   - `tester.md` points at canonical `builder-test`, marks `tester` as a deprecated alias per D-O4/D-D1, and frames test work as Builder-variant test artifact authoring.
@@ -62,7 +79,7 @@ T-10 (live build-team validation, Stage 5a.3b) is parked while the taxonomy migr
 
 ## Known gaps / blockers
 
-- None blocking T-28. The task is documentation-only and self-contained.
+- None blocking T-30. The required T-29 YAML schema/template checkpoint is complete.
 - T-10 is parked behind the active taxonomy migration phase, not blocked. A future agent will return to it after T-27..T-33.
 - D-O1 (specialist filename rename strategy) remains `Open` and is intentionally not resolved by T-27. It is the only decision-log Open item left in the taxonomy track.
 - `/next` skill not loading in Pi remains a separate background issue.
@@ -83,13 +100,12 @@ T-10 (live build-team validation, Stage 5a.3b) is parked while the taxonomy migr
 
 ## Next task (single target)
 
-T-28 — Specialist Taxonomy Migration, Stage 3 (team documentation migration). See `NEXT_TASK.md` for the cold-start orientation, concrete edit list, and verification checklist.
+T-30 — Specialist Taxonomy Migration, Stage 4 (Runtime/type metadata migration). See `NEXT_TASK.md` for the cold-start orientation, concrete edit list, and verification checklist.
 
 ## Definition of done for next task
 
-- `agents/teams/_TEAMS_INDEX.md` documents the default everyday team `planner -> builder -> reviewer`.
-- `agents/teams/_TEAMS_INDEX.md` documents the conditional design-to-build team `planner -> scribe -> builder -> reviewer`.
-- Team docs describe simple linear flows as human-readable shorthand and point toward the state-machine model per D-O6.
-- Team docs do not commit to a specific test-authoring expansion flow beyond the settled `builder-test` taxonomy rule.
-- Existing team specs reference the taxonomy and planned member identifier migration without changing runtime identifiers.
-- No runtime team definition has been changed.
+- Specialist runtime configurations declare grouped taxonomy metadata.
+- `builder` remains the generic Builder; no `builder-code` rename occurs.
+- `tester` enters alias-first migration toward canonical `builder-test` while current `tester` references keep working.
+- Runtime metadata mirrors the V2 YAML/schema checkpoint shape.
+- Typecheck and tests pass.

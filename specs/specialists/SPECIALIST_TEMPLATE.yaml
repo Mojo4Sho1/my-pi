@@ -1,9 +1,29 @@
 # Reusable specialist authoring template.
 # This is a future source-of-truth authoring input, not an active runtime loader.
-schema_version: "v1"
+schema_version: "v2"
+artifact_kind: specialist_definition
 specialist_id: specialist_example
+canonical_name: specialist-example
+current_runtime_id: specialist_example
 display_name: Example Specialist
 role: example-role
+base_class: Builder
+variant: builder-example
+artifact_responsibility:
+  primary:
+    - example_artifact
+  excluded:
+    - router-owned state
+    - unrelated repository files
+aliases:
+  - name: specialist_example
+    canonical_target: specialist-example
+    reason: Example compatibility alias while runtime ids still use snake_case.
+    lifecycle_state: deprecated
+    cleanup_condition: Remove after runtime routing accepts canonical kebab-case ids.
+migration_status: transitional
+migration_notes:
+  - This template illustrates V2 taxonomy metadata; it is not runtime-loaded yet.
 purpose: Describe the bounded responsibility this specialist owns.
 onboarding:
   # Declarative metadata for future orchestrator context construction.
@@ -87,6 +107,7 @@ status_semantics:
   failure: The task could not be completed and no truthful in-scope completion is available.
   escalation: Human or orchestrator intervention is needed before safe progress can continue.
 artifact_template:
+  template_id: example-artifact
   artifact_type: example_artifact
   summary_guidance: Summarize the outcome in one or two sentences derived from the structured fields.
   fields:
@@ -130,3 +151,18 @@ validation_requirements:
   adequacy_checks:
     - Summary text should be derivable from the structured artifact.
     - Produced fields should remain inside the declared editable field list.
+  taxonomy_rules:
+    - base_class must be one of Planner, Scribe, Builder, Reviewer, or null for out-of-taxonomy utilities.
+    - variant must be null for generic base specialists or a base-class-prefixed kebab-case value.
+  alias_lifecycle_rules:
+    - Deprecated aliases must name the canonical target, reason, lifecycle state, and cleanup condition.
+variant_contract:
+  inherits:
+    - universal-specialist-contract
+    - repository-contract
+    - base-class:Builder
+  constraints:
+    - Do only the variant-specific work described by artifact_responsibility.primary.
+    - Escalate if the task asks for excluded artifacts.
+  output_template_refs:
+    - example-artifact

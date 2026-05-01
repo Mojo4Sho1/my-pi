@@ -1,0 +1,75 @@
+# EXAMPLE ONLY: assembled effective contract artifact.
+# Generated effective contracts must not be committed by default.
+schema_version: "v2"
+artifact_kind: effective_contract_example
+example: true
+generated: true
+target:
+  specialist_id: builder-test
+  current_runtime_id: tester
+  team_id: build-team
+  state: testing
+presentation_order:
+  - base_specialist_context
+  - variant_context
+  - repository_rules
+  - assembled_specialist_contract
+  - orchestrator_task_packet
+  - task_specific_context
+  - upstream_artifacts_and_evidence
+  - output_template
+authority_order:
+  - orchestrator_task_packet
+  - invocation_addendum
+  - repository_rules
+  - universal_contract
+  - team_node_contract
+  - variant_contract
+  - base_class_contract
+  - output_template
+  - upstream_artifacts_and_evidence
+resolved_layers:
+  - layer: universal_contract
+    source: specs/contracts/universal.md
+  - layer: repository_contract
+    source: specs/contracts/repository.md
+  - layer: base_class_contract
+    source: agents/SPECIALIST_TAXONOMY_AND_CONTEXT_MODEL.md#Builder
+  - layer: variant_contract
+    source: specs/examples/builder-test.specialist.example.yaml#variant_contract
+  - layer: team_node_contract
+    source: specs/teams/build-team.yaml#state_machine.states.testing
+  - layer: invocation_addendum
+    source: task-packet.generated_addendum
+  - layer: output_template
+    source: specs/templates/test-artifact.md
+effective_contract:
+  role: Author bounded test artifacts for the active build-team testing state.
+  scope:
+    - Use the implementation summary and changed files supplied by the upstream builder artifact.
+    - Produce the test artifact fields required by test-artifact.
+  allowed_actions:
+    - Read scoped implementation files and test files.
+    - Create or revise test artifacts within allowed write scope.
+    - Return commands and expected pass conditions.
+  required_inputs:
+    - modifiedFiles
+    - changeDescription
+  required_outputs:
+    - testStrategy
+    - testCasesAuthored
+    - executionCommands
+    - expectedPassConditions
+    - coverageNotes
+  write_authority:
+    allowed_write_set: task-packet.allowedWriteSet
+    router_owned_fields:
+      - artifactId
+      - teamSessionId
+      - taskPacketId
+  conflict_resolution: Authority order overrides presentation order; explicit task packet constraints win over source contracts.
+  output_template_ref: test-artifact
+validation_expectations:
+  - This file is committed only as an example.
+  - A generated per-task effective contract should be delivered via packet context or ignored cache, not committed.
+  - Every resolved layer should retain provenance when an assembler is implemented.

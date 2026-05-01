@@ -195,62 +195,95 @@ agents/teams/specialist-creator.md
 
 ## Stage 3.5 — YAML Schema and Template Design
 
-Goal: define the v1 YAML schemas, templates, and contract-layer
-structure that will back later runtime/type metadata work. This stage
-is a required checkpoint per D-A1 and D-O2; runtime metadata
-migration (Stage 4) must not begin until this stage is complete,
-unless the relevant decisions are explicitly superseded.
+Goal: extend the existing `specs/` schema (V1, established during the
+onboarding stages) into V2 with the taxonomy, contract-layer,
+context-bundle, and effective-contract assembly artifacts called for
+by D-A1. This stage is a required checkpoint per D-A1 and D-O2;
+runtime metadata migration (Stage 4) must not begin until this stage
+is complete, unless the relevant decisions are explicitly superseded.
 
-- [ ] Specialist definition YAML template defined.
-- [ ] Team definition YAML template defined (state-machine ready,
-      per D-O6).
-- [ ] Context bundle YAML template defined, including
+Per D-A3, this stage extends the existing schema in place rather
+than creating a parallel `agents/schemas/` tree. Per D-A4, structured
+YAML under `specs/specialists/` and `specs/teams/` is authoritative
+for routing and taxonomy metadata; narrative `agents/specialists/*.md`
+and `agents/teams/*.md` files reference the YAML as authoritative.
+Per D-A5, only contract layers without an existing host become new
+files. Per D-A6, the effective contract is assembled at orchestrator
+time and is not committed.
+
+- [ ] `specs/schemas/SPECIALIST_AND_TEAM_YAML_SPEC.md` extended to V2
+      with taxonomy fields (`base_class`, `variant`,
+      `artifact_responsibility`), alias lifecycle fields (per D-D1),
+      and migration-status fields (per D-O4).
+- [ ] Specialist V2 schema defined and reflected in
+      `specs/specialists/SPECIALIST_TEMPLATE.yaml`.
+- [ ] Team V2 schema defined (state-machine ready, per D-O6) and
+      reflected in `specs/teams/TEAM_TEMPLATE.yaml`.
+- [ ] Context bundle YAML schema defined, including
       `presentation_order` and `authority_order` (per D-O7 schema
-      checkpoint).
-- [ ] Modular contract layer template defined (universal, repository,
-      base-class, variant, team/node, invocation addendum, output
-      template reference).
-- [ ] Invocation addendum template defined.
-- [ ] Output template reference format defined.
-- [ ] Effective-contract assembly model defined (how the layers
-      compose into a single per-task effective contract for agent
-      consumption).
-- [ ] Field glossary written for the YAML artifacts.
+      checkpoint). Distinct from the existing onboarding manifests at
+      `specs/onboarding/` (per D-A6).
+- [ ] Modular contract-layer model documented. Per D-A5, only
+      universal contract, repository contract, and per-artifact
+      output templates become new committed files; base-class,
+      variant, team-node, and invocation-addendum contracts are
+      derived views of existing artifacts and recorded as such in the
+      schema doc.
+- [ ] `specs/contracts/universal.md` committed.
+- [ ] `specs/contracts/repository.md` committed.
+- [ ] `specs/templates/<artifact_type>.md` committed for each
+      canonical output artifact type.
+- [ ] Invocation addendum schema defined; not committed per task.
+- [ ] Output template reference format defined; specialist YAML
+      `artifact_template` blocks reference templates by stable id.
+- [ ] Effective-contract assembly model defined per D-A6: layer
+      ordering, conflict-resolution rule (authority order overrides
+      presentation order), and assembled-contract shape. The
+      assembler itself is not implemented in this stage.
+- [ ] Field glossary written for the V2 YAML artifacts.
 - [ ] Required vs optional field rules documented.
 - [ ] Alias and deprecation lifecycle fields included (per D-D1
       lifecycle states).
 - [ ] Migration status fields included.
-- [ ] At least one example specialist artifact committed.
-- [ ] At least one example team artifact committed.
-- [ ] At least one example contract / effective-contract artifact
-      committed (clearly marked as an example).
+- [ ] Concrete `specs/specialists/<id>.yaml` committed for each
+      existing specialist (per D-A4, the YAML is authoritative).
+- [ ] `specs/teams/default-everyday-team.yaml` committed
+      (`planner -> builder -> reviewer`, per D-T8).
+- [ ] `specs/teams/design-to-build-team.yaml` committed
+      (`planner -> scribe -> builder -> reviewer`, per D-T9).
+- [ ] At least one example effective-contract artifact committed
+      under `specs/examples/`, clearly marked as an example.
 - [ ] Validation expectations documented for each artifact type.
-- [ ] Open questions for schema v2 logged.
+- [ ] Open questions for schema v3 logged.
 
 Acceptance criteria:
 
-- Templates and schemas exist before any runtime taxonomy metadata is
-  added.
+- V2 templates, schemas, and contract layers exist under `specs/`
+  before any runtime taxonomy metadata is added.
 - Generated effective contracts are not committed by default. If
-  example effective contracts are committed, they are clearly marked
-  as examples.
-- Suggested locations are populated as needed:
-  ```text
-  agents/schemas/
-  agents/templates/
-  agents/contracts/
-  agents/examples/
-  ```
+  example effective contracts are committed under `specs/examples/`,
+  they are clearly marked as examples.
 - The schema explicitly supports the grouped `taxonomy` runtime
   shape from D-O3 so that Stage 4 can mirror or consume YAML metadata
   rather than independently redefining it.
+- Authoritative file locations under `specs/`:
+  ```text
+  specs/schemas/                 # V2 schema reference plus optional JSON Schema sidecars
+  specs/specialists/             # SPECIALIST_TEMPLATE.yaml plus concrete <id>.yaml per specialist
+  specs/teams/                   # TEAM_TEMPLATE.yaml plus canonical team flows
+  specs/contracts/               # universal.md, repository.md
+  specs/templates/               # output templates per canonical artifact type
+  specs/examples/                # marked example effective contracts and bundles
+  ```
+- No `agents/schemas/`, `agents/templates/`, `agents/contracts/`, or
+  `agents/examples/` directory is created. The literal "suggested
+  locations" wording previously in this section and in D-A1 has been
+  superseded by D-A3.
 
 This stage is intentionally documentation- and schema-only. It does
-not change runtime code or tests. The `agents/schemas/`,
-`agents/templates/`, `agents/contracts/`, and `agents/examples/`
-directories should be created only when this stage is actually
-started; the current taxonomy-decision pass should not pre-create
-them.
+not change runtime code or tests. The new directories under `specs/`
+should be created only as the corresponding deliverables are produced;
+the current taxonomy-decision pass should not pre-create them.
 
 ---
 

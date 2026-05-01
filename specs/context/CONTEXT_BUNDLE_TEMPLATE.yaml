@@ -1,0 +1,88 @@
+# Reusable context bundle template.
+# This is a future per-task assembly input, distinct from static onboarding manifests.
+schema_version: "v2"
+artifact_kind: context_bundle
+context_bundle_id: example-context-bundle
+description: Example context package for a bounded specialist invocation.
+target:
+  specialist_id: builder-test
+  team_id: build-team
+  state: testing
+presentation_order:
+  - base_specialist_context
+  - variant_context
+  - repository_rules
+  - assembled_specialist_contract
+  - orchestrator_task_packet
+  - task_specific_context
+  - upstream_artifacts_and_evidence
+  - output_template
+authority_order:
+  - orchestrator_task_packet
+  - invocation_addendum
+  - repository_rules
+  - universal_contract
+  - team_node_contract
+  - variant_context
+  - base_specialist_context
+  - output_template
+  - upstream_artifacts_and_evidence
+sections:
+  base_specialist_context:
+    source: agents/SPECIALIST_TAXONOMY_AND_CONTEXT_MODEL.md
+    required: true
+    description: Canonical base class behavior and authority boundaries.
+  variant_context:
+    source: specs/specialists/builder-test.yaml
+    required: true
+    description: Variant-specific artifact responsibility and constraints.
+  repository_rules:
+    source: specs/contracts/repository.md
+    required: true
+    description: Project-specific working rules.
+  assembled_specialist_contract:
+    source: generated-by-orchestrator
+    required: true
+    description: Per-invocation effective contract delivered in the task packet.
+  orchestrator_task_packet:
+    source: task-packet
+    required: true
+    description: Objective, allowed read/write scope, and routing metadata.
+  task_specific_context:
+    source: task-packet.context
+    required: false
+    description: Narrow task-local context supplied by the orchestrator.
+  upstream_artifacts_and_evidence:
+    source: team-session-artifacts
+    required: false
+    description: Validated upstream fields required by the active state.
+  output_template:
+    source: specs/templates/test-artifact.md
+    required: true
+    description: Stable output shape for the target artifact.
+contract_layers:
+  - layer: universal
+    source: specs/contracts/universal.md
+    required: true
+  - layer: repository
+    source: specs/contracts/repository.md
+    required: true
+  - layer: base_class
+    source: agents/SPECIALIST_TAXONOMY_AND_CONTEXT_MODEL.md
+    required: true
+  - layer: variant
+    source: specs/specialists/builder-test.yaml
+    required: true
+  - layer: team_node
+    source: specs/teams/build-team.yaml#state_machine.states.testing
+    required: true
+  - layer: invocation_addendum
+    source: task-packet.generated_addendum
+    required: false
+  - layer: output_template
+    source: specs/templates/test-artifact.md
+    required: true
+validation_requirements:
+  - presentation_order and authority_order must reference declared sections.
+  - required sections must resolve before delegation.
+  - authority_order wins when two sections conflict.

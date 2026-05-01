@@ -13,7 +13,7 @@ This team predates the canonical specialist taxonomy in `agents/SPECIALIST_TAXON
 - `specialist_builder` -> Builder (generic base; D-O5 keeps `builder`)
 - `specialist_tester` -> Builder variant `builder-test` (decision log D-O4)
 
-Member identifier renames are deferred. This file is not edited beyond this taxonomy note in the documentation-only pass; runtime team definitions remain unchanged.
+These are planned member reclassifications under the new variant names, not runtime identifier changes. Member identifier migration is deferred to later taxonomy stages; this documentation-only pass leaves the current identifiers and runtime team definitions unchanged.
 
 ## Definition
 
@@ -101,6 +101,8 @@ Member identifier renames are deferred. This file is not edited beyond this taxo
 - `related_docs`:
   - `agents/AGENT_DEFINITION_CONTRACT.md`
   - `agents/specialists/_SPECIALISTS_INDEX.md`
+  - `agents/SPECIALIST_TAXONOMY_AND_CONTEXT_MODEL.md`
+  - `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md`
 - `related_definitions`:
   - `agents/specialists/planner.md`
   - `agents/specialists/spec-writer.md`

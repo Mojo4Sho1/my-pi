@@ -391,6 +391,11 @@ implementation patches.
 
 ### D-A1: YAML schema / template checkpoint scope
 - Status: `Canonical decision; implementation pending`
+- Refinements: location language refined by D-A3 (work converges into
+  `specs/`); authoritative encoding refined by D-A4 (structured YAML
+  is canonical); contract-layer surface refined by D-A5 (most layers
+  are derived views, not new files); effective-contract assembly site
+  refined by D-A6 (orchestrator-time, packet-borne).
 - Decision: The YAML checkpoint must define v1 templates for
   specialist definitions, team definitions, context bundles, modular
   contract layers, invocation addenda, output template references, and
@@ -492,6 +497,150 @@ implementation patches.
   integration should be decided after the YAML schema checkpoint
   (D-A1).
 - Supersedes: previous `Agreed, needs detail` status.
+
+### D-A3: Stage 3.5 schema work converges into `specs/`, not a parallel `agents/` tree
+- Status: `Canonical`
+- Decision: All Stage 3.5 (T-29) schema, template, contract-layer,
+  and example artifacts land under the existing `specs/` tree. The
+  literal "suggested locations" in D-A1 and the Stage 3.5 plan
+  (`agents/schemas/`, `agents/templates/`, `agents/contracts/`,
+  `agents/examples/`) are overridden by this decision.
+- Rationale: A V1 schema and templates already exist at
+  `specs/schemas/SPECIALIST_AND_TEAM_YAML_SPEC.md`,
+  `specs/specialists/SPECIALIST_TEMPLATE.yaml`,
+  `specs/teams/TEAM_TEMPLATE.yaml`, and `specs/teams/build-team.yaml`,
+  and Decision #45 in the project-level `DECISION_LOG.md` already
+  chose `specs/` as the home for machine-readable routing artifacts.
+  Creating a parallel `agents/` schema tree would silently fork the
+  source-of-truth and require future reconciliation work.
+- Policy:
+  - Stage 3.5 schema work extends
+    `specs/schemas/SPECIALIST_AND_TEAM_YAML_SPEC.md` to V2 in place,
+    rather than creating a new schema doc.
+  - New artifact types may add new directories under `specs/` only as
+    they are needed (e.g. `specs/contracts/`, `specs/templates/`,
+    `specs/examples/`). They are not pre-created.
+  - The Stage 3.5 section of
+    `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` must be updated to
+    point at `specs/` paths so a fresh agent does not re-create the
+    parallel tree.
+  - Existing `specs/` schema fields are preserved for V1
+    compatibility; V2 extends them with taxonomy fields.
+- Scope: This decision overrides only the file-location language in
+  D-A1. The substantive checkpoint scope of D-A1 (specialist
+  definition, team definition, context bundle, modular contract
+  layers, invocation addendum, output template reference, effective
+  contract assembly, field glossary, required vs optional rules,
+  alias/lifecycle and migration-status fields, examples, validation
+  expectations, schema-v2 open questions) remains canonical.
+
+### D-A4: Authoritative encoding for specialists and teams is structured YAML under `specs/`
+- Status: `Canonical decision; implementation pending`
+- Decision: For routing, validation, and taxonomy metadata, the
+  authoritative source for each specialist and team is a structured
+  YAML file under `specs/specialists/<id>.yaml` and
+  `specs/teams/<id>.yaml`. The narrative `agents/specialists/*.md`
+  and `agents/teams/*.md` files remain the human-readable role
+  descriptions and reference the YAML as authoritative.
+- Rationale: Matches the project-wide rule already recorded in
+  `docs/handoff/CURRENT_STATUS.md` that machine-first artifacts
+  (YAML/JSON) are canonical for routing while Markdown is for human
+  reference. Gives D-A2 layered validation a single concrete target
+  per specialist and per team. Avoids the dual-source-of-truth risk
+  of having taxonomy metadata in both `.md` and `.yaml`.
+- Policy:
+  - Each existing specialist gets a committed
+    `specs/specialists/<id>.yaml` carrying full V2 taxonomy metadata
+    (`base_class`, `variant`, `aliases`, `migration_status`, plus the
+    existing V1 contract and prompt fields).
+  - Each canonical team flow gets a committed
+    `specs/teams/<id>.yaml` (default everyday team, design-to-build
+    team).
+  - Narrative `.md` files in `agents/specialists/` and `agents/teams/`
+    keep their Taxonomy sections but explicitly reference the YAML as
+    the authoritative source for taxonomy/contract fields.
+  - YAML is not yet runtime authority. Runtime alignment with YAML
+    remains a Stage 4+ responsibility (consistent with the existing
+    Authority section of
+    `specs/schemas/SPECIALIST_AND_TEAM_YAML_SPEC.md`).
+- Resolves: ambiguity in D-O2 step 3 about whether YAML metadata is
+  delivered as front matter on `.md` files or as standalone `.yaml`.
+  The answer is standalone `.yaml` under `specs/`. Front matter on
+  `.md` files is not used.
+
+### D-A5: Contract-layer files are introduced only where no existing artifact owns the layer
+- Status: `Canonical`
+- Decision: Of the seven contract layers in D-A1 (universal,
+  repository, base-class, variant, team-node, invocation addendum,
+  output template), three become new committed files; the remaining
+  four are derived sections of artifacts that already exist or are
+  introduced elsewhere.
+- New committed files (under `specs/`):
+  - `specs/contracts/universal.md` — universal specialist contract
+    (stable rules for all specialists).
+  - `specs/contracts/repository.md` — repository-specific contract;
+    lifts agent-relevant rules from `AGENTS.md` and other repo-level
+    docs into a single addressable contract layer.
+  - `specs/templates/<artifact_type>.md` — output template per
+    canonical artifact type, referenced by id from specialist YAML
+    `artifact_template` blocks.
+- Layers as views, not files:
+  - Base-class contract — section of
+    `agents/SPECIALIST_TAXONOMY_AND_CONTEXT_MODEL.md`.
+  - Variant contract — block in the specialist YAML under
+    `specs/specialists/<id>.yaml`.
+  - Team-node contract — the existing `transition_rules`,
+    `per_state_expected_artifact`, `partial_handling`, and
+    `loop_limits` blocks in team YAML.
+  - Invocation addendum — generated per-task; never committed
+    (consistent with D-A1 commit policy).
+- Rationale: Each rule should live with the artifact it constrains.
+  Inventing five new file formats for layers that already have
+  natural homes increases maintenance cost and creates ambiguity
+  about which file is authoritative for which rule.
+- Policy:
+  - The Stage 3.5 schema doc lists every contract layer and
+    explicitly states whether it is a committed file or a derived
+    view, so layer composition is unambiguous.
+  - References between layers use stable ids (e.g.
+    `output_template: <artifact_type>`) rather than relative paths
+    where practical.
+  - New contract-layer files may be added later only when an existing
+    artifact cannot naturally host the layer; such additions belong
+    in this decision log, not in implementation patches.
+
+### D-A6: Effective-contract assembly site — orchestrator-time, packet-borne
+- Status: `Canonical decision; implementation pending`
+- Decision: The effective specialist contract is assembled by the
+  orchestrator before delegation and delivered to the specialist via
+  the task packet. Specialists do not assemble their own effective
+  contract.
+- Rationale: Aligns with Decision #44 (layered context
+  initialization), which establishes that specialists receive context
+  only via the task packet. Keeps specialist runtime narrow and
+  avoids forcing each specialist to know the full layer stack and
+  layer-resolution rules.
+- Scope of T-29 (Stage 3.5):
+  - T-29 specifies the assembly model only: layer ordering
+    (per D-O7 presentation order), the conflict-resolution rule that
+    authority order overrides presentation order on conflict, and the
+    schema/shape of the assembled effective contract.
+  - T-29 does not implement an assembler. Implementation is a
+    Stage 4-or-later concern.
+- Policy:
+  - Generated effective contracts are not committed to the repository
+    (consistent with D-A1 commit policy).
+  - Example effective contracts may be committed under
+    `specs/examples/`, clearly marked as examples.
+  - The orchestrator is the sole assembler in v1. Specialist runtime
+    treats the effective contract as opaque incoming context and does
+    not re-derive it from source layers.
+  - The schema describes a context bundle distinct from onboarding
+    manifests under `specs/onboarding/`. Onboarding manifests are
+    static per-role startup context; the context bundle is the
+    per-task assembled context delivered with the packet (see D-O7).
+- Resolves: ambiguity about whether D-O7 stage-4 runtime context
+  assembly happens at orchestrator-time or at specialist-time.
 
 ### D-D3: Doc-formatter base class and variant — not promoted
 - Status: `Canonical decision; cleanup/migration deferred`

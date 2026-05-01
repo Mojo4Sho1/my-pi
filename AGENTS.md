@@ -125,7 +125,7 @@ See `STATUS.md` for live project state. The project follows a staged implementat
 2. **First specialist extension (builder)** (complete)
 3. **Remaining specialists + orchestrator** (complete)
 4. **Team routing and validation** (complete)
-5. **Meta-teams and expansion** (5a.7 complete; onboarding side quest T-22–T-26 complete; T-10 live build-team validation parked; Specialist Taxonomy Migration phase active — T-28 is the current target, see `docs/handoff/NEXT_TASK.md`)
+5. **Meta-teams and expansion** (5a.7 complete; onboarding side quest T-22–T-26 complete; T-10 live build-team validation parked; Specialist Taxonomy Migration phase active — T-30 is the current target, see `docs/handoff/NEXT_TASK.md`)
 6. **Reflective expertise layer** (future)
 7. **Command surface** (future)
 
