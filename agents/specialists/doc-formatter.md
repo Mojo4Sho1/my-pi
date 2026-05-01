@@ -1,5 +1,18 @@
 # doc-formatter.md
 
+## Taxonomy
+
+- `base_class`: null (out-of-taxonomy transitional utility)
+- `variant`: null
+- `current_name`: doc-formatter
+- `canonical_name`: null
+- `deprecated_aliases`: none
+- `migration_status`: blocked-for-new-use
+- `artifact_responsibility`: read-only normalization of provided markdown content; returns normalized content without writing files
+- `is_base_specialist`: false
+- `migration_note`: D-D3 is canonical: `doc-formatter` is not promoted into the canonical specialist taxonomy. It is preserved only as a transitional utility / Stage 5a.3 validation artifact unless a future decision supersedes D-D3.
+- `context_order_note`: If retained for compatibility, it should still respect D-O7 presentation/authority-order guidance; it must not override repository rules, task packet constraints, or canonical specialist responsibilities.
+
 ## Definition
 
 - `id`: specialist_doc_formatter

@@ -41,7 +41,7 @@ If the queue shows deferred work, treat it as intentionally parked. Do not reviv
 For the current active queue state, the fastest path is:
 
 1. `docs/handoff/NEXT_TASK.md`
-2. `docs/IMPLEMENTATION_PLAN.md` for the stage section named by `NEXT_TASK.md`
+2. the task-local stage or design doc named by `NEXT_TASK.md` (for example `docs/IMPLEMENTATION_PLAN.md` or `docs/design/ONBOARDING_IMPLEMENTATION_PLAN.md`)
 3. `docs/validation/METHODOLOGY.md` when the active task is live validation work
 4. the code, specs, tests, or result artifacts named in `NEXT_TASK.md`
 

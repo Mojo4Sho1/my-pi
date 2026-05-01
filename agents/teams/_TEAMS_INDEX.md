@@ -12,6 +12,18 @@ This subtree contains reusable collaboration bundles of specialists for recurrin
 
 It includes team definitions only. It does not include standalone specialist definitions, and it does not include sequence definitions.
 
+Teams are also subject to the canonical specialist taxonomy in `agents/SPECIALIST_TAXONOMY_AND_CONTEXT_MODEL.md`, which establishes the default everyday team and the conditional design-to-build expansion.
+
+## Canonical Default Teams
+
+Per the taxonomy doc:
+
+- The default everyday implementation team is `planner -> builder -> reviewer`.
+- The full design-to-build team is `planner -> scribe -> builder -> reviewer`. Scribe is first-class but conditional; insert it only when non-runtime blueprint artifacts (specifications, contracts, schemas, routing designs, role definitions) are required before implementation.
+- Test authoring is a Builder-variant responsibility (`builder-test`). Running tests alone is an action, not a specialist; a separate test-running specialist is not warranted. The exact runtime sequencing for test-authoring expansion remains deferred to the later team/state-machine migration.
+
+These canonical flows describe the conceptual team shapes. Runtime team definitions in `extensions/teams/definitions.ts` continue to use current identifiers (for example, `tester` rather than `builder-test`) until the runtime migration stages complete; see `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md`.
+
 ## Current teams
 
 - `agents/teams/specialist-creator.md`

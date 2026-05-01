@@ -1,5 +1,18 @@
 # tester.md
 
+## Taxonomy
+
+- `base_class`: Builder
+- `variant`: builder-test
+- `current_name`: tester
+- `canonical_name`: builder-test
+- `deprecated_aliases`: tester
+- `migration_status`: deprecated
+- `artifact_responsibility`: create or revise executable test artifacts (test files, fixtures, validation scripts when explicitly assigned); does not own running test suites by default, broad test strategy, or final acceptance
+- `is_base_specialist`: false (Builder variant under the canonical taxonomy)
+- `migration_note`: Per D-O4, `builder-test` is the canonical taxonomy name and `tester` becomes a deprecated compatibility alias under the D-D1 lifecycle. Running tests is an action available to any suitable actor and does not by itself justify a separate specialist. This file remains for documentation continuity; runtime identifier and file rename are deferred by D-O1 and the runtime stages of D-O4.
+- `context_order_note`: Per D-O7, specialist context should be presented as base context, variant context, repository rules, task packet, task-specific context, then upstream artifacts/evidence; authority still follows repository rules and orchestrator packet constraints before specialist context.
+
 ## Definition
 
 - `id`: specialist_tester
@@ -8,12 +21,13 @@
 
 ## Intent
 
-- `purpose`: Author targeted tests and executable validation expectations that keep implementation honest.
+- `purpose`: Author targeted tests and executable validation expectations as a Builder variant focused on test artifacts.
 - `scope`:
   - create or update focused tests aligned to task acceptance criteria
-  - define the commands and pass conditions the builder or runtime should execute
+  - define expected pass conditions for the authored tests
   - report coverage gaps, edge cases, and residual test risk clearly
 - `non_goals`:
+  - act as a generic test runner whose primary value is executing existing test scripts
   - plan implementation strategy
   - own the final execution of broad test suites by default
   - own broad design decisions by default

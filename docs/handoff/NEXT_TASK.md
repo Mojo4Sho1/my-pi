@@ -1,85 +1,88 @@
 # Next Task
 
-**Last updated:** 2026-04-11
+**Last updated:** 2026-04-30
 **Owner:** Joe
 
-## Task summary
+## Cold-start orientation
 
-T-10 — Team state machine end-to-end validation (Stage 5a.3b follow-on).
+Read these four files in order before doing anything else. Do not read more by default.
 
-Resume live build-team validation now that Stage 5a.7 and the onboarding side quest are both complete. This task should validate the actual `teamHint: "build-team"` router path on real implementation work, capture truthful result artifacts, and surface any remaining runtime gaps in the canonical team flow.
+1. `INDEX.md` — bootstrap router for the repo
+2. `AGENTS.md` — agent-agnostic working rules and conventions
+3. `docs/handoff/CURRENT_STATUS.md` — what just happened and the current focus
+4. This file (you are here) — the single active target
+
+If you finish those four reads and still feel underspecified for the active target below, the task is genuinely under-specified — record that in the verification checklist rather than expanding scope on your own.
+
+## Single active target
+
+**T-28 — Specialist Taxonomy Migration, Stage 3 (team documentation migration).**
+
+This task is documentation-only. No runtime code, TypeScript, router files, package files, tests, or files under `extensions/` or `tests/` are to be changed in this task.
+
+The work is bounded to team documentation under `agents/teams/` plus related routing/handoff references. A successful run of T-28 will align team docs with the canonical taxonomy without changing runtime team definitions.
 
 ## Why this task is next
 
-- The layered onboarding side quest (T-22 through T-26) is now complete, so the main track can resume
-- Stage 5a.7 already reconciled contracts, artifacts, and the canonical build-team flow
-- T-10 is the next blocked-on-nothing validation step for proving the live team router
-- T-11 through T-14 remain intentionally behind T-10
+- T-27 is complete: specialist specs now declare base class, variant, migration notes, D-D1 alias lifecycle status where relevant, and D-O7 context-order notes.
+- The next smallest migration step is Stage 3: team documentation should reflect the default everyday team, conditional Scribe insertion, and the future state-machine direction.
+- T-10 remains parked while the taxonomy migration phase is active. A future agent will return to it after the taxonomy documentation and schema checkpoints land.
 
-## Scope (in)
+## Authoritative inputs
 
-- Run at least one real build-team validation task through the team router
-- Use the two-layer validation method from `docs/validation/METHODOLOGY.md`
-- Record result artifacts under `docs/validation/results/`
-- Fix any concrete substrate bugs found when feasible inside the task
-- Update handoff/state docs truthfully with findings and any follow-on issues
+Read these lazily and only as needed for T-28:
 
-## Scope (out)
+1. `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` (Stage 3 section only)
+2. `agents/SPECIALIST_TAXONOMY_AND_CONTEXT_MODEL.md` (team sections and current specialist reclassification)
+3. `agents/SPECIALIST_TAXONOMY_DECISION_LOG.md` entries D-O5, D-O6, D-T8, and D-T9
+4. `agents/teams/_TEAMS_INDEX.md`
+5. `agents/teams/specialist-creator.md`
 
-- Broad roadmap replanning beyond the validation findings
-- Unrelated feature work not surfaced by the live validation pass
-- Pulling T-11 through T-14 forward unless T-10 findings make that necessary
+## Concrete edits required by T-28
 
-## Relevant files
+- `agents/teams/_TEAMS_INDEX.md` should document the default everyday team `planner -> builder -> reviewer`.
+- It should document the conditional design-to-build team `planner -> scribe -> builder -> reviewer`.
+- It should describe simple linear flows as human-readable shorthand only and point toward future state-machine team definitions per D-O6.
+- It should avoid committing to a specific test-authoring expansion flow beyond the settled taxonomy rule that `builder-test` is a Builder variant.
+- Existing team specs should reference the taxonomy doc and note planned member identifier migration without changing runtime identifiers.
+- `agents/teams/specialist-creator.md` should note future reclassification of its members under the new variant names without changing runtime member identifiers.
 
-- Staged implementation plan: `docs/IMPLEMENTATION_PLAN.md` (read Stage 5a.3b section)
-- Validation methodology: `docs/validation/METHODOLOGY.md`
-- Validation router: `docs/validation/_VALIDATION_INDEX.md`
-- Handoff docs: `docs/handoff/CURRENT_STATUS.md`, `docs/handoff/TASK_QUEUE.md`, `docs/handoff/NEXT_TASK.md`
-- `STATUS.md`
-- `extensions/teams/definitions.ts`
-- `extensions/teams/router.ts`
-- `docs/validation/results/`
+## Out of scope
 
-## Recommended first reads
+- Runtime team definition changes under `extensions/teams/`.
+- Any changes under `extensions/`, `tests/`, `package.json`, or `tsconfig.json`.
+- Specialist file renames or runtime identifier renames.
+- YAML schema/template work for T-29.
+- Re-deciding any item marked `Open`, `Proposed`, or `Deferred`.
 
-1. `docs/IMPLEMENTATION_PLAN.md` (Stage 5a.3b section)
-2. `docs/validation/METHODOLOGY.md`
-3. `docs/validation/_VALIDATION_INDEX.md`
-4. `docs/handoff/CURRENT_STATUS.md`
-5. `STATUS.md`
-6. the smallest relevant prior validation result artifact
+## Acceptance criteria
 
-## Dependencies / prerequisites
-
-- T-26 complete
-
-## Acceptance criteria (definition of done)
-
-- Build-team completes a real task end-to-end via `teamHint: "build-team"`
-- State trace in the session artifact matches the canonical Stage 5a.7 flow
-- No missing-transition errors occur in the live team-router path
-- Result artifacts record both task-level and substrate-level findings truthfully
-- Any residual runtime bugs are either fixed or documented clearly for follow-on work
+- Team documentation does not imply that Scribe is mandatory for every implementation team.
+- Team documentation does not imply that running tests alone requires a separate specialist.
+- Team documentation makes clear that linear flows are shorthand and the canonical direction is a state-machine model (D-O6).
+- Existing team specs reference the taxonomy and planned member identifier migration.
+- No runtime team definition has been changed.
 
 ## Verification checklist
 
-- [ ] Read the Stage 5a.3b section and validation methodology
-- [ ] Choose the smallest appropriate live validation task to run next
-- [ ] Execute build-team via the team router, not the sequential specialist chain
-- [ ] Record a result artifact with Layer 1 and Layer 2 findings
-- [ ] Fix or document any substrate issues surfaced by the run
-- [ ] Update handoff docs with truthful outcomes
+- [ ] Read `INDEX.md`, `AGENTS.md`, `docs/handoff/CURRENT_STATUS.md`, this file.
+- [ ] Read the Stage 3 section of `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` and decision entries D-O5, D-O6, D-T8, D-T9.
+- [ ] Update `agents/teams/_TEAMS_INDEX.md` and `agents/teams/specialist-creator.md` only as needed.
+- [ ] Confirm no file under `extensions/`, `tests/`, `package.json`, `tsconfig.json`, or any runtime/router file was modified.
+- [ ] Run `git status` and confirm only documentation files relevant to T-28 changed.
 
-## Handoff protocol
+## Handoff protocol after completing T-28
 
-After completing this task:
-1. Update `CURRENT_STATUS.md` with what the live run proved and what it exposed
-2. Update `TASK_QUEUE.md` if T-10 completes or if new follow-on work must be promoted
-3. Update this file (`NEXT_TASK.md`) to the next concrete validation or bug-fix target
+1. Update `docs/handoff/CURRENT_STATUS.md` to record T-28 complete and what concretely changed in team docs.
+2. In `docs/handoff/TASK_QUEUE.md`:
+   - Mark T-28 `done`.
+   - Mark T-29 (Stage 3.5 — YAML schema and template design) `active`.
+3. Update this file (`NEXT_TASK.md`) so it points at T-29 with the same cold-start orientation structure used here.
+4. Do not touch `DECISIONS_NEEDED.md` unless you discovered a genuine new authority gap.
 
-## Risks / rollback notes
+## Risks / gotchas
 
-- The main risk is slipping back into mocked or sequential-specialist validation instead of exercising the live team-router path.
-- Keep result artifacts truthful about what was observed directly versus inferred.
-- If a live run exposes a real substrate bug, fix the bug or document it clearly before moving on.
+- Do not change runtime team definitions while aligning team docs.
+- Do not imply `builder-code` is required; D-O5 keeps `builder` as the generic Builder.
+- Do not resolve D-O1 filename strategy.
+- Do not start T-29 schema/template directories during T-28.

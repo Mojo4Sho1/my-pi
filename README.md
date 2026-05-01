@@ -68,7 +68,7 @@ Current prompt-template surface:
 Current extension-command surface:
 
 - No custom slash commands from this package are currently documented as available.
-- The package does ship two extensions today: [`extensions/orchestrator/index.ts`](/Users/josephcaldwell/Documents/dev/my-pi/extensions/orchestrator/index.ts) and [`extensions/dashboard/index.ts`](/Users/josephcaldwell/Documents/dev/my-pi/extensions/dashboard/index.ts), but they do not currently make `next` or `seed` available as bare slash commands.
+- The package does ship three extensions today: [`extensions/orchestrator/index.ts`](/Users/josephcaldwell/Documents/dev/my-pi/extensions/orchestrator/index.ts), [`extensions/dashboard/index.ts`](/Users/josephcaldwell/Documents/dev/my-pi/extensions/dashboard/index.ts), and [`extensions/panic/index.ts`](/Users/josephcaldwell/Documents/dev/my-pi/extensions/panic/index.ts), but they do not currently make `next` or `seed` available as bare slash commands.
 
 ## Package Loading
 

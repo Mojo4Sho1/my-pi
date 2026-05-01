@@ -74,7 +74,7 @@ Stable config belongs under `specs/`; run-specific outputs belong under `artifac
 
 ## Gotchas
 
-**Extension loading:** Only `extensions/orchestrator/index.ts` and `extensions/dashboard/index.ts` are Pi extensions (they export default factory functions). Everything else under `extensions/` -- `shared/`, `specialists/`, `teams/`, `worklist/` -- are internal libraries imported by code. The `package.json` explicitly lists the two extension files to prevent Pi from trying to auto-discover and load library modules as extensions. Do not change `pi.extensions` back to `["./extensions"]` or add new entries without ensuring the file exports a valid Pi extension factory.
+**Extension loading:** Only `extensions/orchestrator/index.ts`, `extensions/dashboard/index.ts`, and `extensions/panic/index.ts` are Pi extensions (they export default factory functions). Everything else under `extensions/` -- `shared/`, `specialists/`, `teams/`, `worklist/` -- are internal libraries imported by code. The `package.json` explicitly lists the three extension files to prevent Pi from trying to auto-discover and load library modules as extensions. Do not change `pi.extensions` back to `["./extensions"]` or add new entries without ensuring the file exports a valid Pi extension factory.
 
 **Sub-agent CLI:** Pi's `--print` flag means "run once and exit" -- it does NOT produce JSON output. For structured JSONL event parsing, you must use `--mode json --print`. The system prompt uses `--system-prompt`, and the task prompt is a positional argument (not `-p`). See `extensions/shared/subprocess.ts` for the correct invocation.
 
@@ -119,7 +119,7 @@ See `STATUS.md` for live project state. The project follows a staged implementat
 2. **First specialist extension (builder)** (complete)
 3. **Remaining specialists + orchestrator** (complete)
 4. **Team routing and validation** (complete)
-5. **Meta-teams and expansion** (5a.7 complete; layered onboarding side quest T-25 next; 5a.3 remains a deferred follow-on until T-26 completes)
+5. **Meta-teams and expansion** (5a.7 complete; onboarding side quest T-22–T-26 complete; T-10 live build-team validation parked; Specialist Taxonomy Migration phase active — T-28 is the current target, see `docs/handoff/NEXT_TASK.md`)
 6. **Reflective expertise layer** (future)
 7. **Command surface** (future)
 

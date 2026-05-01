@@ -1,6 +1,6 @@
 # Task Queue
 
-**Last updated:** 2026-04-11
+**Last updated:** 2026-04-30
 **Owner:** Joe
 
 ## Purpose
@@ -80,11 +80,34 @@ For handoff routing, start with `docs/handoff/_HANDOFF_INDEX.md`. For validation
 
 | ID | Status | Task | Specs to Read | Acceptance Criteria |
 |----|--------|------|---------------|---------------------|
-| T-10 | active | Team state machine e2e validation (5a.3b) | `docs/IMPLEMENTATION_PLAN.md` (5a.3b), `docs/validation/METHODOLOGY.md` | Resume live build-team validation now that Stage 5a.7 is complete; record task-level and substrate-level findings truthfully |
+| T-10 | deferred | Team state machine e2e validation (5a.3b) | `docs/IMPLEMENTATION_PLAN.md` (5a.3b), `docs/validation/METHODOLOGY.md` | Parked while the Specialist Taxonomy Migration phase (T-27..T-33) is active. Resume after T-27..T-29 land; the live router validation does not depend on the taxonomy work and can be picked up unchanged. |
 | T-11 | deferred | Tester specialist role redesign (5a.3c) | `docs/IMPLEMENTATION_PLAN.md` (5a.3c), Decision #40 | Only revisit if live validation exposes residual tester-role drift after the completed 5a.7 reconciliation |
 | T-12 | deferred | Specialist invocation patterns (5a.3d) | `docs/IMPLEMENTATION_PLAN.md` (5a.3d), Decision #41 | Revisit after T-10 once live validation confirms the redesigned routing model in practice |
 | T-13 | deferred | Token logging and observability (5a.3e) | `docs/IMPLEMENTATION_PLAN.md` (5a.3e) | Revisit after T-10 so surfaced token data matches the observed live validation flow |
 | T-14 | deferred | Dashboard real-time monitoring (5a.4) | `docs/IMPLEMENTATION_PLAN.md` (5a.4) | Revisit after T-10 so `/dashboard` work is informed by live validation findings |
+
+## Phase: Specialist Taxonomy Migration (DOC-ONLY DECISIONS LANDED)
+
+The specialist taxonomy decision log and migration plan have been
+updated to record settled canonical decisions for D-O2, D-O3, D-O4,
+D-O5, D-O6, D-O7, D-A1, D-A2, D-D1, and D-D3, plus a clearer
+deferred status with activation conditions for D-D2. No runtime
+code, TypeScript, router files, package files, or tests were
+changed in this pass. Future agents should execute the remaining
+migration stages in the order recorded in
+`agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` and must not silently
+re-decide entries marked `Open`, `Proposed`, or `Deferred` in
+`agents/SPECIALIST_TAXONOMY_DECISION_LOG.md`.
+
+| ID | Status | Task | Specs to Read | Acceptance Criteria |
+|----|--------|------|---------------|---------------------|
+| T-27 | done | Stage 2 — Specialist spec migration (taxonomy) | `agents/SPECIALIST_TAXONOMY_AND_CONTEXT_MODEL.md`, `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` (Stage 2), `agents/SPECIALIST_TAXONOMY_DECISION_LOG.md` (D-D1, D-D3, D-O7) | Each specialist spec carries explicit base-class/variant annotations, migration notes, and presentation/authority order notes; `tester.md` points at `builder-test`; `doc-formatter.md` reflects D-D3 (not promoted); no file renames; no runtime/test/extension changes |
+| T-28 | active | Stage 3 — Team documentation migration (taxonomy) | `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` (Stage 3), Decisions D-O5, D-O6, D-T8, D-T9 | Team docs reflect default everyday team, conditional design-to-build team, linear flows as shorthand, and state-machine direction; no runtime team definitions changed |
+| T-29 | queued | Stage 3.5 — YAML schema and template design (taxonomy checkpoint) | `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` (Stage 3.5), Decisions D-A1, D-O2, D-O7 | Specialist/team/context-bundle/contract-layer/invocation-addendum/output-template/effective-contract templates, examples, glossary, and validation expectations exist; generated effective contracts are not committed; runtime metadata still untouched |
+| T-30 | blocked | Stage 4 — Runtime/type metadata migration (taxonomy) | `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` (Stage 4), Decisions D-O3, D-O4, D-O5, D-D1 | Grouped `taxonomy` runtime field; `builder` retained; `tester` enters alias-first migration to `builder-test` with lifecycle state `deprecated`; runtime mirrors YAML metadata. Blocked on T-29. |
+| T-31 | blocked | Stage 5 — Router and team definition migration (taxonomy) | `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` (Stage 5), Decision D-O6 | Default and conditional teams expressed as state-machine target model; bounded retries; explicit completion/escalation states. Blocked on T-30. |
+| T-32 | blocked | Stage 6 — Layered taxonomy validation | `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` (Stage 6), Decisions D-A2, D-D1, D-O3, D-O6, D-O7 | Specialist taxonomy, alias lifecycle, team state-machine, context/contract layer, and runtime/docs-alignment validation in place with staged enforcement. Blocked on T-29 (and T-30/T-31 for runtime/state-machine layers). |
+| T-33 | blocked | Stage 7 — Cleanup, alias lifecycle advancement, and deprecation | `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` (Stage 7), Decisions D-D1, D-O1, D-O4 | `tester` alias advances through `deprecated -> blocked-for-new-use -> removal-candidate -> removed` with explicit gating; D-O1 file rename strategy resolved; transitional notes removed. Blocked on T-32. |
 
 ---
 
@@ -98,10 +121,11 @@ For handoff routing, start with `docs/handoff/_HANDOFF_INDEX.md`. For validation
 - T-19 completed the tester/build-team reconciliation pass: tester is now modeled as a test author in runtime code, `build-team` runs `planner -> builder -> tester -> builder -> reviewer`, and regression coverage proves tester-authored artifact routing plus the post-tester builder repair loop.
 - T-20 completed the durable specs-layer pass: `specs/` now contains the schema/reference doc, reusable templates, and a starter `build-team` spec aligned to the canonical flow.
 - T-21 completed the validation/audit pass: regression coverage now protects the most contradiction-prone Stage 5a.7 seams, and the durable docs/specs touched by the redesign remain explicit about YAML authoring versus TypeScript runtime authority.
-- T-10 is active again now that the layered context initialization side quest is complete.
+- T-10 was active after the layered onboarding side quest, but is now `deferred` while the Specialist Taxonomy Migration phase runs. It is parked, not blocked; the live build-team validation does not depend on taxonomy work.
 - T-22 through T-26 implemented the onboarding design from `docs/archive/design/onboarding_layed_context.md`. The staged implementation plan remains at `docs/design/ONBOARDING_IMPLEMENTATION_PLAN.md`.
 - T-22 is complete: the durable onboarding reference, ADR 0002, and Decision #44 are now in the repo.
 - T-23 is complete: the onboarding model is now on the normal bootstrap path through `AGENTS.md`, `INDEX.md`, and `docs/_DOCS_INDEX.md`.
 - T-24 is complete: the repo now has durable policy/onboarding scaffolding under `specs/` plus a distinct `artifacts/` runtime root.
 - T-25 is complete: the durable schema doc, reusable templates, and starter `build-team` spec now carry truthful declarative onboarding metadata.
 - T-26 is complete: the onboarding side quest now has validated durable docs, archived design rationale, a recorded config-root follow-on decision, and explicit future-work entries.
+- T-27 is complete (Specialist Taxonomy Migration, Stage 2): specialist specs now carry explicit base-class/variant annotations, migration notes, D-D1 lifecycle statuses where aliases are deprecated, and D-O7 context-order notes. T-28 is now `active`; T-29..T-33 remain queued/blocked behind it.

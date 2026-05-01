@@ -1,5 +1,18 @@
 # critic.md
 
+## Taxonomy
+
+- `base_class`: Reviewer
+- `variant`: reviewer-critic
+- `current_name`: critic
+- `canonical_name`: reviewer-critic
+- `deprecated_aliases`: critic
+- `migration_status`: deprecated
+- `artifact_responsibility`: design quality evaluation, redundancy detection, reuse search, proportional-complexity critique, primitive type classification — through the quality/critique review lens
+- `is_base_specialist`: false (Reviewer variant under the canonical taxonomy)
+- `migration_note`: D-P4 proposes `reviewer-critic` as the canonical variant name. The current filename/runtime identifier remain transitional aliases until D-O1 and later runtime stages resolve renames. Alias cleanup follows D-D1 lifecycle states.
+- `context_order_note`: Per D-O7, specialist context should be presented as base context, variant context, repository rules, task packet, task-specific context, then upstream artifacts/evidence; authority still follows repository rules and orchestrator packet constraints before specialist context.
+
 ## Definition
 
 - `id`: specialist_critic

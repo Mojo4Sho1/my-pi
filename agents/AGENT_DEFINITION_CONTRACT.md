@@ -4,6 +4,8 @@ Required fields, routing rules, and type-specific expectations for orchestrator,
 
 > These field contracts will be mirrored as TypeScript interfaces in `extensions/shared/types.ts`.
 
+> Specialist definitions are also subject to the taxonomy and context model in `agents/SPECIALIST_TAXONOMY_AND_CONTEXT_MODEL.md`. That document defines the four base classes (`Planner`, `Scribe`, `Builder`, `Reviewer`), the variant naming convention, the context presentation order, and the context authority order. Where this contract and the taxonomy doc both apply, the taxonomy doc is authoritative for base class, variant, and artifact responsibility, while this contract is authoritative for routing, access, inputs/outputs, and authority flags.
+
 ---
 
 ## Definition Classes
@@ -90,8 +92,13 @@ Execution-style control for consistent behavior across runs. Not a theatrical pe
 | `deliverable_boundary` | Kinds of outputs it may produce |
 | `failure_boundary` | When to stop and escalate |
 | `working_style` | Required (see above) |
+| `base_class` | One of `Planner`, `Scribe`, `Builder`, `Reviewer` (taxonomy doc) |
+| `variant` | Variant identifier (kebab-case, base-class-prefixed) or `null` for generic base |
+| `artifact_responsibility` | Primary artifact or evaluation responsibility |
 
 **Defaults**: `routing_class: downstream`, `context_scope: narrow`, `can_delegate: false`, `can_synthesize: false`, `can_update_handoff: false`
+
+**Taxonomy fields** (`base_class`, `variant`, `artifact_responsibility`) are introduced for documentation alignment in the current pass. Their runtime representation (front matter, Markdown sections, TypeScript metadata, or some combination) is intentionally not yet decided; see `agents/SPECIALIST_TAXONOMY_DECISION_LOG.md` entry D-O2.
 
 ### Team
 
@@ -149,3 +156,39 @@ Execution-style control for consistent behavior across runs. Not a theatrical pe
 A definition is incomplete unless it answers: what this actor is, what it does, what it does not do, how it behaves inside its boundary, what it may/must-not read by default, what it receives, what it returns, when it escalates, and whether it may update project state.
 
 For specialists in the current phase, omission of `working_style` also makes the definition incomplete.
+
+For specialists going forward, the definition should also declare `base_class`, `variant`, and `artifact_responsibility`. Existing specialist definitions are being migrated incrementally; see `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md`.
+
+---
+
+## Context Presentation Order (Specialists)
+
+Specialists should receive context in the following order, so that role identity is established before constraints, packets, or evidence are layered on:
+
+```text
+base specialist context
+  -> variant context
+    -> global repository rules
+      -> orchestrator task packet
+        -> task-specific context
+          -> upstream artifacts and evidence
+```
+
+This is a presentation rule. It does not change which instruction wins when two instructions conflict.
+
+## Context Authority Order (Specialists)
+
+When two instructions conflict, the higher-authority instruction wins:
+
+```text
+global repository rules
+  -> orchestrator packet constraints
+    -> base specialist context
+      -> variant context
+        -> task-specific context
+          -> upstream artifacts and evidence
+```
+
+Presentation order and authority order are intentionally different. Presentation order shapes role identity; authority order protects correctness, safety, and scope discipline. A variant context may specialize a base context but must not contradict it. A task-specific instruction may narrow a variant's behavior but must not broaden the specialist beyond the orchestrator's assigned scope unless explicitly authorized. No specialist context may override global repository rules.
+
+Encoding of presentation and authority order in prompt assembly and runtime configuration is currently informational only; runtime enforcement is tracked in `agents/SPECIALIST_TAXONOMY_DECISION_LOG.md` entry D-O7.

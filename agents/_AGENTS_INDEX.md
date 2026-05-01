@@ -79,17 +79,26 @@ Use this area when the task involves:
 - creating or revising specialist definitions
 - checking whether a specialist definition still matches current Stage 5a.7 redesign assumptions
 
-Current specialist roster:
+Current specialist roster (with canonical base class and variant name from the taxonomy):
 
-- `agents/specialists/planner.md`
-- `agents/specialists/reviewer.md`
-- `agents/specialists/builder.md`
-- `agents/specialists/tester.md`
-- `agents/specialists/spec-writer.md`
-- `agents/specialists/schema-designer.md`
-- `agents/specialists/routing-designer.md`
-- `agents/specialists/critic.md`
-- `agents/specialists/boundary-auditor.md`
+- `agents/specialists/planner.md` — base class `Planner`; variant: `null` (generic base `planner`)
+- `agents/specialists/reviewer.md` — base class `Reviewer`; variant: `null` (generic base `reviewer`)
+- `agents/specialists/builder.md` — base class `Builder`; variant: `null` (generic base; D-O5 keeps `builder`)
+- `agents/specialists/tester.md` — base class `Builder`; canonical variant: `builder-test` (deprecated alias `tester`; see D-O4 and D-D1)
+- `agents/specialists/spec-writer.md` — base class `Scribe`; proposed canonical variant: `scribe-spec`
+- `agents/specialists/schema-designer.md` — base class `Scribe`; proposed canonical variant: `scribe-schema`
+- `agents/specialists/routing-designer.md` — base class `Scribe`; proposed canonical variant: `scribe-routing`
+- `agents/specialists/critic.md` — base class `Reviewer`; proposed canonical variant: `reviewer-critic`
+- `agents/specialists/boundary-auditor.md` — base class `Reviewer`; proposed canonical variant: `reviewer-boundary-auditor`
+
+Canonical taxonomy and context model:
+
+- `agents/SPECIALIST_TAXONOMY_AND_CONTEXT_MODEL.md`
+
+Migration tracking for the taxonomy is in:
+
+- `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md`
+- `agents/SPECIALIST_TAXONOMY_DECISION_LOG.md`
 
 Route through:
 

@@ -1,5 +1,18 @@
 # planner.md
 
+## Taxonomy
+
+- `base_class`: Planner
+- `variant`: null (generic base specialist)
+- `current_name`: planner
+- `canonical_name`: planner
+- `deprecated_aliases`: none
+- `migration_status`: active
+- `artifact_responsibility`: task decomposition, sequencing, dependency and risk identification; does not own primary artifact creation
+- `is_base_specialist`: true
+- `migration_note`: Already aligns with the canonical Planner base class. No rename is required in this documentation stage. See `agents/SPECIALIST_TAXONOMY_AND_CONTEXT_MODEL.md`.
+- `context_order_note`: Per D-O7, specialist context should be presented as base context, variant context, repository rules, task packet, task-specific context, then upstream artifacts/evidence; authority still follows repository rules and orchestrator packet constraints before specialist context.
+
 ## Definition
 
 - `id`: specialist_planner

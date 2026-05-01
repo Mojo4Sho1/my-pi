@@ -1,5 +1,18 @@
 # spec-writer.md
 
+## Taxonomy
+
+- `base_class`: Scribe
+- `variant`: scribe-spec
+- `current_name`: spec-writer
+- `canonical_name`: scribe-spec
+- `deprecated_aliases`: spec-writer
+- `migration_status`: deprecated
+- `artifact_responsibility`: prose specifications, agent definitions, boundary definitions, working-style design, and explicit non-goals (non-runtime blueprint artifacts)
+- `is_base_specialist`: false (Scribe variant under the canonical taxonomy)
+- `migration_note`: D-P1 proposes `scribe-spec` as the canonical variant name. The current filename/runtime identifier remain as transitional aliases until D-O1 and later runtime stages resolve renames. Alias cleanup follows D-D1 lifecycle states.
+- `context_order_note`: Per D-O7, specialist context should be presented as base context, variant context, repository rules, task packet, task-specific context, then upstream artifacts/evidence; authority still follows repository rules and orchestrator packet constraints before specialist context.
+
 ## Definition
 
 - `id`: specialist_spec-writer

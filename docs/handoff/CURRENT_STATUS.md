@@ -1,16 +1,29 @@
 # Current Status
 
-**Last updated:** 2026-04-11
+**Last updated:** 2026-04-30
 **Owner:** Joe
 
 ## Current focus
 
-Main track resumed: T-10 live build-team validation (Stage 5a.3b). The layered context initialization side quest (T-22 through T-26) is complete.
+**Specialist Taxonomy Migration phase is now active.** The active target is **T-28 — Stage 3 (team documentation migration)**, a documentation-only task under `agents/teams/`.
 
-**Implementation plan:** `docs/IMPLEMENTATION_PLAN.md` (Stage 5a.3b) plus `docs/validation/METHODOLOGY.md`
+T-10 (live build-team validation, Stage 5a.3b) is parked while the taxonomy migration phase runs. The layered onboarding side quest (T-22–T-26) and the 2026-04-30 taxonomy decision pass are both complete.
+
+**Authoritative inputs for the active task:**
+- `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` (Stage 3)
+- `agents/SPECIALIST_TAXONOMY_AND_CONTEXT_MODEL.md` (team sections and current specialist reclassification)
+- `agents/SPECIALIST_TAXONOMY_DECISION_LOG.md` (entries D-O5, D-O6, D-T8, D-T9)
+- `docs/handoff/NEXT_TASK.md` (cold-start orientation and concrete edit list)
 
 ## Completed in current focus
 
+- T-27 (Specialist Taxonomy Migration, Stage 2) completed:
+  - Every specialist definition now carries explicit `base_class`, `variant`, `canonical_name`, alias, migration-status, and artifact-responsibility metadata.
+  - `tester.md` points at canonical `builder-test`, marks `tester` as a deprecated alias per D-O4/D-D1, and frames test work as Builder-variant test artifact authoring.
+  - `builder.md` reflects D-O5 as canonical: `builder` remains the generic Builder; no `builder` -> `builder-code` rename is required.
+  - `doc-formatter.md` reflects D-D3: it is not promoted into the canonical taxonomy and remains only a transitional utility / validation artifact.
+  - The five proposed reclassifications (`scribe-spec`, `scribe-schema`, `scribe-routing`, `reviewer-critic`, `reviewer-boundary-auditor`) keep their proposed canonical variant names and include D-D1 lifecycle notes.
+  - `agents/specialists/_SPECIALISTS_INDEX.md` now summarizes base class, canonical variant, alias, and migration status for each specialist.
 - Stage 0 (queue setup): task queue updated with T-22–T-26, T-10 deferred, handoff docs point to T-22
 - Implementation plan saved to repo at `docs/design/ONBOARDING_IMPLEMENTATION_PLAN.md`
 - Stage 1 (durable onboarding documentation) completed:
@@ -47,11 +60,14 @@ Main track resumed: T-10 live build-team validation (Stage 5a.3b). The layered c
 
 ## Known gaps / blockers
 
-- T-10 is now the active target
-- `/next` skill not loading in Pi remains a separate background issue
+- None blocking T-28. The task is documentation-only and self-contained.
+- T-10 is parked behind the active taxonomy migration phase, not blocked. A future agent will return to it after T-27..T-33.
+- D-O1 (specialist filename rename strategy) remains `Open` and is intentionally not resolved by T-27. It is the only decision-log Open item left in the taxonomy track.
+- `/next` skill not loading in Pi remains a separate background issue.
 
 ## Decision notes for next session
 
+- **Specialist taxonomy decisions assimilated (doc-only pass):** `agents/SPECIALIST_TAXONOMY_DECISION_LOG.md` and `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` have been updated. Previously Open/Deferred/Agreed-needs-detail entries D-O2, D-O3, D-O4, D-O5, D-O6, D-O7, D-A1, D-A2, D-D1, and D-D3 are now `Canonical` (or `Canonical decision; implementation pending` / `Canonical direction; implementation deferred`). D-D2 remains `Deferred` with an explicit activation condition. D-O1 (specialist filename rename strategy) is the only Open item remaining for the taxonomy track. Stage 3.5 (YAML schema and template design) was added as a required checkpoint before any runtime/type metadata migration. Future agents must execute T-27 through T-33 in order and must not silently re-decide entries marked `Open`, `Proposed`, or `Deferred`.
 - **Decision #44 landed:** layered context initialization is now a first-class architectural rule, with `docs/LAYERED_ONBOARDING.md` as the durable reference and ADR 0002 as the companion record
 - **Decision #45 landed:** policies and onboarding manifests stay under `specs/` rather than a new config root. If the policy/onboarding surface later overloads `specs/`, a dedicated config root is the documented future escalation path.
 - **Access model:** orchestrator reads policies/manifests; specialists receive context only via packet. Directory structure is for organization, not enforcement.
@@ -65,10 +81,13 @@ Main track resumed: T-10 live build-team validation (Stage 5a.3b). The layered c
 
 ## Next task (single target)
 
-T-10 — Team state machine e2e validation (see `NEXT_TASK.md`)
+T-28 — Specialist Taxonomy Migration, Stage 3 (team documentation migration). See `NEXT_TASK.md` for the cold-start orientation, concrete edit list, and verification checklist.
 
 ## Definition of done for next task
 
-- Build-team completes at least one real task end-to-end through `teamHint: "build-team"`
-- Validation results are recorded truthfully with both task-level and substrate-level findings
-- Any live routing or artifact bugs discovered are either fixed or documented clearly for follow-on work
+- `agents/teams/_TEAMS_INDEX.md` documents the default everyday team `planner -> builder -> reviewer`.
+- `agents/teams/_TEAMS_INDEX.md` documents the conditional design-to-build team `planner -> scribe -> builder -> reviewer`.
+- Team docs describe simple linear flows as human-readable shorthand and point toward the state-machine model per D-O6.
+- Team docs do not commit to a specific test-authoring expansion flow beyond the settled `builder-test` taxonomy rule.
+- Existing team specs reference the taxonomy and planned member identifier migration without changing runtime identifiers.
+- No runtime team definition has been changed.

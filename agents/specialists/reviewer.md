@@ -1,5 +1,18 @@
 # reviewer.md
 
+## Taxonomy
+
+- `base_class`: Reviewer
+- `variant`: null (generic base specialist)
+- `current_name`: reviewer
+- `canonical_name`: reviewer
+- `deprecated_aliases`: none
+- `migration_status`: active
+- `artifact_responsibility`: evaluation of artifacts, plans, evidence, or proposed changes against explicit criteria; does not own primary implementation
+- `is_base_specialist`: true
+- `migration_note`: Already aligns with the canonical Reviewer base class. Specialized review lenses (`reviewer-critic`, `reviewer-boundary-auditor`) are tracked separately in `critic.md` and `boundary-auditor.md`.
+- `context_order_note`: Per D-O7, specialist context should be presented as base context, variant context, repository rules, task packet, task-specific context, then upstream artifacts/evidence; authority still follows repository rules and orchestrator packet constraints before specialist context.
+
 ## Definition
 
 - `id`: specialist_reviewer

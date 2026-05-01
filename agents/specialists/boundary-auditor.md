@@ -1,5 +1,18 @@
 # boundary-auditor.md
 
+## Taxonomy
+
+- `base_class`: Reviewer
+- `variant`: reviewer-boundary-auditor
+- `current_name`: boundary-auditor
+- `canonical_name`: reviewer-boundary-auditor
+- `deprecated_aliases`: boundary-auditor
+- `migration_status`: deprecated
+- `artifact_responsibility`: access control, context-exposure, narrow-by-default compliance, and hidden-routing-authority audits — through the boundary review lens
+- `is_base_specialist`: false (Reviewer variant under the canonical taxonomy)
+- `migration_note`: D-P5 proposes `reviewer-boundary-auditor` as the canonical variant name. The current filename/runtime identifier remain transitional aliases until D-O1 and later runtime stages resolve renames. Alias cleanup follows D-D1 lifecycle states.
+- `context_order_note`: Per D-O7, specialist context should be presented as base context, variant context, repository rules, task packet, task-specific context, then upstream artifacts/evidence; authority still follows repository rules and orchestrator packet constraints before specialist context.
+
 ## Definition
 
 - `id`: specialist_boundary-auditor

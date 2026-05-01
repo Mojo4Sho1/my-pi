@@ -1,5 +1,18 @@
 # builder.md
 
+## Taxonomy
+
+- `base_class`: Builder
+- `variant`: null (generic base specialist)
+- `current_name`: builder
+- `canonical_name`: builder
+- `deprecated_aliases`: none
+- `migration_status`: active
+- `artifact_responsibility`: bounded implementation changes to executable, operational, or implementation-facing artifacts (code, scripts, configuration, generated assets, runtime behavior); does not own broad planning, specification authority, or final acceptance
+- `is_base_specialist`: true
+- `migration_note`: D-O5 is canonical: `builder` remains the generic Builder specialist and no `builder` -> `builder-code` rename is required. A more specific `builder-code` variant may be introduced later only if warranted. Test-authoring responsibility is separated into the Builder variant `builder-test` (see `tester.md`).
+- `context_order_note`: Per D-O7, specialist context should be presented as base context, variant context, repository rules, task packet, task-specific context, then upstream artifacts/evidence; authority still follows repository rules and orchestrator packet constraints before specialist context.
+
 ## Definition
 
 - `id`: specialist_builder

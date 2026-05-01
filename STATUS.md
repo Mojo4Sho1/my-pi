@@ -1,10 +1,10 @@
 # STATUS.md
 
-Last updated: 2026-04-11 (onboarding side quest T-22-T-26 complete; T-10 live build-team validation resumes)
+Last updated: 2026-04-30 (Specialist Taxonomy Migration phase active; T-28 is the current target; T-10 parked)
 
-Current focus: T-10 team state machine end-to-end validation (Stage 5a.3b) is active again now that the layered onboarding side quest is complete.
+Current focus: T-28 — Specialist Taxonomy Migration, Stage 3 (team documentation migration). Documentation-only work scoped to `agents/teams/`. See `docs/handoff/NEXT_TASK.md` for the cold-start orientation and concrete edit list.
 
-Recent completion: T-22 through T-26 landed the durable layered onboarding model, added declarative onboarding scaffolding under `specs/`, validated all 6 design scenarios and all 9 acceptance criteria, archived the source design doc, and recorded the config-root follow-on as Decision #45 plus explicit `docs/FUTURE_WORK.md` entries.
+Recent completion: 2026-04-30 T-27 specialist spec migration — every specialist definition now carries explicit taxonomy metadata, alias lifecycle status where relevant, and D-O7 context-order notes. `tester.md` now points at canonical `builder-test`; `builder.md` reflects D-O5 (`builder` retained); `doc-formatter.md` reflects D-D3 (not promoted to the canonical taxonomy). T-22–T-26 remain complete; T-10 is parked behind the active taxonomy migration phase.
 
 ## Progress Checklist
 
@@ -259,6 +259,7 @@ Methodology and task catalog: `docs/validation/METHODOLOGY.md`
 - [x] Surface real routing/design gaps from live validation attempts, including missing `partial` transitions and build-team semantic drift
 - [x] Stage 5a.7 reconciled contracts, artifacts, and the canonical build-team flow, so live build-team validation can resume
 - [x] Follow-on side quest T-22 through T-26 established and validated the durable layered onboarding model before resuming the live validation track
+- [x] All 647 tests pass across 49 test files (as of 2026-04-13), TypeScript compiles cleanly
 
 #### 5a.4 — `/dashboard` Command (Detailed Inspector) [DEFERRED, POST-5a.3b]
 Near-full-screen read-only session inspector. See Decision #36.
@@ -363,6 +364,7 @@ Command surface emerges from real usage. `/dashboard` (5a.4) is the only committ
 
 - **`/seed` skill — new-project content:** Scaffold is in place (`skills/seed/`). Needs real instructions and templates for `new-project` seed. See `skills/seed/seeds/new-project/SEED.md`.
 - **`/seed` skill — interactive seeds (future):** Seeds are currently non-interactive. Future enhancement for seeds that ask questions before scaffolding.
+- **Specialist taxonomy migration:** Documentation-only assimilation and specialist spec migration are complete (Stages 1-2). Runtime, router, type, and test migration are tracked in `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` and remain unstarted. Open and deferred decisions are tracked in `agents/SPECIALIST_TAXONOMY_DECISION_LOG.md`.
 
 ## Future Evolution
 
@@ -370,8 +372,10 @@ See `docs/FUTURE_WORK.md` for deferred design ideas (team critic, campaign super
 
 ## Blockers
 
-- No hard repo blocker currently prevents Stage 5a.3b live validation from resuming now.
-- T-11 through T-14 remain follow-on work; keep them behind T-10 unless live validation exposes a reason to reprioritize.
+- No hard blocker for the active target (T-28, taxonomy Stage 3 — documentation-only).
+- T-10 (live build-team validation) is parked behind the active taxonomy migration phase, not blocked. The two tracks are orthogonal; T-10 will resume after T-27..T-29 land.
+- T-11 through T-14 remain follow-on work behind T-10. Do not pull them forward.
+- D-O1 (specialist filename rename strategy) is the only `Open` taxonomy decision; it is intentionally deferred until Stage 7 cleanup (T-33).
 
 ## Risks
 

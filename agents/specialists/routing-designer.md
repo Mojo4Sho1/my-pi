@@ -1,5 +1,18 @@
 # routing-designer.md
 
+## Taxonomy
+
+- `base_class`: Scribe
+- `variant`: scribe-routing
+- `current_name`: routing-designer
+- `canonical_name`: scribe-routing
+- `deprecated_aliases`: routing-designer
+- `migration_status`: deprecated
+- `artifact_responsibility`: state machine routing definitions (states, transitions, entry/exit conditions, escalation paths, completeness analysis) as non-runtime blueprint artifacts
+- `is_base_specialist`: false (Scribe variant under the canonical taxonomy)
+- `migration_note`: D-P3 proposes `scribe-routing` as the canonical variant name. Implementation of routing logic itself remains a Builder responsibility. The current filename/runtime identifier remain transitional aliases until D-O1 and later runtime stages resolve renames. Alias cleanup follows D-D1 lifecycle states.
+- `context_order_note`: Per D-O7, specialist context should be presented as base context, variant context, repository rules, task packet, task-specific context, then upstream artifacts/evidence; authority still follows repository rules and orchestrator packet constraints before specialist context.
+
 ## Definition
 
 - `id`: specialist_routing-designer

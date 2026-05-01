@@ -1,5 +1,20 @@
 # specialist-creator.md
 
+## Taxonomy Note
+
+This team predates the canonical specialist taxonomy in `agents/SPECIALIST_TAXONOMY_AND_CONTEXT_MODEL.md` and currently references members by their pre-taxonomy identifiers (for example `specialist_spec-writer`, `specialist_critic`, `specialist_tester`). Under the new taxonomy, these members map as follows:
+
+- `specialist_planner` -> Planner (generic base)
+- `specialist_spec-writer` -> Scribe variant `scribe-spec`
+- `specialist_schema-designer` -> Scribe variant `scribe-schema`
+- `specialist_critic` -> Reviewer variant `reviewer-critic`
+- `specialist_boundary-auditor` -> Reviewer variant `reviewer-boundary-auditor`
+- `specialist_reviewer` -> Reviewer (generic base)
+- `specialist_builder` -> Builder (generic base; D-O5 keeps `builder`)
+- `specialist_tester` -> Builder variant `builder-test` (decision log D-O4)
+
+Member identifier renames are deferred. This file is not edited beyond this taxonomy note in the documentation-only pass; runtime team definitions remain unchanged.
+
 ## Definition
 
 - `id`: team_specialist-creator
