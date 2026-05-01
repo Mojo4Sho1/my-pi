@@ -44,6 +44,8 @@ make test-watch # Run tests in watch mode
 
 Specialist Taxonomy Migration work (T-27 through T-34, or any task whose `NEXT_TASK.md` points into that phase) belongs on the `taxonomy-migration` branch. Before editing for that phase, run `git branch --show-current`; if you are not on `taxonomy-migration`, stop and report the mismatch before changing files.
 
+If `taxonomy-migration` is not present in a fresh clone, fetch it with `git fetch origin taxonomy-migration` and check it out with `git switch --track origin/taxonomy-migration`. If it already exists locally, use `git switch taxonomy-migration`.
+
 ## Code Conventions
 
 **Tests:** All tests use [vitest](https://vitest.dev/) -- `describe`, `it`, `expect`. Do NOT use `node:test` or `node:assert`. Test files live in `tests/` with the pattern `<name>.test.ts`. See any existing test (e.g., `tests/tokens.test.ts`) for the import pattern.

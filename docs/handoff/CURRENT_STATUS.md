@@ -9,6 +9,8 @@
 
 T-10 (live build-team validation, Stage 5a.3b) is parked while the taxonomy migration phase runs. The layered onboarding side quest (T-22–T-26) and the 2026-04-30 taxonomy decision pass are both complete.
 
+**Branch guard:** Taxonomy migration work T-27 through T-34 belongs on `taxonomy-migration`. A fresh agent should run `git branch --show-current` before editing and stop if the result is not `taxonomy-migration`.
+
 **Authoritative inputs for the active task:**
 - `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` (Stage 3)
 - `agents/SPECIALIST_TAXONOMY_AND_CONTEXT_MODEL.md` (team sections and current specialist reclassification)

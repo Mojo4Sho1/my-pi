@@ -28,6 +28,8 @@ This task is documentation-only. No runtime code, TypeScript, router files, pack
 
 The work is bounded to team documentation under `agents/teams/` plus related routing/handoff references. A successful run of T-28 will align team docs with the canonical taxonomy without changing runtime team definitions.
 
+Do only T-28 in this pass. Do not pull T-29 or later work forward; after T-28 is complete, update the handoff docs so the next fresh agent receives T-29.
+
 ## Why this task is next
 
 - T-27 is complete: specialist specs now declare base class, variant, migration notes, D-D1 alias lifecycle status where relevant, and D-O7 context-order notes.
@@ -52,6 +54,8 @@ Read these lazily and only as needed for T-28:
 - It should avoid committing to a specific test-authoring expansion flow beyond the settled taxonomy rule that `builder-test` is a Builder variant.
 - Existing team specs should reference the taxonomy doc and note planned member identifier migration without changing runtime identifiers.
 - `agents/teams/specialist-creator.md` should note future reclassification of its members under the new variant names without changing runtime member identifiers.
+
+If a required condition is already satisfied, record it as satisfied in the handoff update instead of rewriting text for cosmetic reasons.
 
 ## Out of scope
 
