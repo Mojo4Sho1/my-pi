@@ -7,6 +7,15 @@ import {
 
 export const CRITIC_PROMPT_CONFIG: SpecialistPromptConfig = {
   id: "specialist_critic",
+  canonicalName: "reviewer-critic",
+  currentRuntimeId: "critic",
+  taxonomy: {
+    baseClass: "Reviewer",
+    variant: "reviewer-critic",
+    artifactResponsibility: ["critique findings", "reuse assessments", "primitive classification", "scope evaluations"],
+  },
+  aliases: [],
+  migrationStatus: "proposed",
   roleName: "Critic Specialist",
   roleDescription:
     "Evaluate designs for quality, redundancy, proportional complexity, unnecessary abstractions, and reuse opportunities. Quality reviewer in the compliance/quality review split.",

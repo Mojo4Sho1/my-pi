@@ -8,9 +8,49 @@
 
 import type { TaskPacket, InputContract, OutputContract, ResultPacket } from "./types.js";
 
+export type SpecialistBaseClass = "Planner" | "Scribe" | "Builder" | "Reviewer";
+export type SpecialistMigrationStatus =
+  | "active"
+  | "transitional"
+  | "proposed"
+  | "blocked-for-new-use"
+  | "out-of-taxonomy"
+  | "deprecated"
+  | "removed";
+export type AliasLifecycleState =
+  | "active"
+  | "deprecated"
+  | "blocked-for-new-use"
+  | "removal-candidate"
+  | "removed";
+
+export interface SpecialistTaxonomy {
+  baseClass: SpecialistBaseClass | null;
+  variant: string | null;
+  artifactResponsibility: string[];
+}
+
+export interface SpecialistAliasMetadata {
+  name: string;
+  canonicalTarget: string;
+  reason: string;
+  lifecycleState: AliasLifecycleState;
+  cleanupCondition: string;
+}
+
 export interface SpecialistPromptConfig {
   /** Specialist agent ID (e.g. "specialist_builder") */
   id: string;
+  /** Final taxonomy name to prefer in new references */
+  canonicalName: string;
+  /** Identifier currently used by TypeScript subprocess invocation */
+  currentRuntimeId: string;
+  /** Grouped runtime taxonomy metadata mirrored from the V2 YAML shape */
+  taxonomy: SpecialistTaxonomy;
+  /** Compatibility aliases governed by the staged lifecycle policy */
+  aliases: SpecialistAliasMetadata[];
+  /** Current taxonomy migration state for this runtime config */
+  migrationStatus: SpecialistMigrationStatus;
   /** Human-readable role name (e.g. "Builder Specialist") */
   roleName: string;
   /** One-line description of what this specialist does */

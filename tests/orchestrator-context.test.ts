@@ -95,10 +95,10 @@ describe("buildContextForSpecialist", () => {
     });
   });
 
-  describe("tester", () => {
+  describe("builder-test", () => {
     it("returns modifiedFiles and implementationSummary when builder result exists", () => {
       const builderResult = makeBuilderResult();
-      const context = buildContextForSpecialist("tester", [builderResult]);
+      const context = buildContextForSpecialist("builder-test", [builderResult]);
 
       expect(context).toEqual({
         modifiedFiles: ["src/handler.ts", "src/config.ts"],
@@ -107,11 +107,11 @@ describe("buildContextForSpecialist", () => {
     });
 
     it("returns undefined when no builder result exists", () => {
-      expect(buildContextForSpecialist("tester", [])).toBeUndefined();
+      expect(buildContextForSpecialist("builder-test", [])).toBeUndefined();
     });
 
     it("returns undefined when only planner results exist", () => {
-      const context = buildContextForSpecialist("tester", [makePlannerResult()]);
+      const context = buildContextForSpecialist("builder-test", [makePlannerResult()]);
       expect(context).toBeUndefined();
     });
   });
@@ -131,8 +131,8 @@ describe("buildContextForSpecialist", () => {
       expect(keys).toEqual(["modifiedFiles", "implementationSummary"]);
     });
 
-    it("tester context contains only modifiedFiles and implementationSummary", () => {
-      const context = buildContextForSpecialist("tester", [makeBuilderResult()]);
+    it("builder-test context contains only modifiedFiles and implementationSummary", () => {
+      const context = buildContextForSpecialist("builder-test", [makeBuilderResult()]);
       expect(context).toBeDefined();
       const keys = Object.keys(context!);
       expect(keys).toEqual(["modifiedFiles", "implementationSummary"]);

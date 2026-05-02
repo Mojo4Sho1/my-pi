@@ -1,6 +1,6 @@
 # Task Queue
 
-**Last updated:** 2026-05-01
+**Last updated:** 2026-05-02
 **Owner:** Joe
 
 ## Purpose
@@ -80,7 +80,7 @@ For handoff routing, start with `docs/handoff/_HANDOFF_INDEX.md`. For validation
 
 | ID | Status | Task | Specs to Read | Acceptance Criteria |
 |----|--------|------|---------------|---------------------|
-| T-10 | deferred | Team state machine e2e validation (5a.3b) | `docs/IMPLEMENTATION_PLAN.md` (5a.3b), `docs/validation/METHODOLOGY.md` | Parked while the Specialist Taxonomy Migration phase (T-27..T-33) is active. Resume after T-27..T-29 land; the live router validation does not depend on the taxonomy work and can be picked up unchanged. |
+| T-10 | deferred | Team state machine e2e validation (5a.3b) | `docs/IMPLEMENTATION_PLAN.md` (5a.3b), `docs/validation/METHODOLOGY.md` | Parked while the Specialist Taxonomy Migration phase (T-27..T-34) is active. Resume after the taxonomy migration branch lands on `main`; the live router validation does not depend on the post-merge alias-removal branch and can be picked up unchanged. |
 | T-11 | deferred | Tester specialist role redesign (5a.3c) | `docs/IMPLEMENTATION_PLAN.md` (5a.3c), Decision #40 | Only revisit if live validation exposes residual tester-role drift after the completed 5a.7 reconciliation |
 | T-12 | deferred | Specialist invocation patterns (5a.3d) | `docs/IMPLEMENTATION_PLAN.md` (5a.3d), Decision #41 | Revisit after T-10 once live validation confirms the redesigned routing model in practice |
 | T-13 | deferred | Token logging and observability (5a.3e) | `docs/IMPLEMENTATION_PLAN.md` (5a.3e) | Revisit after T-10 so surfaced token data matches the observed live validation flow |
@@ -104,13 +104,21 @@ re-decide entries marked `Open`, `Proposed`, or `Deferred` in
 | T-27 | done | Stage 2 — Specialist spec migration (taxonomy) | `agents/SPECIALIST_TAXONOMY_AND_CONTEXT_MODEL.md`, `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` (Stage 2), `agents/SPECIALIST_TAXONOMY_DECISION_LOG.md` (D-D1, D-D3, D-O7) | Each specialist spec carries explicit base-class/variant annotations, migration notes, and presentation/authority order notes; `tester.md` points at `builder-test`; `doc-formatter.md` reflects D-D3 (not promoted); no file renames; no runtime/test/extension changes |
 | T-28 | done | Stage 3 — Team documentation migration (taxonomy) | `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` (Stage 3), Decisions D-O5, D-O6, D-T8, D-T9 | Team docs reflect default everyday team, conditional design-to-build team, linear flows as shorthand, and state-machine direction; no runtime team definitions changed |
 | T-29 | done | Stage 3.5 — YAML schema and template design (taxonomy checkpoint) | `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` (Stage 3.5), Decisions D-A1, D-O2, D-O7 | Specialist/team/context-bundle/contract-layer/invocation-addendum/output-template/effective-contract templates, examples, glossary, and validation expectations exist; generated effective contracts are not committed; runtime metadata still untouched |
-| T-30 | active | Stage 4 — Runtime/type metadata migration (taxonomy) | `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` (Stage 4), Decisions D-O3, D-O4, D-O5, D-D1 | Grouped `taxonomy` runtime field; `builder` retained; `builder-test` resolves canonically while `tester` remains a deprecated compatibility alias; runtime mirrors YAML metadata without loading YAML. Do not activate proposed Scribe/Reviewer aliases in this task. |
-| T-31 | blocked | Stage 5 — Router and team definition migration (taxonomy) | `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` (Stage 5), Decision D-O6 | Default and conditional teams expressed as state-machine target model; bounded retries; explicit completion/escalation states. Blocked on T-30. |
-| T-32 | blocked | Stage 6 — Layered taxonomy validation | `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` (Stage 6), Decisions D-A2, D-D1, D-O3, D-O6, D-O7 | Specialist taxonomy, alias lifecycle, team state-machine, context/contract layer, and runtime/docs-alignment validation in place with staged enforcement. Blocked on T-29 (and T-30/T-31 for runtime/state-machine layers). |
-| T-33 | blocked | Stage 7 — Cleanup, alias lifecycle advancement, and deprecation | `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` (Stage 7), Decisions D-D1, D-O1, D-O4 | `tester` alias advances through `deprecated -> blocked-for-new-use -> removal-candidate -> removed` with explicit gating; D-O1 file rename strategy resolved; transitional notes removed. Blocked on T-32. |
+| T-30 | done | Stage 4 — Runtime/type metadata migration (taxonomy) | `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` (Stage 4), Decisions D-O3, D-O4, D-O5, D-D1 | Grouped `taxonomy` runtime field; `builder` retained; `builder-test` resolves canonically while `tester` remains a deprecated compatibility alias; runtime mirrors YAML metadata without loading YAML. Do not activate proposed Scribe/Reviewer aliases in this task. |
+| T-31 | done | Stage 5 — Router and team definition migration (taxonomy) | `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` (Stage 5), Decision D-O6 | Default and conditional teams expressed as state-machine target model; bounded retries; explicit completion/escalation states; `build-team` uses canonical `builder-test` while `tester` compatibility still resolves. |
+| T-32 | active | Stage 6 — Layered taxonomy validation | `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` (Stage 6), Decisions D-A2, D-D1, D-O3, D-O6, D-O7 | Specialist taxonomy, alias lifecycle, team state-machine, context/contract layer, and runtime/docs-alignment validation in place with staged enforcement. |
+| T-33 | blocked | Stage 7 — Cleanup preparation, alias lifecycle advancement, and deprecation | `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` (Stage 7), Decisions D-D1, D-O1, D-O4 | Deprecated aliases are advanced as far as is safe before merge, preferably to `removal-candidate`; D-O1 file rename strategy is resolved; transitional notes are reduced; do not fully remove compatibility aliases in this task unless the project explicitly re-decides that removal is safe before merge. Blocked on T-32. |
 | T-34 | blocked | Merge taxonomy migration branch back to main | `docs/handoff/CURRENT_STATUS.md`, `docs/handoff/TASK_QUEUE.md`, `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` | T-27..T-33 are done; required checks pass; `taxonomy-migration` is reviewed; branch is merged into `main`; main handoff docs are updated after merge. Blocked on T-33. |
 
 ---
+
+## Phase: Post-Migration Alias Removal (PLANNED)
+
+Aliases are migration scaffolding, not a permanent compatibility surface. Because this project is still young, the target end state is no runtime alias dependency after the taxonomy migration proves stable. Alias removal should happen in its own branch after the taxonomy migration has landed on `main`, so breakage can be isolated and reviewed separately.
+
+| ID | Status | Task | Specs to Read | Acceptance Criteria |
+|----|--------|------|---------------|---------------------|
+| T-35 | blocked | Systematic alias removal on a dedicated branch | `agents/SPECIALIST_TAXONOMY_DECISION_LOG.md` (D-D1, D-O4, D-O1), `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` (Stage 7), `docs/handoff/CURRENT_STATUS.md` after T-34 | Create a dedicated alias-removal branch from updated `main`; audit all runtime, tests, specs, and docs for deprecated aliases; replace remaining `tester` compatibility references with canonical `builder-test` where appropriate; remove alias-resolution entries only after tests prove no remaining dependency; update handoff docs with the final no-alias status. Blocked on T-34. |
 
 ## Notes
 
@@ -130,6 +138,9 @@ re-decide entries marked `Open`, `Proposed`, or `Deferred` in
 - T-25 is complete: the durable schema doc, reusable templates, and starter `build-team` spec now carry truthful declarative onboarding metadata.
 - T-26 is complete: the onboarding side quest now has validated durable docs, archived design rationale, a recorded config-root follow-on decision, and explicit future-work entries.
 - Specialist Taxonomy Migration work is isolated on the `taxonomy-migration` branch. Fresh agents assigned T-27 through T-34 should verify `git branch --show-current` before editing and stop if they are not on that branch.
+- Systematic alias removal is intentionally separated as T-35 after the taxonomy migration merges to `main`; it should happen on a new dedicated branch so compatibility removal can be reviewed independently.
 - T-27 is complete (Specialist Taxonomy Migration, Stage 2): specialist specs now carry explicit base-class/variant annotations, migration notes, D-D1 lifecycle statuses where aliases are deprecated, and D-O7 context-order notes.
 - T-28 is complete (Specialist Taxonomy Migration, Stage 3): team docs now document the default everyday team, conditional design-to-build team, state-machine direction for linear flow shorthand, and planned member reclassification without runtime identifier changes.
-- T-29 is complete (Specialist Taxonomy Migration, Stage 3.5): V2 YAML schema/template checkpoint artifacts now exist under `specs/`, including context bundles, contract layers, output templates, examples, and state-machine-ready team YAML. T-30 is now `active`; T-31..T-34 remain blocked behind runtime/type metadata migration.
+- T-29 is complete (Specialist Taxonomy Migration, Stage 3.5): V2 YAML schema/template checkpoint artifacts now exist under `specs/`, including context bundles, contract layers, output templates, examples, and state-machine-ready team YAML.
+- T-30 is complete (Specialist Taxonomy Migration, Stage 4): runtime specialist prompt configs now carry grouped taxonomy metadata, `builder-test` is canonical and runtime-resolvable, and `tester` remains a deprecated compatibility alias.
+- T-31 is complete (Specialist Taxonomy Migration, Stage 5): runtime teams now include `default-everyday-team`, `design-to-build-team`, and canonical `build-team` test-authoring via `specialist_builder-test`; full and short legacy `tester` references still resolve through the deprecated alias path. T-32 is now `active`; T-33..T-34 remain blocked behind validation and cleanup. T-35 is the planned post-merge no-alias cleanup branch.

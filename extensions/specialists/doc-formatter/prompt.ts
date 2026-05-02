@@ -7,6 +7,15 @@ import {
 
 export const DOC_FORMATTER_PROMPT_CONFIG: SpecialistPromptConfig = {
   id: "specialist_doc_formatter",
+  canonicalName: "doc-formatter",
+  currentRuntimeId: "doc-formatter",
+  taxonomy: {
+    baseClass: null,
+    variant: null,
+    artifactResponsibility: ["markdown normalization output"],
+  },
+  aliases: [],
+  migrationStatus: "out-of-taxonomy",
   roleName: "Doc Formatter Specialist",
   roleDescription:
     "Normalize markdown documents into consistent read-only output without changing document meaning.",

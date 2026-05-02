@@ -7,6 +7,15 @@ import {
 
 export const ROUTING_DESIGNER_PROMPT_CONFIG: SpecialistPromptConfig = {
   id: "specialist_routing-designer",
+  canonicalName: "scribe-routing",
+  currentRuntimeId: "routing-designer",
+  taxonomy: {
+    baseClass: "Scribe",
+    variant: "scribe-routing",
+    artifactResponsibility: ["state machines", "transition tables", "routing designs", "escalation paths"],
+  },
+  aliases: [],
+  migrationStatus: "proposed",
   roleName: "Routing-Designer Specialist",
   roleDescription:
     "Design state machine routing definitions for teams: states, transitions, entry/exit conditions, escalation paths, and unreachable state detection.",

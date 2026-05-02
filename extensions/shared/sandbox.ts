@@ -27,6 +27,7 @@ export const READ_ONLY_SPECIALISTS: ReadonlySet<string> = new Set([
 
 export const WRITE_SPECIALISTS: ReadonlySet<string> = new Set([
   SPECIALIST_IDS.BUILDER,
+  SPECIALIST_IDS.BUILDER_TEST,
   SPECIALIST_IDS.TESTER,
 ]);
 

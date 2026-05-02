@@ -37,6 +37,7 @@ import { ROUTING_DESIGNER_PROMPT_CONFIG } from "../specialists/routing-designer/
 import { CRITIC_PROMPT_CONFIG } from "../specialists/critic/prompt.js";
 import { BOUNDARY_AUDITOR_PROMPT_CONFIG } from "../specialists/boundary-auditor/prompt.js";
 import type { SpecialistId } from "./select.js";
+import { resolveSpecialistId, type SpecialistInputId } from "../shared/constants.js";
 
 export interface DelegationInput {
   /** Prompt configuration for the target specialist */
@@ -76,7 +77,7 @@ const PROMPT_CONFIG_MAP: Record<SpecialistId, SpecialistPromptConfig> = {
   builder: BUILDER_PROMPT_CONFIG,
   planner: PLANNER_PROMPT_CONFIG,
   reviewer: REVIEWER_PROMPT_CONFIG,
-  tester: TESTER_PROMPT_CONFIG,
+  "builder-test": TESTER_PROMPT_CONFIG,
   "spec-writer": SPEC_WRITER_PROMPT_CONFIG,
   "schema-designer": SCHEMA_DESIGNER_PROMPT_CONFIG,
   "routing-designer": ROUTING_DESIGNER_PROMPT_CONFIG,
@@ -87,8 +88,12 @@ const PROMPT_CONFIG_MAP: Record<SpecialistId, SpecialistPromptConfig> = {
 /**
  * Look up the prompt configuration for a specialist by ID.
  */
-export function getPromptConfig(specialistId: SpecialistId): SpecialistPromptConfig {
-  return PROMPT_CONFIG_MAP[specialistId];
+export function getPromptConfig(specialistId: SpecialistInputId): SpecialistPromptConfig {
+  const resolved = resolveSpecialistId(specialistId);
+  if (!resolved) {
+    throw new Error(`Unknown specialist id: ${specialistId}`);
+  }
+  return PROMPT_CONFIG_MAP[resolved];
 }
 
 /**
@@ -567,7 +572,7 @@ export function buildContextForSpecialist(
     }
 
     case "reviewer":
-    case "tester": {
+    case "builder-test": {
       const builderResult = priorResults.find(r => r.sourceAgent === "specialist_builder");
       if (!builderResult) return undefined;
       return {

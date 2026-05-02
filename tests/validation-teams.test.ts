@@ -4,11 +4,16 @@ import {
   validateTeamDefinition,
   type TeamValidationContext,
 } from "../extensions/shared/validation.js";
-import { BUILD_TEAM } from "../extensions/teams/definitions.js";
+import {
+  BUILD_TEAM,
+  DEFAULT_EVERYDAY_TEAM,
+  DESIGN_TO_BUILD_TEAM,
+} from "../extensions/teams/definitions.js";
 import { PLANNER_PROMPT_CONFIG } from "../extensions/specialists/planner/prompt.js";
 import { BUILDER_PROMPT_CONFIG } from "../extensions/specialists/builder/prompt.js";
 import { REVIEWER_PROMPT_CONFIG } from "../extensions/specialists/reviewer/prompt.js";
 import { TESTER_PROMPT_CONFIG } from "../extensions/specialists/tester/prompt.js";
+import { SPEC_WRITER_PROMPT_CONFIG } from "../extensions/specialists/spec-writer/prompt.js";
 import type { TeamDefinition, InputContract, OutputContract } from "../extensions/shared/types.js";
 
 // Build the validation context from real specialist prompt configs
@@ -17,6 +22,7 @@ const KNOWN_SPECIALIST_IDS = [
   "specialist_builder",
   "specialist_reviewer",
   "specialist_tester",
+  "specialist_spec-writer",
 ];
 
 const SPECIALIST_CONTRACTS: Record<string, { input: InputContract; output: OutputContract }> = {
@@ -35,6 +41,10 @@ const SPECIALIST_CONTRACTS: Record<string, { input: InputContract; output: Outpu
   specialist_tester: {
     input: TESTER_PROMPT_CONFIG.inputContract!,
     output: TESTER_PROMPT_CONFIG.outputContract!,
+  },
+  "specialist_spec-writer": {
+    input: SPEC_WRITER_PROMPT_CONFIG.inputContract!,
+    output: SPEC_WRITER_PROMPT_CONFIG.outputContract!,
   },
 };
 
@@ -123,18 +133,59 @@ describe("validateTeamDefinition — real definitions", () => {
     expect(errors).toEqual([]);
   });
 
+  it("validates the default everyday team runtime definition", () => {
+    const errors = validateTeamDefinition(DEFAULT_EVERYDAY_TEAM, REAL_CONTEXT);
+
+    expect(errors).toEqual([]);
+    expect(DEFAULT_EVERYDAY_TEAM.states.startState).toBe("planning");
+    expect(DEFAULT_EVERYDAY_TEAM.states.terminalStates).toEqual(["done", "failed"]);
+    expect(DEFAULT_EVERYDAY_TEAM.states.states.building.transitions).toContainEqual({
+      on: "partial",
+      to: "planning",
+      maxIterations: 1,
+    });
+    expect(DEFAULT_EVERYDAY_TEAM.states.states.review.transitions).toContainEqual({
+      on: "failure",
+      to: "building",
+      maxIterations: 1,
+    });
+  });
+
+  it("validates the design-to-build team without activating proposed Scribe aliases", () => {
+    const errors = validateTeamDefinition(DESIGN_TO_BUILD_TEAM, REAL_CONTEXT);
+
+    expect(errors).toEqual([]);
+    expect(DESIGN_TO_BUILD_TEAM.members).toContain("specialist_spec-writer");
+    expect(DESIGN_TO_BUILD_TEAM.members).not.toContain("specialist_scribe-spec");
+    expect(DESIGN_TO_BUILD_TEAM.states.states.scribing.agent).toBe("specialist_spec-writer");
+    expect(DESIGN_TO_BUILD_TEAM.states.states.scribing.transitions).toContainEqual({
+      on: "partial",
+      to: "planning",
+      maxIterations: 1,
+    });
+  });
+
   it("keeps the build-team YAML starter spec aligned with the runtime mapping", () => {
     const teamSpec = readFileSync(
       new URL("../specs/teams/build-team.yaml", import.meta.url),
       "utf8"
     );
 
-    const expectedMapping = {
+    const expectedRuntimeMapping = {
       planning: "specialist_planner",
       building: "specialist_builder",
-      testing: "specialist_tester",
+      testing: "specialist_builder-test",
       rebuilding: "specialist_builder",
       review: "specialist_reviewer",
+      done: "orchestrator",
+      failed: "orchestrator",
+    };
+    const expectedYamlMapping = {
+      planning: "planner",
+      building: "builder",
+      testing: "builder-test",
+      rebuilding: "builder",
+      review: "reviewer",
       done: "orchestrator",
       failed: "orchestrator",
     };
@@ -177,10 +228,10 @@ describe("validateTeamDefinition — real definitions", () => {
       Object.fromEntries(
         Object.entries(BUILD_TEAM.states.states).map(([state, config]) => [state, config.agent])
       )
-    ).toEqual(expectedMapping);
+    ).toEqual(expectedRuntimeMapping);
 
     const mappingBlock = extractYamlBlock(teamSpec, "state_to_specialist_mapping", 0);
-    expect(parseYamlMappingBlock(mappingBlock, 2)).toEqual(expectedMapping);
+    expect(parseYamlMappingBlock(mappingBlock, 2)).toEqual(expectedYamlMapping);
 
     const stateMachineBlock = extractYamlBlock(teamSpec, "state_machine", 0);
     expect(stateMachineBlock).toContain("start_state: planning");
@@ -212,14 +263,46 @@ describe("validateTeamDefinition — real definitions", () => {
     );
   });
 
+  it("validates canonical builder-test references through legacy tester contract metadata", () => {
+    expect(BUILD_TEAM.members).toContain("specialist_builder-test");
+    expect(BUILD_TEAM.states.states.testing.agent).toBe("specialist_builder-test");
+    expect(REAL_CONTEXT.knownSpecialistIds).toContain("specialist_tester");
+    expect(REAL_CONTEXT.knownSpecialistIds).not.toContain("specialist_builder-test");
+
+    const errors = validateTeamDefinition(BUILD_TEAM, REAL_CONTEXT);
+    expect(errors).toEqual([]);
+  });
+
+  it("keeps legacy tester team references valid through the deprecated alias path", () => {
+    const legacyTeam: TeamDefinition = {
+      ...BUILD_TEAM,
+      members: BUILD_TEAM.members.map((member) =>
+        member === "specialist_builder-test" ? "specialist_tester" : member
+      ),
+      states: {
+        ...BUILD_TEAM.states,
+        states: {
+          ...BUILD_TEAM.states.states,
+          testing: {
+            ...BUILD_TEAM.states.states.testing,
+            agent: "specialist_tester",
+          },
+        },
+      },
+    };
+
+    const errors = validateTeamDefinition(legacyTeam, REAL_CONTEXT);
+    expect(errors).toEqual([]);
+  });
+
   it("keeps the schema doc explicit about YAML authoring versus TypeScript runtime authority", () => {
     const schemaDoc = readFileSync(
       new URL("../specs/schemas/SPECIALIST_AND_TEAM_YAML_SPEC.md", import.meta.url),
       "utf8"
     );
 
-    expect(schemaDoc).toContain("YAML is not yet runtime authority.");
-    expect(schemaDoc).toContain("Current runtime authority remains in TypeScript");
+    expect(schemaDoc).toContain("YAML is not yet runtime-loaded.");
+    expect(schemaDoc).toContain("Current runtime behavior remains in TypeScript");
     expect(schemaDoc).toContain(
       "the canonical team flow is `planner -> builder -> tester -> builder -> reviewer -> done`"
     );

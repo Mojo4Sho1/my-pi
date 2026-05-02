@@ -14,6 +14,24 @@ import {
 
 export const TESTER_PROMPT_CONFIG: SpecialistPromptConfig = {
   id: "specialist_tester",
+  canonicalName: "builder-test",
+  currentRuntimeId: "tester",
+  taxonomy: {
+    baseClass: "Builder",
+    variant: "builder-test",
+    artifactResponsibility: ["test artifacts", "test fixtures", "validation commands when explicitly assigned"],
+  },
+  aliases: [
+    {
+      name: "tester",
+      canonicalTarget: "builder-test",
+      reason: "Current runtime id remains tester during the alias-first migration.",
+      lifecycleState: "deprecated",
+      cleanupCondition:
+        "Advance after team definitions, tests, and documentation prefer builder-test and no known runtime references require tester.",
+    },
+  ],
+  migrationStatus: "transitional",
   roleName: "Tester Specialist",
   roleDescription:
     "Author focused tests and execution expectations that keep the implementation honest.",

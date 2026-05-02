@@ -12,6 +12,15 @@ describe("delegateToSpecialist", () => {
 
   const TEST_PROMPT_CONFIG: SpecialistPromptConfig = {
     id: "specialist_builder",
+    canonicalName: "builder",
+    currentRuntimeId: "builder",
+    taxonomy: {
+      baseClass: "Builder",
+      variant: null,
+      artifactResponsibility: ["runtime code"],
+    },
+    aliases: [],
+    migrationStatus: "active",
     roleName: "Builder Specialist",
     roleDescription: "Execute bounded implementation tasks.",
     workingStyle: {

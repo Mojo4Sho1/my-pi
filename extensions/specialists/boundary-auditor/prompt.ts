@@ -7,6 +7,15 @@ import {
 
 export const BOUNDARY_AUDITOR_PROMPT_CONFIG: SpecialistPromptConfig = {
   id: "specialist_boundary-auditor",
+  canonicalName: "reviewer-boundary-auditor",
+  currentRuntimeId: "boundary-auditor",
+  taxonomy: {
+    baseClass: "Reviewer",
+    variant: "reviewer-boundary-auditor",
+    artifactResponsibility: ["boundary audit reports", "authority assessments", "context exposure findings", "policy recommendations"],
+  },
+  aliases: [],
+  migrationStatus: "proposed",
   roleName: "Boundary-Auditor Specialist",
   roleDescription:
     "Audit designs for access control violations, excess context exposure, undeclared assumptions, overly broad permissions, and compliance with the narrow-by-default control philosophy.",

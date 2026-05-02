@@ -22,6 +22,15 @@ describe("pre-flight contract validation in delegateToSpecialist", () => {
   }): SpecialistPromptConfig {
     return {
       id: "specialist_builder",
+      canonicalName: "builder",
+      currentRuntimeId: "builder",
+      taxonomy: {
+        baseClass: "Builder",
+        variant: null,
+        artifactResponsibility: ["runtime code"],
+      },
+      aliases: [],
+      migrationStatus: "active",
       roleName: "Builder Specialist",
       roleDescription: "Builds things",
       workingStyle: {

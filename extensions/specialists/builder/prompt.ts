@@ -14,6 +14,15 @@ import {
 
 export const BUILDER_PROMPT_CONFIG: SpecialistPromptConfig = {
   id: "specialist_builder",
+  canonicalName: "builder",
+  currentRuntimeId: "builder",
+  taxonomy: {
+    baseClass: "Builder",
+    variant: null,
+    artifactResponsibility: ["runtime code", "implementation changes", "configuration changes", "executable artifacts"],
+  },
+  aliases: [],
+  migrationStatus: "active",
   roleName: "Builder Specialist",
   roleDescription: "Execute bounded implementation tasks within explicit scope.",
   workingStyle: {

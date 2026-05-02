@@ -94,6 +94,8 @@ describe("executeTeam", () => {
     expect(result.statesVisited).toEqual(["planning", "building", "testing", "rebuilding", "review", "done"]);
     expect(mockSpawn).toHaveBeenCalledTimes(5);
     expect(result.sessionArtifact?.specialistSummaries.every((summary) => summary.contractSatisfied)).toBe(true);
+    expect(result.sessionArtifact?.stateTrace[2].agent).toBe("specialist_builder-test");
+    expect(result.sessionArtifact?.specialistSummaries[2].agentId).toBe("specialist_builder-test");
   });
 
   it("builds downstream team context from preserved structured payload fields", async () => {
@@ -181,6 +183,38 @@ describe("executeTeam", () => {
       coverageNotes: ["integration path still manual"],
     });
     expect(result.sessionArtifact?.taskPacketLineage).toHaveLength(6);
+  });
+
+  it("keeps legacy specialist_tester team definitions executable through the deprecated alias", async () => {
+    const legacyTeam = {
+      ...BUILD_TEAM,
+      members: BUILD_TEAM.members.map((member) =>
+        member === "specialist_builder-test" ? "specialist_tester" : member
+      ),
+      states: {
+        ...BUILD_TEAM.states,
+        states: {
+          ...BUILD_TEAM.states.states,
+          testing: {
+            ...BUILD_TEAM.states.states.testing,
+            agent: "specialist_tester",
+          },
+        },
+      },
+    };
+    const mockSpawn = vi.fn()
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Planned", deliverables: ["s1"], modifiedFiles: [] }))
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Built", deliverables: ["done"], modifiedFiles: ["src/index.ts"], changeDescription: "Built feature" }))
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Authored tests", deliverables: ["tests"], modifiedFiles: ["tests/index.test.ts"], testStrategy: "Regression", testCasesAuthored: ["covers behavior"], executionCommands: ["make test"], expectedPassConditions: ["passes"], coverageNotes: [] }))
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Verified", deliverables: ["ok"], modifiedFiles: ["src/index.ts"], changeDescription: "Verified", testExecutionResults: ["make test -> pass"] }))
+      .mockResolvedValueOnce(makeOutput({ status: "success", summary: "Reviewed", deliverables: [], modifiedFiles: [], verdict: "approve", findings: [] }));
+
+    const { executeTeam } = await setupTeamRouter(mockSpawn);
+    const result = await executeTeam(legacyTeam, makeTeamTaskPacket());
+
+    expect(result.success).toBe(true);
+    expect(result.statesVisited).toEqual(["planning", "building", "testing", "rebuilding", "review", "done"]);
+    expect(result.sessionArtifact?.stateTrace[2].agent).toBe("specialist_tester");
   });
 
   it("rejects unauthorized specialist field writes before routing can continue", async () => {

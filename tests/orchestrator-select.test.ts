@@ -19,9 +19,15 @@ describe("selectSpecialists", () => {
       expect(result.specialists).toEqual(["reviewer"]);
     });
 
-    it("returns tester when hint is 'tester'", () => {
+    it("resolves deprecated tester alias to builder-test", () => {
       const result = selectSpecialists("do something", "tester");
-      expect(result.specialists).toEqual(["tester"]);
+      expect(result.specialists).toEqual(["builder-test"]);
+      expect(result.reason).toContain("deprecated alias tester");
+    });
+
+    it("returns builder-test when hint is 'builder-test'", () => {
+      const result = selectSpecialists("do something", "builder-test");
+      expect(result.specialists).toEqual(["builder-test"]);
     });
 
     it("returns spec-writer when hint is 'spec-writer'", () => {
@@ -65,7 +71,7 @@ describe("selectSpecialists", () => {
 
     it("filters out invalid specialist IDs", () => {
       const result = selectSpecialists("do something", ["builder", "nonexistent" as any, "tester"]);
-      expect(result.specialists).toEqual(["builder", "tester"]);
+      expect(result.specialists).toEqual(["builder", "builder-test"]);
     });
 
     it("falls back to builder if all array entries are invalid", () => {
@@ -119,7 +125,7 @@ describe("selectSpecialists", () => {
 
     it("uses arrow notation for multi-specialist chains", () => {
       const result = selectSpecialists("anything", ["planner", "builder", "tester"] as any);
-      expect(result.reason).toContain("planner → builder → tester");
+      expect(result.reason).toContain("planner → builder → builder-test");
     });
   });
 });

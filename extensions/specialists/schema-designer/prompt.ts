@@ -7,6 +7,15 @@ import {
 
 export const SCHEMA_DESIGNER_PROMPT_CONFIG: SpecialistPromptConfig = {
   id: "specialist_schema-designer",
+  canonicalName: "scribe-schema",
+  currentRuntimeId: "schema-designer",
+  taxonomy: {
+    baseClass: "Scribe",
+    variant: "scribe-schema",
+    artifactResponsibility: ["type definitions", "packet shapes", "I/O contracts", "validation schemas", "output templates"],
+  },
+  aliases: [],
+  migrationStatus: "proposed",
   roleName: "Schema-Designer Specialist",
   roleDescription:
     "Design all typed structures: TypeScript interfaces, packet shapes, I/O contracts, invariants, failure modes, output templates, and validation constraints.",

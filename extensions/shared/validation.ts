@@ -17,6 +17,7 @@ import type {
 } from "./types.js";
 import { validateStateMachine } from "./routing.js";
 import { contractsCompatible } from "./contracts.js";
+import { resolveSpecialistAgentId } from "./constants.js";
 
 // --- Parsed Agent Definition Types ---
 
@@ -98,6 +99,10 @@ function isEmptyValue(val: string | string[] | undefined): boolean {
   if (typeof val === "string") return val.trim() === "";
   if (Array.isArray(val)) return val.length === 0;
   return false;
+}
+
+function normalizeAgentReference(agentId: string): string {
+  return resolveSpecialistAgentId(agentId) ?? agentId;
 }
 
 // --- Agent Definition Parser ---
@@ -311,10 +316,17 @@ export function validateTeamDefinition(
   context: TeamValidationContext
 ): string[] {
   const errors: string[] = [];
+  const knownSpecialistIds = new Set(context.knownSpecialistIds.map(normalizeAgentReference));
+  const specialistContracts = Object.fromEntries(
+    Object.entries(context.specialistContracts).map(([agentId, contracts]) => [
+      normalizeAgentReference(agentId),
+      contracts,
+    ])
+  );
 
   // 1. Member existence — all member IDs should be known specialists
   for (const memberId of team.members) {
-    if (!context.knownSpecialistIds.includes(memberId)) {
+    if (!knownSpecialistIds.has(normalizeAgentReference(memberId))) {
       errors.push(`Unknown specialist in members: '${memberId}'`);
     }
   }
@@ -324,9 +336,12 @@ export function validateTeamDefinition(
   errors.push(...machineErrors);
 
   // 3. Agent references — every state.agent must be a member or "orchestrator"
-  const allowedAgents = new Set([...team.members, "orchestrator"]);
+  const allowedAgents = new Set([
+    ...team.members.map(normalizeAgentReference),
+    "orchestrator",
+  ]);
   for (const [stateName, stateDef] of Object.entries(team.states.states)) {
-    if (!allowedAgents.has(stateDef.agent)) {
+    if (!allowedAgents.has(normalizeAgentReference(stateDef.agent))) {
       errors.push(
         `State '${stateName}' references unknown agent '${stateDef.agent}' (not a team member or 'orchestrator')`
       );
@@ -338,7 +353,7 @@ export function validateTeamDefinition(
     // Skip terminal states (no outgoing transitions)
     if (team.states.terminalStates.includes(stateName)) continue;
 
-    const sourceContracts = context.specialistContracts[stateDef.agent];
+    const sourceContracts = specialistContracts[normalizeAgentReference(stateDef.agent)];
     if (!sourceContracts) continue; // Non-specialist agent (e.g. orchestrator)
 
     for (const transition of stateDef.transitions) {
@@ -348,7 +363,7 @@ export function validateTeamDefinition(
       // Skip terminal states as targets — they use orchestrator, no input contract
       if (team.states.terminalStates.includes(transition.to)) continue;
 
-      const targetContracts = context.specialistContracts[targetState.agent];
+      const targetContracts = specialistContracts[normalizeAgentReference(targetState.agent)];
       if (!targetContracts) continue; // Non-specialist target
 
       const { compatible, missingFields } = contractsCompatible(

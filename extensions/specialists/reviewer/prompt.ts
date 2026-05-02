@@ -14,6 +14,15 @@ import {
 
 export const REVIEWER_PROMPT_CONFIG: SpecialistPromptConfig = {
   id: "specialist_reviewer",
+  canonicalName: "reviewer",
+  currentRuntimeId: "reviewer",
+  taxonomy: {
+    baseClass: "Reviewer",
+    variant: null,
+    artifactResponsibility: ["review findings", "acceptance verdicts", "scope compliance assessments"],
+  },
+  aliases: [],
+  migrationStatus: "active",
   roleName: "Reviewer Specialist",
   roleDescription:
     "Review final implementation and supporting artifacts for scope, consistency, and constraint alignment.",

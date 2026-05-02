@@ -1,10 +1,10 @@
 # STATUS.md
 
-Last updated: 2026-05-01 (Specialist Taxonomy Migration phase active; T-30 is the current target; T-10 parked)
+Last updated: 2026-05-02 (Specialist Taxonomy Migration phase active; T-32 is the current target; T-10 parked)
 
-Current focus: T-30 — Specialist Taxonomy Migration, Stage 4 (Runtime/type metadata migration). The required T-29 YAML schema/template checkpoint is complete. See `docs/handoff/NEXT_TASK.md` for the cold-start orientation and concrete edit list.
+Current focus: T-32 — Specialist Taxonomy Migration, Stage 6 (Layered taxonomy validation). T-31 router/team definition migration is complete. See `docs/handoff/NEXT_TASK.md` for the cold-start orientation and concrete edit list.
 
-Recent completion: 2026-05-01 T-29 YAML schema/template checkpoint — `specs/schemas/SPECIALIST_AND_TEAM_YAML_SPEC.md` now defines V2 specialist, team, context-bundle, contract-layer, invocation-addendum, output-template, and effective-contract assembly surfaces; `specs/contracts/`, `specs/context/`, `specs/templates/`, and `specs/examples/` now contain the required checkpoint artifacts; `specs/teams/default-everyday-team.yaml` and `specs/teams/design-to-build-team.yaml` capture the settled team shapes as state-machine-ready YAML. T-28 team documentation migration and T-27 specialist spec migration are complete. T-22–T-26 remain complete; T-10 is parked behind the active taxonomy migration phase.
+Recent completion: 2026-05-02 T-31 router/team definition migration — runtime teams now include `default-everyday-team`, `design-to-build-team`, and canonical `build-team` test-authoring via `specialist_builder-test`; full and short legacy `tester` references still resolve through the deprecated alias path. T-30 runtime/type metadata migration, T-29 YAML schema/template checkpoint, T-28 team documentation migration, and T-27 specialist spec migration are complete. T-22–T-26 remain complete; T-10 is parked behind the active taxonomy migration phase.
 
 ## Progress Checklist
 
@@ -125,7 +125,7 @@ All 3d tests are **integration tests with mocked subprocesses** (not live sub-ag
 - [x] Critic receives relevant upstream context per review (e.g., plan summary when reviewing a spec) via input contract (Decision #22) — `buildContextFromContract()` in contracts.ts
 - [x] Teams are **opaque to orchestrator**: orchestrator sends team-level TaskPacket, receives team-level ResultPacket
 - [x] Intra-team context passing governed by I/O contracts (not raw result forwarding)
-- [x] Initial `build-team` exemplar landed in `extensions/teams/definitions.ts`; Stage 5a.7 has now reconciled it to the canonical target flow `planner -> builder -> tester -> builder -> reviewer -> done`
+- [x] Initial `build-team` exemplar landed in `extensions/teams/definitions.ts`; Stage 5a.7 reconciled it to a test-authoring expansion, and T-31 migrated the runtime test-authoring node to canonical `builder-test` while preserving `tester` compatibility.
 - [x] Orchestrator can delegate to a named team — `teamHint` parameter on `orchestrate` tool
 - [x] `tests/team-router.test.ts` — 10 tests (happy path, loops, exhaustion, escalation, errors)
 - [x] `tests/orchestrator-team-e2e.test.ts` — 5 tests (team delegation through orchestrate tool)

@@ -53,9 +53,9 @@ const OrchestrateParams = Type.Object({
   teamHint: Type.Optional(
     Type.String({
       description:
-        "Team ID to delegate to (e.g. 'build-team'). Overrides specialist selection. " +
+        "Team ID to delegate to (e.g. 'build-team', 'default-everyday-team', or 'design-to-build-team'). Overrides specialist selection. " +
         "Teams run multi-specialist state machine workflows. Use for tasks requiring " +
-        "coordinated build→review→test flows.",
+        "coordinated state-machine routing.",
     })
   ),
   modelOverride: Type.Optional(
@@ -265,7 +265,7 @@ export default function orchestratorExtension(pi: ExtensionAPI) {
           const itemId = `wl_${specialistId}_${Date.now()}`;
           const kind = specialistId === "planner" ? "planning" as const
             : specialistId === "reviewer" ? "review_gate" as const
-            : specialistId === "tester" ? "validation" as const
+            : specialistId === "builder-test" ? "validation" as const
             : "implementation" as const;
           const result = appendItem(worklist, {
             id: itemId,

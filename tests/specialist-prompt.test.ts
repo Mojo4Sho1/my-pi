@@ -5,6 +5,15 @@ import type { TaskPacket } from "../extensions/shared/types.js";
 
 const TEST_CONFIG: SpecialistPromptConfig = {
   id: "specialist_test",
+  canonicalName: "test",
+  currentRuntimeId: "test",
+  taxonomy: {
+    baseClass: "Builder",
+    variant: null,
+    artifactResponsibility: ["test fixture output"],
+  },
+  aliases: [],
+  migrationStatus: "active",
   roleName: "Test Specialist",
   roleDescription: "Execute test tasks within explicit scope.",
   workingStyle: {

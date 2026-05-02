@@ -29,14 +29,15 @@ describe("sandbox authority model", () => {
     ]);
   });
 
-  it("contains exactly builder and tester as write specialists", () => {
+  it("contains builder, builder-test, and tester compatibility alias as write specialists", () => {
     expect(Array.from(WRITE_SPECIALISTS).sort()).toEqual([
       "builder",
+      "builder-test",
       "tester",
     ]);
   });
 
-  it("keeps the two sets disjoint and covers all nine specialists", () => {
+  it("keeps the two sets disjoint and covers canonical specialists plus tester alias", () => {
     const all = new Set([...READ_ONLY_SPECIALISTS, ...WRITE_SPECIALISTS]);
     for (const specialistId of WRITE_SPECIALISTS) {
       expect(READ_ONLY_SPECIALISTS.has(specialistId)).toBe(false);
@@ -44,6 +45,7 @@ describe("sandbox authority model", () => {
     expect(Array.from(all).sort()).toEqual([
       "boundary-auditor",
       "builder",
+      "builder-test",
       "critic",
       "planner",
       "reviewer",

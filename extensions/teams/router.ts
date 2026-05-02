@@ -43,6 +43,7 @@ import { READ_ONLY_SPECIALISTS } from "../shared/sandbox.js";
 import type { HookRegistry } from "../shared/hooks.js";
 import type { DelegationLogger } from "../shared/logging.js";
 import type { SpecialistId } from "../orchestrator/select.js";
+import { resolveSpecialistId } from "../shared/constants.js";
 import { GLOBAL_RUN_REGISTRY, linkAbortSignal } from "../shared/run-registry.js";
 
 export interface TeamExecutionResult {
@@ -66,9 +67,9 @@ const TEAM_ARTIFACT_SCHEMA_VERSION = "team-artifact.v1";
 function agentToSpecialistId(agentId: string): SpecialistId | undefined {
   const prefix = "specialist_";
   if (agentId.startsWith(prefix)) {
-    return agentId.slice(prefix.length) as SpecialistId;
+    return resolveSpecialistId(agentId.slice(prefix.length));
   }
-  return undefined;
+  return resolveSpecialistId(agentId);
 }
 
 /** Generate a simple session ID */

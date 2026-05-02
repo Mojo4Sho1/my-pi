@@ -7,6 +7,15 @@ import {
 
 export const SPEC_WRITER_PROMPT_CONFIG: SpecialistPromptConfig = {
   id: "specialist_spec-writer",
+  canonicalName: "scribe-spec",
+  currentRuntimeId: "spec-writer",
+  taxonomy: {
+    baseClass: "Scribe",
+    variant: "scribe-spec",
+    artifactResponsibility: ["specialist specs", "team specs", "non-runtime prose specifications", "boundary definitions"],
+  },
+  aliases: [],
+  migrationStatus: "proposed",
   roleName: "Spec-Writer Specialist",
   roleDescription:
     "Write exhaustive prose specifications with boundary-first framing for agent definitions, scope boundaries, and working style design.",

@@ -15,6 +15,7 @@ import type {
   ResultPacket,
   TeamStepArtifact,
 } from "./types.js";
+import { resolveSpecialistAgentId } from "./constants.js";
 
 const SHARED_RESULT_FIELD_TYPES: Readonly<Record<string, ContractFieldType>> = {
   summary: "string",
@@ -342,8 +343,9 @@ export function buildContextFromContract(
   for (const field of inputContract.fields) {
     if (!field.sourceSpecialist) continue;
 
+    const expectedSourceAgent = resolveSpecialistAgentId(field.sourceSpecialist);
     const sourceResult = priorResults.find(
-      (r) => r.sourceAgent === `specialist_${field.sourceSpecialist}`
+      (r) => expectedSourceAgent !== undefined && resolveSpecialistAgentId(r.sourceAgent) === expectedSourceAgent
     );
 
     if (!sourceResult) continue;
@@ -377,8 +379,9 @@ export function buildContextFromArtifacts(
   for (const field of inputContract.fields) {
     if (!field.sourceSpecialist) continue;
 
+    const expectedSourceAgent = resolveSpecialistAgentId(field.sourceSpecialist);
     const sourceArtifact = [...priorArtifacts].reverse().find(
-      (artifact) => artifact.specialistId === `specialist_${field.sourceSpecialist}`
+      (artifact) => expectedSourceAgent !== undefined && resolveSpecialistAgentId(artifact.specialistId) === expectedSourceAgent
     );
 
     if (!sourceArtifact) continue;

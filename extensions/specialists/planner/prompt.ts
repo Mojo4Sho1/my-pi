@@ -14,6 +14,15 @@ import {
 
 export const PLANNER_PROMPT_CONFIG: SpecialistPromptConfig = {
   id: "specialist_planner",
+  canonicalName: "planner",
+  currentRuntimeId: "planner",
+  taxonomy: {
+    baseClass: "Planner",
+    variant: null,
+    artifactResponsibility: ["plans", "task decomposition", "dependency maps", "risk notes"],
+  },
+  aliases: [],
+  migrationStatus: "active",
   roleName: "Planner Specialist",
   roleDescription:
     "Turn scoped tasks into actionable implementation or investigation plans.",

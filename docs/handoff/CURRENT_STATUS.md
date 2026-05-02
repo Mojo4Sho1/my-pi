@@ -1,25 +1,41 @@
 # Current Status
 
-**Last updated:** 2026-05-01
+**Last updated:** 2026-05-02
 **Owner:** Joe
 
 ## Current focus
 
-**Specialist Taxonomy Migration phase is now active.** The active target is **T-30 — Stage 4 (Runtime/type metadata migration)**, the first runtime/type pass after the YAML schema checkpoint.
+**Specialist Taxonomy Migration phase is now active.** The active target is **T-32 — Stage 6 (Layered taxonomy validation)**.
 
 T-10 (live build-team validation, Stage 5a.3b) is parked while the taxonomy migration phase runs. The layered onboarding side quest (T-22–T-26) and the 2026-04-30 taxonomy decision pass are both complete.
 
 **Branch guard:** Taxonomy migration work T-27 through T-34 belongs on `taxonomy-migration`. A fresh agent should run `git branch --show-current` before editing and stop if the result is not `taxonomy-migration`.
 
 **Authoritative inputs for the active task:**
-- `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` (Stage 4)
-- `agents/SPECIALIST_TAXONOMY_AND_CONTEXT_MODEL.md` (base classes, variants, and artifact responsibilities)
-- `agents/SPECIALIST_TAXONOMY_DECISION_LOG.md` (entries D-O3, D-O4, D-O5, D-D1, plus D-A4 for YAML/runtime mirroring)
-- `specs/schemas/SPECIALIST_AND_TEAM_YAML_SPEC.md` (V2 taxonomy fields and alias lifecycle fields)
+- `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` (Stage 6)
+- `agents/SPECIALIST_TAXONOMY_AND_CONTEXT_MODEL.md` (team patterns, canonical names, and variant model)
+- `agents/SPECIALIST_TAXONOMY_DECISION_LOG.md` (D-A2, D-D1, D-O3, D-O6, D-O7)
+- `specs/schemas/SPECIALIST_AND_TEAM_YAML_SPEC.md`
 - `docs/handoff/NEXT_TASK.md` (cold-start orientation and concrete edit list)
 
 ## Completed in current focus
 
+- T-31 (Specialist Taxonomy Migration, Stage 5) completed:
+  - Runtime team definitions now include `default-everyday-team`, `design-to-build-team`, and the existing `build-team` as explicit TypeScript state machines with bounded retries and explicit `done`/`failed` terminal states.
+  - `build-team` now uses canonical `specialist_builder-test` for the test-authoring state while preserving the existing flow `planner -> builder -> builder-test -> builder -> reviewer -> done`.
+  - Router agent resolution now accepts canonical and compatibility inputs for both short and full agent IDs: `builder-test`, `tester`, `specialist_builder-test`, and `specialist_tester`.
+  - Team validation and contract/artifact context assembly use the shared T-30 alias resolver so legacy tester references continue to work through the deprecated alias path.
+  - `design-to-build-team` uses current `specialist_spec-writer` rather than activating proposed Scribe aliases; proposed Scribe/Reviewer variant aliases remain metadata only.
+  - No runtime YAML loading, T-32 layered enforcement, or T-33 alias cleanup was introduced.
+- T-30 (Specialist Taxonomy Migration, Stage 4) completed:
+  - `SpecialistPromptConfig` now carries grouped runtime taxonomy metadata: `canonicalName`, `currentRuntimeId`, `taxonomy`, `aliases`, and `migrationStatus`.
+  - All current specialist prompt configs declare `taxonomy.baseClass`, `taxonomy.variant`, and `taxonomy.artifactResponsibility`; `doc-formatter` is explicitly marked out-of-taxonomy.
+  - Generic `builder` remains the canonical generic Builder with `variant: null`; no `builder-code` rename was introduced.
+  - `tester` is modeled as transitional metadata toward canonical `builder-test`, with a deprecated alias lifecycle entry.
+  - `builder-test` is now the canonical runtime-resolvable selection/config identifier for test authoring; `tester` still resolves through the deprecated alias path to the same prompt config.
+  - Only the D-O4 alias is behaviorally active. Proposed Scribe/Reviewer variant aliases remain metadata only and were not activated.
+  - Focused tests now cover taxonomy metadata shape, variant prefix rules, builder generic status, tester alias lifecycle metadata, and `builder-test`/`tester` resolution.
+  - Existing team runtime definitions were intentionally left for T-31.
 - T-29 (Specialist Taxonomy Migration, Stage 3.5) completed:
   - `specs/schemas/SPECIALIST_AND_TEAM_YAML_SPEC.md` now defines the V2 schema surface for specialist definitions, team definitions, context bundles, contract layers, invocation addenda, output template references, and effective-contract assembly.
   - The schema doc includes a field glossary, required/optional rules, D-D1 alias/deprecation lifecycle fields, migration-status fields, validation expectations, and schema V2 open questions.
@@ -73,15 +89,16 @@ T-10 (live build-team validation, Stage 5a.3b) is parked while the taxonomy migr
 
 ## Passing checks
 
-- Run timestamp: `2026-04-11`
+- Run timestamp: `2026-05-02`
 - `make typecheck`: pass
-- `make test`: pass
+- `make test`: pass (658 tests)
 
 ## Known gaps / blockers
 
-- None blocking T-30. The required T-29 YAML schema/template checkpoint is complete.
-- T-30 ambiguity has been narrowed: implement a generic alias-resolution shape only if natural, but make only `tester` -> `builder-test` behaviorally active; do not activate proposed Scribe/Reviewer variant aliases; do not load YAML at runtime.
-- T-10 is parked behind the active taxonomy migration phase, not blocked. A future agent will return to it after T-27..T-33.
+- None blocking T-32. T-31 router/team definition migration is complete.
+- T-32 must stay limited to layered taxonomy validation. It should not perform T-33 alias lifecycle advancement or cleanup.
+- Systematic alias removal is now tracked as T-35 after T-34 merge, on a dedicated post-migration branch. Aliases should remain compatibility scaffolding until that isolated cleanup pass.
+- T-10 is parked behind the active taxonomy migration phase, not blocked. A future agent will return to it after T-34 lands the taxonomy migration on `main`; it does not need to wait for the separate T-35 alias-removal branch.
 - D-O1 (specialist filename rename strategy) remains `Open` and is intentionally not resolved by T-27. It is the only decision-log Open item left in the taxonomy track.
 - `/next` skill not loading in Pi remains a separate background issue.
 
@@ -96,18 +113,16 @@ T-10 (live build-team validation, Stage 5a.3b) is parked while the taxonomy migr
   - Specialists narrow by default; orchestrator broader but bounded
   - Factory-vs-run distinction reinforced in repo structure
   - Machine-first artifacts (YAML/JSON) canonical for routing; Markdown for human reference
-- Treat Stage 5a.7 as the landed baseline for runtime behavior. The canonical flow remains `planner -> builder -> tester -> builder -> reviewer -> done`.
+- Treat Stage 5a.7 plus T-31 as the landed baseline for runtime behavior. The canonical build-team flow now uses `planner -> builder -> builder-test -> builder -> reviewer -> done`; `tester` remains a deprecated compatibility alias.
 - The onboarding source design doc is now archived. Use `docs/LAYERED_ONBOARDING.md`, ADR 0002, and the archived design doc only when historical rationale is needed.
 
 ## Next task (single target)
 
-T-30 — Specialist Taxonomy Migration, Stage 4 (Runtime/type metadata migration). See `NEXT_TASK.md` for the cold-start orientation, concrete edit list, and verification checklist.
+T-32 — Specialist Taxonomy Migration, Stage 6 (Layered taxonomy validation). See `NEXT_TASK.md` for the cold-start orientation, concrete edit list, and verification checklist.
 
 ## Definition of done for next task
 
-- Specialist runtime configurations declare grouped taxonomy metadata.
-- `builder` remains the generic Builder; no `builder-code` rename occurs.
-- `builder-test` becomes the canonical runtime-resolvable name for test authoring while current `tester` references keep working as a deprecated compatibility alias.
-- Runtime metadata mirrors the V2 YAML/schema checkpoint shape.
-- YAML is not loaded at runtime in T-30.
+- Layered taxonomy validation covers specialist taxonomy metadata, alias lifecycle metadata, team state-machine references, and runtime/docs alignment in staged enforcement mode.
+- Deprecated aliases remain resolvable during T-32; validation may warn or assert metadata shape but must not remove compatibility paths.
+- T-33 alias lifecycle advancement and cleanup remain out of scope.
 - Typecheck and tests pass.

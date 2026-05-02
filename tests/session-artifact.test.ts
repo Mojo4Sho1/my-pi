@@ -143,7 +143,7 @@ describe("team session artifacts", () => {
     expect(artifact.specialistSummaries[0].agentId).toBe("specialist_planner");
     expect(artifact.specialistSummaries[0].order).toBe(1);
     expect(artifact.specialistSummaries[0].status).toBe("success");
-    expect(artifact.specialistSummaries[2].agentId).toBe("specialist_tester");
+    expect(artifact.specialistSummaries[2].agentId).toBe("specialist_builder-test");
     expect(artifact.specialistSummaries[2].order).toBe(3);
     expect(artifact.specialistSummaries[4].agentId).toBe("specialist_reviewer");
     expect(artifact.specialistSummaries[4].order).toBe(5);
