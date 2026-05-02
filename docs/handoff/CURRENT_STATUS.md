@@ -8,11 +8,14 @@
 **Specialist Taxonomy Migration Stage 4 is ready.** The active target is
 **T-30 — Runtime/type metadata migration**.
 
-T-29b, T-29c, and T-29d are complete. T-29b assimilated
+T-29b, T-29c, T-29d, and T-29e are complete. T-29b assimilated
 `docs/design/SCHEMA_HARDENING_AMENDMENT_PLAN.md` into the durable
 campaign and handoff docs. T-29c hardened the schema/spec/template
 surface to v2.1. T-29d added concrete specialist YAML for the runtime
-metadata migration prerequisites before T-30.
+metadata migration prerequisites before T-30. T-29e re-verified that
+all hardened YAML and Markdown front matter parses cleanly and
+reconciled the migration plan checkbox/dependency text with the
+handoff docs that mark T-29c/T-29d complete and T-30 active.
 
 T-10 (live build-team validation, Stage 5a.3b) remains parked while the
 taxonomy migration phase runs.
@@ -39,6 +42,7 @@ T-29  — done
 T-29b — done
 T-29c — done
 T-29d — done
+T-29e — done
 T-30  — active
 T-31  — blocked on T-30
 T-32  — blocked on T-30/T-31
@@ -64,6 +68,23 @@ active runtime/type metadata migration target.
 
 ## Completed in current focus
 
+- T-29e (Stage 3.6 YAML formatting and handoff consistency fix) completed:
+  - Verified that every YAML file under `specs/specialists/`,
+    `specs/context/`, `specs/teams/`, and `specs/examples/` parses
+    cleanly with PyYAML 6.0.3.
+  - Verified that the YAML front matter in every output template under
+    `specs/templates/` parses cleanly (`_TEMPLATES_INDEX.md` is an
+    index document with no front matter, which is expected).
+  - Reconciled `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` Stage 3.6
+    section with the handoff docs: T-29d is now `[x]`, the dependency
+    text now says T-30 is unblocked because T-29d/T-29e are complete,
+    and an explicit T-29e entry was added to the Stage 3.6 task list.
+  - Inserted because the migration plan still listed T-29d as `[ ]`
+    and "T-30 blocked" while the queue, NEXT_TASK, CURRENT_STATUS, and
+    STATUS already showed T-30 active. That contradiction had to be
+    closed before T-30 began.
+  - No runtime code, TypeScript, tests, extension files, or `specs/`
+    schema files were changed.
 - T-29d (Stage 3.6 concrete specialist YAML readiness) completed:
   - Concrete v2.1 specialist YAML now exists for `planner`, `builder`,
     `builder-test`, `reviewer`, and `scribe-spec`.

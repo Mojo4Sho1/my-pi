@@ -318,16 +318,27 @@ Tasks:
 - [x] T-29c — Stage 3.6: Schema/Template Hardening Implementation.
       Harden schema/spec/template files under `specs/` to v2.1
       according to D-H1 through D-H15. No runtime TypeScript changes.
-- [ ] T-29d — Stage 3.6: Concrete Specialist YAML Readiness. Ensure
-      concrete specialist YAML exists for the specialists directly
-      needed by T-30, including canonical `builder-test` and
-      transitional/deprecated `tester` compatibility as appropriate.
+- [x] T-29d — Stage 3.6: Concrete Specialist YAML Readiness. Concrete
+      v2.1 specialist YAML now exists for `planner`, `builder`,
+      `builder-test`, `reviewer`, and `scribe-spec`. `builder-test` is
+      canonical; `tester` appears only as deprecated compatibility
+      metadata.
+- [x] T-29e — Stage 3.6: YAML Formatting and Handoff Consistency Fix.
+      Verified that all hardened YAML files under `specs/specialists/`,
+      `specs/context/`, `specs/teams/`, and `specs/examples/` parse
+      cleanly, that Markdown output-template front matter under
+      `specs/templates/` parses cleanly, and that the migration plan
+      checkbox state and dependency text agree with the handoff docs
+      that mark T-29c/T-29d complete and T-30 active. No runtime/code
+      or `specs/` schema changes were made for T-29e.
 
 Dependency relationship:
 
 - T-29c is complete after T-29b.
-- T-29d is active after T-29c.
-- T-30 is blocked until T-29d concrete specialist YAML readiness is complete.
+- T-29d is complete after T-29c.
+- T-29e is complete after T-29d.
+- T-30 is unblocked because T-29d concrete specialist YAML readiness
+  and T-29e formatting/consistency repair are complete.
 - T-31 is blocked on T-30.
 - T-32 is blocked on T-30/T-31.
 - T-33 is blocked on T-32.
@@ -355,6 +366,8 @@ Acceptance criteria:
   migration resumes.
 - Concrete YAML readiness is explicit before T-30 claims to mirror
   concrete specialist YAML.
+- Hardened YAML and Markdown front matter are verified parseable
+  before T-30 begins.
 - Future agents can determine from handoff docs that T-30 is paused
   until Stage 3.6 prerequisites are complete.
 

@@ -15,7 +15,8 @@ Read these four files in order before doing anything else. Do not read more by d
 After those reads, read `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md`
 Stage 4 and `agents/SPECIALIST_TAXONOMY_DECISION_LOG.md` decisions
 D-O3, D-O4, D-O5, D-D1, and D-H1 through D-H15 before editing for
-T-30.
+T-30. Stage 3.6 prerequisites (T-29b/T-29c/T-29d) and the Stage 3.6
+formatting/consistency repair (T-29e) are complete.
 
 ## Branch guard
 
@@ -30,15 +31,19 @@ is intentionally isolated from `main` until the final merge checkpoint.
 
 **T-30 — Specialist Taxonomy Migration, Stage 4 (Runtime/type metadata migration).**
 
-T-29b, T-29c, and T-29d are complete. T-30 is now active. Do only T-30
-in this pass. Do not resume T-31, T-32, T-33, or T-34 until their
-dependencies are complete.
+T-29b, T-29c, T-29d, and T-29e are complete. T-30 is now active. Do
+only T-30 in this pass. Do not resume T-31, T-32, T-33, or T-34 until
+their dependencies are complete.
 
 ## Why this task is next
 
 - T-29c is complete: schema/spec/template files are hardened to v2.1.
 - T-29d is complete: concrete specialist YAML exists for `planner`,
   `builder`, `builder-test`, `reviewer`, and `scribe-spec`.
+- T-29e is complete: every relevant `specs/` YAML and every
+  `specs/templates/*.md` front matter parses cleanly, and the
+  migration plan checkbox/dependency text agrees with the handoff
+  docs.
 - T-30 can now mirror the hardened v2.1 YAML projection into runtime
   TypeScript metadata without treating examples as concrete sources.
 
