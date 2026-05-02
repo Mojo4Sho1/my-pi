@@ -1,7 +1,21 @@
+---
+schema_version: "v2.1"
+artifact_kind: output_template
+template_id: boundary-audit-artifact
+artifact_type: boundary_audit
+required_fields:
+  - authorityAssessment
+  - contextAssessment
+  - violations
+  - recommendation
+optional_fields:
+  - requiredNarrowing
+---
+
 # Boundary Audit Artifact Template
 
 **Template id:** `boundary-audit-artifact`
-**Schema version:** `v2`
+**Schema version:** `v2.1`
 **Artifact kind:** `output_template`
 **Artifact type:** `boundary_audit`
 

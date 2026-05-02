@@ -1,7 +1,20 @@
+---
+schema_version: "v2.1"
+artifact_kind: output_template
+template_id: plan-artifact
+artifact_type: plan
+required_fields:
+  - steps
+  - dependencies
+  - risks
+optional_fields:
+  - open_questions
+---
+
 # Plan Artifact Template
 
 **Template id:** `plan-artifact`
-**Schema version:** `v2`
+**Schema version:** `v2.1`
 **Artifact kind:** `output_template`
 **Artifact type:** `plan`
 

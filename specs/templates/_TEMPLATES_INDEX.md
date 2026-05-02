@@ -4,6 +4,12 @@
 
 Routes reusable output templates addressed by stable template id from specialist YAML.
 
+Templates are Markdown files with parseable YAML front matter. The front
+matter is the machine-readable v2.1 metadata surface; the Markdown body
+remains the human-readable output guidance. These are project-native
+output artifact templates under `specs/`, not Pi slash-command prompt
+templates.
+
 ## Files
 
 | File | Template id |

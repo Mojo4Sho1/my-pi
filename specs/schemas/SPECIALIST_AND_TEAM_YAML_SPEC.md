@@ -4,7 +4,7 @@
 
 This document is the durable concrete schema/spec reference for YAML authoring structure under `specs/`.
 
-It defines the V2 authoring shape for specialist specs, team specs, context bundles, contract layers, output template references, invocation addenda, and effective-contract assembly. V2 extends the V1 authoring shape introduced during Stage 5a.7 and the optional V1.1 onboarding metadata extension introduced during onboarding Stage 4.
+It defines the V2.1 authoring shape for specialist specs, team specs, context bundles, contract layers, output template references, invocation addenda, and effective-contract assembly. V2.1 hardens the V2 authoring shape introduced during Stage 3.5 and preserves the optional V1.1 onboarding metadata extension introduced during onboarding Stage 4.
 
 ## Authority And Relationship To Other Docs
 
@@ -16,6 +16,8 @@ It defines the V2 authoring shape for specialist specs, team specs, context bund
 - YAML is not yet runtime-loaded.
 - Current runtime behavior remains in TypeScript until runtime YAML loading or mirroring is implemented.
 - When runtime and YAML differ, docs must remain truthful about that gap rather than pretending YAML is already loaded at runtime.
+- `specs/` artifacts are project-native metadata. They are not directly Pi-loaded prompt templates, skills, extensions, or themes.
+- Runtime consumption of `specs/` metadata must happen through this package's extension/orchestrator code. `specs/templates/*.md` are output artifact templates, not Pi slash-command prompt templates.
 
 ## Specs Directory Layout
 
@@ -40,13 +42,19 @@ It defines the V2 authoring shape for specialist specs, team specs, context bund
 - Stable identifiers should be kebab-case where they name specialists, teams, templates, contract layers, or context bundles.
 - Runtime-facing field names may preserve existing camelCase names when they mirror current TypeScript packet/result fields.
 
-## V2 Field Glossary
+## Schema Revision
+
+Current revision: `v2.1`.
+
+V2.1 supersedes conflicting V2 wording where Stage 3.6 found ambiguity. It does not introduce runtime YAML loading, runtime validation enforcement, router migration, generated effective contracts, alias cleanup, or a taxonomy redesign.
+
+## V2.1 Field Glossary
 
 `schema_version`
 
 - Type: `string`
 - Required: yes
-- Description: Schema version for the artifact. V2 artifacts use `"v2"`; V1/V1.1 files remain historical inputs until migrated.
+- Description: Schema version for the artifact. Hardened Stage 3.6 artifacts use `"v2.1"`; V1/V1.1/V2 files remain historical inputs until migrated.
 
 `artifact_kind`
 
@@ -57,8 +65,8 @@ It defines the V2 authoring shape for specialist specs, team specs, context bund
 `specialist_id`
 
 - Type: `string`
-- Required: specialist definitions
-- Description: Current runtime-facing specialist identifier until alias migration is complete.
+- Required: deprecated compatibility shortcut only
+- Description: Legacy/current runtime-facing specialist identifier until alias migration is complete. New v2.1 specs should prefer `identifiers.current_runtime_id`.
 
 `team_id`
 
@@ -69,32 +77,92 @@ It defines the V2 authoring shape for specialist specs, team specs, context bund
 `canonical_name`
 
 - Type: `string`
-- Required: specialist definitions and renamed teams
-- Description: Final taxonomy name to prefer in new documentation and team definitions.
+- Required: deprecated compatibility shortcut only
+- Description: Final taxonomy name to prefer in new documentation and team definitions. New v2.1 specialist specs should prefer `identifiers.canonical_id`; team specs may continue to use `canonical_name`.
 
 `current_runtime_id`
 
 - Type: `string`
+- Required: deprecated compatibility shortcut only
+- Description: Identifier currently used by TypeScript routing. New v2.1 specialist specs should prefer `identifiers.current_runtime_id`.
+
+`identifiers`
+
+- Type: object
+- Required: specialist definitions
+- Description: Explicit identifier-surface model that distinguishes canonical taxonomy ids from runtime/config/tool/filepath identifiers.
+
+`identifiers.canonical_id`
+
+- Type: `string`
+- Required: specialist definitions
+- Description: Canonical taxonomy id to prefer in new specs and docs.
+
+`identifiers.taxonomy_variant`
+
+- Type: `string | null`
+- Required: specialist definitions
+- Description: Canonical taxonomy variant id; `null` for generic base specialists.
+
+`identifiers.current_runtime_id`
+
+- Type: `string`
 - Required: specialist definitions until runtime migration completes
-- Description: Identifier currently used by TypeScript routing.
+- Description: Current short runtime id accepted by TypeScript routing.
+
+`identifiers.runtime_config_id`
+
+- Type: `string`
+- Required: specialist definitions until runtime migration completes
+- Description: Full runtime config id where it differs from the canonical taxonomy id.
+
+`identifiers.extension_directory`
+
+- Type: `string | null`
+- Required: specialist definitions
+- Description: Current extension directory or `null` for not-yet-runtime-loaded definitions.
+
+`identifiers.delegate_tool_names`
+
+- Type: `string[]`
+- Required: specialist definitions
+- Description: Current or planned delegate tool names exposed by runtime extension surfaces.
+
+`identifiers.legacy_aliases`
+
+- Type: `string[]`
+- Required: specialist definitions
+- Description: Compatibility ids or tool/config names that are not canonical.
+
+`taxonomy`
+
+- Type: object
+- Required: specialist definitions
+- Description: First-class YAML taxonomy block projected into TypeScript runtime metadata during Stage 4.
 
 `base_class`
 
 - Type: `Planner | Scribe | Builder | Reviewer | null`
-- Required: specialist definitions
-- Description: Canonical base class. `null` is allowed only for explicitly out-of-taxonomy utilities.
+- Required: deprecated compatibility shortcut only
+- Description: Canonical base class. New v2.1 specs should use `taxonomy.base_class`. `null` is allowed only for explicitly out-of-taxonomy utilities.
 
 `variant`
 
 - Type: `string | null`
-- Required: specialist definitions
-- Description: Canonical variant name. Generic base specialists use `null`; specialized variants use base-class-prefixed kebab-case names such as `builder-test`.
+- Required: deprecated compatibility shortcut only
+- Description: Canonical variant name. New v2.1 specs should use `taxonomy.variant`. Generic base specialists use `null`; specialized variants use base-class-prefixed kebab-case names such as `builder-test`.
 
 `artifact_responsibility`
 
-- Type: object with `primary` and optional `excluded`
+- Type: `string[]` in `taxonomy.artifact_responsibility`
 - Required: specialist definitions
-- Description: Artifact families the specialist owns and explicitly does not own.
+- Description: Artifact families the specialist owns. Exclusions belong in `artifact_boundaries.excluded` and are not projected into the runtime `taxonomy` object.
+
+`artifact_boundaries`
+
+- Type: object with `excluded`
+- Required: specialist definitions
+- Description: Artifact families or authority surfaces the specialist explicitly does not own.
 
 `aliases`
 
@@ -105,8 +173,26 @@ It defines the V2 authoring shape for specialist specs, team specs, context bund
 `migration_status`
 
 - Type: `active | transitional | proposed | blocked-for-new-use | out-of-taxonomy | deprecated | removed`
-- Required: specialist and team definitions during taxonomy migration
-- Description: Current migration state of the artifact or identifier.
+- Required: deprecated compatibility shortcut only
+- Description: Superseded by `definition_status`, `taxonomy_status`, and `runtime_migration_status` in v2.1. Do not use one field for definition status, taxonomy status, runtime migration state, and alias state.
+
+`definition_status`
+
+- Type: `active | proposed | deprecated | removed`
+- Required: specialist and team definitions
+- Description: Status of the definition artifact itself.
+
+`taxonomy_status`
+
+- Type: `canonical | transitional | out_of_taxonomy`
+- Required: specialist definitions; optional for teams unless useful
+- Description: Status of the specialist within the canonical taxonomy.
+
+`runtime_migration_status`
+
+- Type: `not_started | mirrored | runtime_active | yaml_loaded | cleanup_pending`
+- Required: specialist and team definitions while runtime migration is incomplete
+- Description: Runtime migration state for this artifact. `yaml_loaded` is reserved for later work and must not be claimed until implemented.
 
 `lifecycle_state`
 
@@ -120,17 +206,29 @@ It defines the V2 authoring shape for specialist specs, team specs, context bund
 - Required: deprecated aliases and transitional artifacts
 - Description: Explicit condition required before advancing the alias or migration state.
 
+`next_lifecycle_state`
+
+- Type: `deprecated | blocked-for-new-use | removal-candidate | removed`
+- Required: deprecated aliases
+- Description: Next alias lifecycle state to advance toward.
+
+`next_advancement_condition`
+
+- Type: `string`
+- Required: deprecated aliases
+- Description: Explicit condition required before moving to `next_lifecycle_state`. This is distinct from final cleanup/removal conditions.
+
 `presentation_order`
 
 - Type: list of context section ids
 - Required: context bundles and effective-contract examples
 - Description: Order in which context is presented to the specialist.
 
-`authority_order`
+`authority_model`
 
-- Type: list of context section ids
+- Type: object
 - Required: context bundles and effective-contract examples
-- Description: Conflict-resolution priority. Authority order overrides presentation order on conflict.
+- Description: Conflict-resolution model distinct from presentation order. It names non-overridable layers, narrowing layers, and the rule that narrowing layers may narrow but not broaden non-overridable layers.
 
 `contract_layers`
 
@@ -155,28 +253,29 @@ It defines the V2 authoring shape for specialist specs, team specs, context bund
 - Required fields must be present and non-empty unless their type explicitly allows `null`.
 - Optional fields may be omitted. If present, they must satisfy the declared type.
 - Lists that are required but intentionally empty should be written as `[]`.
-- `base_class: null` is valid only for explicitly out-of-taxonomy utilities and must pair with a migration status explaining why.
-- `variant: null` is valid only for generic base specialists.
-- Deprecated aliases must include `name`, `canonical_target`, `reason`, `lifecycle_state`, and `cleanup_condition`.
+- `taxonomy.base_class: null` is valid only for explicitly out-of-taxonomy utilities and must pair with `taxonomy_status: out_of_taxonomy`.
+- `taxonomy.variant: null` is valid only for generic base specialists.
+- Deprecated aliases must include `name`, `canonical_target`, `reason`, `lifecycle_state`, `cleanup_condition`, `next_lifecycle_state`, and `next_advancement_condition`.
 - New team definitions must use canonical specialist names unless they are explicitly documenting compatibility with current runtime ids.
 - Runtime-current identifiers must remain truthful until T-30 or later migrates TypeScript metadata.
+- Repository and universal constraints are non-overridable. Invocation addenda, task packets, team-node contracts, variant contracts, output templates, and upstream evidence may narrow scope but must not broaden or override repository or universal constraints.
+- `migration_status` is superseded by the v2.1 split fields. Existing V2 examples may retain it only when clearly marked historical or compatibility-only.
 
-## Specialist Spec V2
+## Specialist Spec V2.1
 
 Specialist YAML specs use these exact top-level headings:
 
 - `schema_version`
 - `artifact_kind`
-- `specialist_id`
-- `canonical_name`
-- `current_runtime_id`
+- `identifiers`
 - `display_name`
 - `role`
-- `base_class`
-- `variant`
-- `artifact_responsibility`
+- `taxonomy`
+- `artifact_boundaries`
 - `aliases`
-- `migration_status`
+- `definition_status`
+- `taxonomy_status`
+- `runtime_migration_status`
 - `migration_notes`
 - `purpose`
 - `when_to_use`
@@ -265,6 +364,34 @@ Each artifact field uses:
 - `risk`
 - `default_bias`
 
+`identifiers` contains:
+
+- `canonical_id`
+- `taxonomy_variant`
+- `current_runtime_id`
+- `runtime_config_id`
+- `extension_directory`
+- `delegate_tool_names`
+- `legacy_aliases`
+
+`taxonomy` contains:
+
+- `base_class`
+- `variant`
+- `artifact_responsibility`
+
+Runtime TypeScript projection from YAML taxonomy metadata:
+
+```text
+taxonomy.baseClass = yaml.taxonomy.base_class
+taxonomy.variant = yaml.taxonomy.variant
+taxonomy.artifactResponsibility = yaml.taxonomy.artifact_responsibility
+```
+
+`artifact_boundaries` contains:
+
+- `excluded`
+
 `validation_requirements` contains:
 
 - `contract_rules`
@@ -279,6 +406,8 @@ Each artifact field uses:
 - `reason`
 - `lifecycle_state`
 - `cleanup_condition`
+- `next_lifecycle_state`
+- `next_advancement_condition`
 
 `variant_contract`, when present, contains:
 
@@ -288,9 +417,11 @@ Each artifact field uses:
 
 Validation expectations:
 
-- `base_class` must be one of the canonical base classes or `null` for out-of-taxonomy utilities.
-- Non-null `variant` should be base-class-prefixed kebab-case.
-- `canonical_name` must match `variant` for variants and the base specialist id for generic base specialists.
+- `taxonomy.base_class` must be one of the canonical base classes or `null` for out-of-taxonomy utilities.
+- Non-null `taxonomy.variant` should be base-class-prefixed kebab-case.
+- `identifiers.canonical_id` must match `taxonomy.variant` for variants and the base specialist id for generic base specialists.
+- `identifiers.taxonomy_variant` must match `taxonomy.variant`.
+- Runtime projection must use the `taxonomy` block, not `artifact_boundaries`.
 - Deprecated aliases must follow the D-D1 lifecycle.
 - `artifact_template.template_id` must resolve to a committed file under `specs/templates/`.
 - Contract fields must have stable names, types, required flags, and descriptions.
@@ -302,7 +433,7 @@ If present, `onboarding` contains:
 - `layer3_refs`
 - `notes`
 
-## Team Spec V2
+## Team Spec V2.1
 
 Team YAML specs use these exact top-level headings:
 
@@ -312,7 +443,8 @@ Team YAML specs use these exact top-level headings:
 - `canonical_name`
 - `current_runtime_id`
 - `display_name`
-- `migration_status`
+- `definition_status`
+- `runtime_migration_status`
 - `migration_notes`
 - `purpose`
 - `members`
@@ -346,8 +478,16 @@ Each contract field uses:
 Each `state_machine.states.<state>` contains:
 
 - `type` optional
-- `target` optional
+- `target` optional target object
 - `transitions`
+
+Each state `target` object contains:
+
+- `kind`: `specialist | team | orchestrator | terminal | parallel`
+- `canonical_id` optional for specialist or team targets
+- `current_runtime_id` optional when runtime id differs from canonical id
+- `join` optional for future parallel targets
+- `targets` optional for future parallel targets
 
 Each transition uses:
 
@@ -356,7 +496,7 @@ Each transition uses:
 - `max_iterations` optional
 - `condition` optional
 
-`state_to_specialist_mapping` maps a state name to a specialist id or `orchestrator`.
+`state_to_specialist_mapping` maps a state name to a specialist id or `orchestrator` as a compatibility view only.
 
 `per_state_expected_artifact` maps a state name to artifact expectations.
 
@@ -391,7 +531,8 @@ Validation expectations:
 - Every non-terminal state must define explicit handling for `success`, `partial`, `failure`, and `escalation`, either in transitions or transition rules.
 - Every non-terminal state target must resolve to a team member, nested team, or `orchestrator`.
 - Loop transitions must include bounded `max_iterations`.
-- `state_to_specialist_mapping` may remain as a compatibility view, but `state_machine.states.<state>.target` is the preferred state-machine-ready V2 shape.
+- `state_machine.states.<state>.target` is authoritative.
+- `state_to_specialist_mapping` may remain as a compatibility view, but it must match authoritative state targets if present.
 - New team specs should use canonical specialist names and may include current runtime ids in migration notes where needed.
 
 If present, `onboarding` contains:
@@ -401,7 +542,7 @@ If present, `onboarding` contains:
 - `team_state_context`
 - `upstream_artifacts`
 
-## Context Bundle V2
+## Context Bundle V2.1
 
 Context bundles describe the per-task context package delivered with a task packet. They are distinct from `specs/onboarding/` manifests, which describe static startup context profiles.
 
@@ -413,7 +554,7 @@ Context bundle YAML uses these top-level headings:
 - `description`
 - `target`
 - `presentation_order`
-- `authority_order`
+- `authority_model`
 - `sections`
 - `contract_layers`
 - `validation_requirements`
@@ -436,14 +577,22 @@ Each `contract_layers` entry contains:
 - `source`
 - `required`
 
+`authority_model` contains:
+
+- `non_overridable_layers`
+- `narrowing_layers`
+- `rule`
+
 Validation expectations:
 
-- `presentation_order` and `authority_order` must reference declared section ids.
+- `presentation_order` references declared section ids.
+- `authority_model.non_overridable_layers` and `authority_model.narrowing_layers` reference declared contract layers or named authority categories.
 - Required sections must either have a concrete source or be provided by the task packet at invocation time.
-- Authority order is the conflict-resolution order and must be applied even when presentation order differs.
+- Authority model is the conflict-resolution rule and must be applied even when presentation order differs.
+- Repository and universal contract layers must remain non-overridable.
 - Context bundles must not claim to be active runtime loading until a later runtime task implements assembly.
 
-## Contract Layer Model V2
+## Contract Layer Model V2.1
 
 The effective contract is assembled from modular source layers. Layer ordering for presentation follows D-O7:
 
@@ -456,16 +605,22 @@ The effective contract is assembled from modular source layers. Layer ordering f
 7. upstream artifacts and evidence
 8. output template
 
-Authority order for conflicts:
+Authority model for conflicts:
 
-1. task packet and explicit invocation addendum
-2. repository contract
-3. universal contract
-4. team/node contract
-5. variant contract
-6. base-class contract
-7. output template
-8. upstream artifacts and evidence
+- Non-overridable layers:
+  - repository contract
+  - universal contract
+  - safety policy
+  - branch guard
+- Narrowing layers:
+  - invocation addendum
+  - orchestrator task packet
+  - team/node contract
+  - variant contract
+  - base-class contract
+  - output template
+  - upstream artifacts and evidence
+- Rule: narrowing layers may narrow scope or add constraints, but they may not broaden or override non-overridable layers.
 
 Contract layers:
 
@@ -479,11 +634,11 @@ Contract layers:
 
 Validation expectations:
 
-- Lower layers may narrow higher layers but must not contradict them.
+- Narrowing layers may narrow non-overridable layers but must not contradict them.
 - Contract references should use stable ids before file paths when possible.
 - Source contract files are committed; generated effective contracts are not committed by default.
 
-## Invocation Addendum V2
+## Invocation Addendum V2.1
 
 Invocation addenda are small per-task constraints assembled by the orchestrator and delivered in the task packet. They are not committed as normal repository artifacts.
 
@@ -507,11 +662,13 @@ Validation expectations:
 - Temporary constraints may narrow but not broaden repository or universal contract rules.
 - Required outputs must be satisfiable by the target specialist's output contract and output template.
 
-## Output Template References V2
+## Output Template References V2.1
 
 Specialist YAML uses `artifact_template.template_id` to reference committed output templates under `specs/templates/`.
 
-Output template files use these top-level headings:
+Output template files remain Markdown but must include parseable YAML front matter. The Markdown body remains the human-readable template.
+
+YAML front matter contains:
 
 - `schema_version`
 - `artifact_kind: output_template`
@@ -529,7 +686,7 @@ Validation expectations:
 - Required fields must match or be a subset of the specialist output contract.
 - Template field names should align with current runtime field names when they represent packet/result fields.
 
-## Effective Contract Assembly V2
+## Effective Contract Assembly V2.1
 
 The orchestrator assembles effective contracts before delegation and delivers them through the task packet. Specialists consume the assembled contract; they do not reassemble source layers.
 
@@ -537,11 +694,11 @@ Assembled effective contract shape:
 
 - `schema_version`
 - `artifact_kind: effective_contract_example` for committed examples, `effective_contract` for generated per-task artifacts
-- `generated: true`
 - `example: true` only for committed examples
+- `example_of: effective_contract` only for committed examples
 - `target`
 - `presentation_order`
-- `authority_order`
+- `authority_model`
 - `resolved_layers`
 - `effective_contract`
 - `validation_expectations`
@@ -560,10 +717,39 @@ Assembled effective contract shape:
 Validation expectations:
 
 - Generated effective contracts are not committed by default.
-- Committed effective contracts must be under `specs/examples/` and clearly marked with `example: true`.
+- Committed effective-contract examples must be under `specs/examples/` and clearly marked with `artifact_kind: effective_contract_example`, `example: true`, and `example_of: effective_contract`.
+- Committed examples must not use `generated: true`; that field is reserved for actual generated artifacts outside committed examples.
 - The assembler must preserve provenance for every resolved layer once implementation exists.
 
-## Schema V2 Open Questions
+## Concrete Specialist YAML Readiness
+
+The v2.1 schema/template checkpoint may be complete before every concrete specialist YAML file exists.
+
+Runtime migration must not claim to mirror concrete specialist YAML unless concrete files exist for the relevant specialists. Docs and handoff should distinguish:
+
+- Schema/template checkpoint complete.
+- Concrete per-specialist YAML migration partially complete or complete.
+- Runtime YAML loading not yet implemented.
+
+T-29d covers concrete specialist YAML readiness for T-30.
+
+## Validation Expectations V2.1
+
+Stage 3.6 documents validation expectations only. It does not implement broad validation enforcement.
+
+Expected later validation categories:
+
+1. Specialist taxonomy validation.
+2. Identifier-surface validation.
+3. Alias lifecycle validation.
+4. Team state-machine validation.
+5. Context bundle and authority-model validation.
+6. Output template metadata validation.
+7. Effective-contract example validation.
+8. Runtime/docs alignment validation.
+9. Pi platform projection validation.
+
+## Schema V2.1 Open Questions
 
 - Should V3 use formal JSON Schema files in addition to this Markdown reference?
 - Should canonical specialist YAML for every existing specialist be generated in one migration task or incrementally as runtime metadata is mirrored?

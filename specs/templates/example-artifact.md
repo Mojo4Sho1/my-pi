@@ -1,7 +1,18 @@
+---
+schema_version: "v2.1"
+artifact_kind: output_template
+template_id: example-artifact
+artifact_type: example_artifact
+required_fields:
+  - primary_output
+optional_fields:
+  - supporting_items
+---
+
 # Example Artifact Template
 
 **Template id:** `example-artifact`
-**Schema version:** `v2`
+**Schema version:** `v2.1`
 **Artifact kind:** `output_template`
 **Artifact type:** `example_artifact`
 

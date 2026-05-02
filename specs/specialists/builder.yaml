@@ -1,0 +1,209 @@
+# Concrete Builder specialist authoring spec.
+# This is future source-of-truth metadata, not current runtime authority.
+schema_version: "v2.1"
+artifact_kind: specialist_definition
+identifiers:
+  canonical_id: builder
+  taxonomy_variant: null
+  current_runtime_id: builder
+  runtime_config_id: specialist_builder
+  extension_directory: extensions/specialists/builder
+  delegate_tool_names:
+    - delegate-to-builder
+  legacy_aliases: []
+display_name: Builder
+role: builder-specialist
+taxonomy:
+  base_class: Builder
+  variant: null
+  artifact_responsibility:
+    - runtime code
+    - implementation changes
+    - configuration changes
+    - executable artifacts
+artifact_boundaries:
+  excluded:
+    - broad planning ownership
+    - final acceptance review
+    - broad validation ownership
+aliases: []
+definition_status: active
+taxonomy_status: canonical
+runtime_migration_status: not_started
+migration_notes:
+  - Canonical Builder base-class specialist remains the generic implementation specialist.
+  - Test-authoring responsibility is represented by the canonical builder-test variant, not by renaming builder.
+purpose: Execute bounded implementation tasks within explicit scope.
+when_to_use:
+  activation_conditions:
+    - An implementation-ready task has clear objective, file scope, and acceptance expectations.
+    - A plan or upstream artifact needs to be translated into concrete repository changes.
+  escalation_conditions:
+    - Task scope is ambiguous or conflicting.
+    - Required edits exceed the allowed write scope.
+    - Missing dependencies block safe implementation.
+boundaries:
+  scope:
+    - Implement changes in allowed files.
+    - Follow supplied plan, specification, or task instructions.
+    - Return clear summaries of modifications and validation actually run.
+  non_goals:
+    - Do not own broad planning.
+    - Do not own final review.
+    - Do not own broad validation strategy.
+    - Do not update handoff documents by default.
+  routing_class: specialist
+  context_scope: Narrow-by-default packet context plus allowed read/write scope.
+  default_read_set:
+    - task packet
+    - allowed files
+    - directly related implementation references
+  forbidden_by_default:
+    - edits outside explicit scope
+    - broad cleanup unrelated to the objective
+    - hidden orchestration decisions
+  task_boundary: Build only the task packet objective inside the allowed write set.
+  deliverable_boundary: Return implementation artifact fields, summary text, and validation evidence actually obtained.
+  failure_boundary: Use failure or escalation when implementation cannot proceed safely within scope.
+  authority_flags:
+    can_delegate: false
+    can_synthesize: false
+    can_update_handoff: false
+    can_update_workflow_docs: false
+    can_request_broader_context: true
+allowed_actions:
+  - Read allowed files and directly related references.
+  - Modify files in the allowed write set.
+  - Run narrow validation commands when explicitly allowed or locally appropriate.
+  - Escalate when required edits exceed scope.
+input_contract:
+  fields:
+    - name: planSummary
+      type: string
+      required: false
+      description: Summary of the upstream plan.
+      source_specialist: planner
+    - name: planSteps
+      type: string[]
+      required: false
+      description: Ordered steps from the upstream plan.
+      source_specialist: planner
+    - name: purpose
+      type: string
+      required: false
+      description: Scribe-authored design purpose.
+      source_specialist: scribe-spec
+    - name: boundaries
+      type: string
+      required: false
+      description: Scribe-authored implementation boundaries.
+      source_specialist: scribe-spec
+    - name: successCriteria
+      type: string[]
+      required: false
+      description: Scribe-authored success criteria.
+      source_specialist: scribe-spec
+    - name: testStrategy
+      type: string
+      required: false
+      description: Builder-test strategy the implementation should satisfy.
+      source_specialist: builder-test
+    - name: testCasesAuthored
+      type: string[]
+      required: false
+      description: Tests authored by builder-test.
+      source_specialist: builder-test
+    - name: executionCommands
+      type: string[]
+      required: false
+      description: Commands the builder should run after test authoring.
+      source_specialist: builder-test
+    - name: expectedPassConditions
+      type: string[]
+      required: false
+      description: Pass conditions the builder should satisfy.
+      source_specialist: builder-test
+    - name: coverageNotes
+      type: string[]
+      required: false
+      description: Coverage notes or residual test risk from builder-test.
+      source_specialist: builder-test
+output_contract:
+  fields:
+    - name: modifiedFiles
+      type: string[]
+      required: true
+      description: Files that were modified.
+    - name: changeDescription
+      type: string
+      required: true
+      description: Description of changes made.
+    - name: testExecutionResults
+      type: string[]
+      required: false
+      description: Results from running assigned validation commands.
+status_semantics:
+  success: Required implementation fields are complete and scoped changes were made or confirmed unnecessary.
+  partial: Useful implementation progress exists, but follow-up work is required before acceptance.
+  failure: Implementation could not be completed and no truthful in-scope completion is available.
+  escalation: Human or orchestrator input is needed before safe implementation can continue.
+artifact_template:
+  template_id: implementation-artifact
+  artifact_type: implementation
+  summary_guidance: Summarize modified files, behavioral change, and validation actually run.
+  fields:
+    - name: modifiedFiles
+      type: string[]
+      required: true
+      description: Files that were modified.
+    - name: changeDescription
+      type: string
+      required: true
+      description: Description of changes made.
+    - name: testExecutionResults
+      type: string[]
+      required: false
+      description: Results from running assigned validation commands.
+editable_fields:
+  - modifiedFiles
+  - changeDescription
+  - testExecutionResults
+read_only_fields:
+  - artifactId
+  - teamSessionId
+  - taskPacketId
+transition_notes:
+  success: Downstream Builder-test or Reviewer states may consume the implementation artifact.
+  partial: Route according to explicit team partial handling.
+  failure: Do not infer successful modified files; route according to team failure handling.
+  escalation: Preserve the reason and suggested action for orchestrator or human review.
+prompt_requirements:
+  role_description: Execute bounded implementation tasks within explicit scope.
+  working_style:
+    reasoning: Translate packet objective into minimal concrete edits, then verify each edit stays inside allowed scope.
+    communication: Summarize implementation results with explicit file-level changes, assumptions, and unresolved limits.
+    risk: Conservative with boundary crossings; escalate when required edits exceed allowed write scope.
+    default_bias: Prefer small, composable implementations that satisfy acceptance criteria without opportunistic refactors.
+  constraints:
+    - Modify only files in the allowed write set.
+    - Read only allowed files and directly related references.
+    - Do not perform broad cleanup unrelated to the objective.
+    - Do not silently expand into non-authorized files.
+  anti_patterns:
+    - Broad cleanup unrelated to the packet objective.
+    - Silent scope expansion into non-authorized files.
+    - Claiming validation beyond what was actually run.
+    - Embedding orchestration decisions in implementation output.
+validation_requirements:
+  contract_rules:
+    - Success requires modifiedFiles and changeDescription.
+    - modifiedFiles must be an array, even when empty.
+  adequacy_checks:
+    - Summary text must distinguish completed changes from proposed changes.
+    - Validation claims must be backed by commands or explicit non-execution notes.
+  taxonomy_rules:
+    - taxonomy.base_class must be Builder.
+    - taxonomy.variant must be null for the generic base specialist.
+    - identifiers.canonical_id must be builder.
+  alias_lifecycle_rules:
+    - No deprecated aliases are currently defined for builder.

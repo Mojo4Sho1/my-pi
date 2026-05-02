@@ -6,7 +6,11 @@ Routes clearly marked schema checkpoint examples.
 
 ## Authority
 
-Examples illustrate V2 artifact shapes. They are not runtime-loaded, and generated effective contracts are not committed by default.
+Examples illustrate V2.1 artifact shapes. They are not runtime-loaded,
+and generated effective contracts are not committed by default.
+Committed effective-contract examples must use
+`artifact_kind: effective_contract_example`, `example: true`, and
+`example_of: effective_contract`; they must not claim `generated: true`.
 
 ## Files
 

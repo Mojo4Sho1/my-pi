@@ -1,7 +1,20 @@
+---
+schema_version: "v2.1"
+artifact_kind: output_template
+template_id: specification-artifact
+artifact_type: specification
+required_fields:
+  - purpose
+  - boundaries
+  - successCriteria
+optional_fields:
+  - openQuestions
+---
+
 # Specification Artifact Template
 
 **Template id:** `specification-artifact`
-**Schema version:** `v2`
+**Schema version:** `v2.1`
 **Artifact kind:** `output_template`
 **Artifact type:** `specification`
 

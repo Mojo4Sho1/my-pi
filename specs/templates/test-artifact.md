@@ -1,7 +1,22 @@
+---
+schema_version: "v2.1"
+artifact_kind: output_template
+template_id: test-artifact
+artifact_type: test
+required_fields:
+  - testStrategy
+  - testCasesAuthored
+  - executionCommands
+  - expectedPassConditions
+  - coverageNotes
+optional_fields:
+  - testExecutionResults
+---
+
 # Test Artifact Template
 
 **Template id:** `test-artifact`
-**Schema version:** `v2`
+**Schema version:** `v2.1`
 **Artifact kind:** `output_template`
 **Artifact type:** `test`
 

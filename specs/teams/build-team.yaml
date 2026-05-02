@@ -1,12 +1,13 @@
 # Canonical starter build-team authoring spec for Stage 5a.7.
 # This is a future source-of-truth authoring input, not current runtime authority.
-schema_version: "v2"
+schema_version: "v2.1"
 artifact_kind: team_definition
 team_id: build-team
 canonical_name: build-team
 current_runtime_id: build-team
 display_name: Build Team
-migration_status: active
+definition_status: active
+runtime_migration_status: not_started
 migration_notes:
   - This YAML is a future authoring source for taxonomy/routing metadata; current runtime authority remains TypeScript.
   - T-30 or later may mirror this metadata into runtime types.
@@ -43,6 +44,8 @@ aliases:
     reason: Current runtime still exposes tester-oriented identifiers before alias migration.
     lifecycle_state: deprecated
     cleanup_condition: Advance after T-30 adds canonical builder-test runtime metadata and compatibility alias handling.
+    next_lifecycle_state: blocked-for-new-use
+    next_advancement_condition: Validation can fail new specialist_tester references while preserving legacy resolution.
 entry_contract:
   fields:
     - name: objective
@@ -61,7 +64,10 @@ state_machine:
   states:
     planning:
       type: specialist
-      target: planner
+      target:
+        kind: specialist
+        canonical_id: planner
+        current_runtime_id: planner
       transitions:
         - on: success
           to: building
@@ -73,7 +79,10 @@ state_machine:
           to: failed
     building:
       type: specialist
-      target: builder
+      target:
+        kind: specialist
+        canonical_id: builder
+        current_runtime_id: builder
       transitions:
         - on: success
           to: testing
@@ -87,7 +96,10 @@ state_machine:
           to: failed
     testing:
       type: specialist
-      target: builder-test
+      target:
+        kind: specialist
+        canonical_id: builder-test
+        current_runtime_id: tester
       transitions:
         - on: success
           to: rebuilding
@@ -101,7 +113,10 @@ state_machine:
           to: failed
     rebuilding:
       type: specialist
-      target: builder
+      target:
+        kind: specialist
+        canonical_id: builder
+        current_runtime_id: builder
       transitions:
         - on: success
           to: review
@@ -115,7 +130,10 @@ state_machine:
           to: failed
     review:
       type: specialist
-      target: reviewer
+      target:
+        kind: specialist
+        canonical_id: reviewer
+        current_runtime_id: reviewer
       transitions:
         - on: success
           to: done
@@ -129,12 +147,17 @@ state_machine:
           to: failed
     done:
       type: terminal
-      target: orchestrator
+      target:
+        kind: orchestrator
+        canonical_id: orchestrator
       transitions: []
     failed:
       type: terminal
-      target: orchestrator
+      target:
+        kind: orchestrator
+        canonical_id: orchestrator
       transitions: []
+# Compatibility view only. These entries must match state_machine.states.*.target.
 state_to_specialist_mapping:
   planning: planner
   building: builder

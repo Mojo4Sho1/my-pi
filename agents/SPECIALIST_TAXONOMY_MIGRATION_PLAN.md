@@ -30,6 +30,10 @@ resolved while executing this plan.
   artifacts (specialist, team, context bundle, contract layers,
   invocation addendum, output template, effective-contract assembly)
   before any runtime/type metadata work begins.
+- Stage 3.6 — Schema hardening amendment: harden the Stage 3.5
+  schema/template checkpoint to v2.1 before runtime/type metadata
+  migration resumes. This stage is inserted by
+  `docs/design/SCHEMA_HARDENING_AMENDMENT_PLAN.md`.
 - Stage 4 — Runtime/type metadata migration: TypeScript types and
   definitions begin to carry the grouped `taxonomy` metadata, and
   `tester` enters its alias-first migration toward `builder-test`.
@@ -287,12 +291,82 @@ the current taxonomy-decision pass should not pre-create them.
 
 ---
 
+## Stage 3.6 — Schema Hardening Amendment
+
+Goal: harden the completed Stage 3.5 schema/template checkpoint before
+Stage 4 runtime/type metadata migration mirrors it. The authoritative
+plan for this stage is
+`docs/design/SCHEMA_HARDENING_AMENDMENT_PLAN.md`.
+
+Why inserted:
+
+- Stage 3.5 established the schema/template direction, but a later
+  review found ambiguity in context authority, identifier surfaces,
+  taxonomy projection, migration status, alias advancement, team state
+  targets, output-template metadata, effective-contract examples,
+  concrete specialist YAML readiness, and Pi platform projection.
+- These issues do not redesign the taxonomy, but they can cause runtime
+  implementation agents to invent semantics if Stage 4 proceeds first.
+- Runtime metadata should not mirror a schema with known ambiguity.
+
+Tasks:
+
+- [x] T-29b — Stage 3.6: Schema Hardening Plan Assimilation.
+      Assimilate the amendment plan into durable campaign and handoff
+      docs, insert T-29c/T-29d before T-30, and record D-H1 through
+      D-H15. No runtime/code/spec implementation changes.
+- [x] T-29c — Stage 3.6: Schema/Template Hardening Implementation.
+      Harden schema/spec/template files under `specs/` to v2.1
+      according to D-H1 through D-H15. No runtime TypeScript changes.
+- [ ] T-29d — Stage 3.6: Concrete Specialist YAML Readiness. Ensure
+      concrete specialist YAML exists for the specialists directly
+      needed by T-30, including canonical `builder-test` and
+      transitional/deprecated `tester` compatibility as appropriate.
+
+Dependency relationship:
+
+- T-29c is complete after T-29b.
+- T-29d is active after T-29c.
+- T-30 is blocked until T-29d concrete specialist YAML readiness is complete.
+- T-31 is blocked on T-30.
+- T-32 is blocked on T-30/T-31.
+- T-33 is blocked on T-32.
+- T-34 is blocked on T-33.
+
+Non-goals for Stage 3.6 unless a later task explicitly supersedes this
+plan:
+
+- No runtime code changes.
+- No YAML runtime loading.
+- No router migration.
+- No team runtime behavior migration.
+- No validation enforcement.
+- No generated effective contracts committed to the repo.
+- No alias cleanup/removal.
+- No promotion of `reviewer-validation`.
+- No promotion of `doc-formatter` into the canonical taxonomy.
+- No redesign of the base taxonomy.
+- No movement of schema artifacts out of `specs/`.
+
+Acceptance criteria:
+
+- Stage 3.6 hardening decisions are recorded in the decision log.
+- The schema/template surface is hardened before runtime metadata
+  migration resumes.
+- Concrete YAML readiness is explicit before T-30 claims to mirror
+  concrete specialist YAML.
+- Future agents can determine from handoff docs that T-30 is paused
+  until Stage 3.6 prerequisites are complete.
+
+---
+
 ## Stage 4 — Runtime and Type Metadata Migration
 
 Goal: extend runtime metadata so specialists carry explicit base class
 and variant fields using the grouped `taxonomy` object from D-O3.
-This stage must not begin until Stage 3.5 is complete, unless D-O2
-or D-A1 are explicitly superseded.
+This stage must not begin until Stage 3.5 is complete and the inserted
+Stage 3.6 schema-hardening prerequisites are complete, unless D-O2,
+D-A1, or the D-H decisions are explicitly superseded.
 
 Likely future work:
 

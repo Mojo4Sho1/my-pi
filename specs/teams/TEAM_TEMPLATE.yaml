@@ -1,14 +1,16 @@
 # Reusable team authoring template.
 # This is a future source-of-truth authoring input, not an active runtime loader.
-schema_version: "v2"
+schema_version: "v2.1"
 artifact_kind: team_definition
 team_id: example-team
 canonical_name: example-team
 current_runtime_id: example-team
 display_name: Example Team
-migration_status: active
+definition_status: active
+runtime_migration_status: not_started
 migration_notes:
   - This template is state-machine ready and remains declarative until runtime YAML loading exists.
+  - state_machine.states.*.target is authoritative; state_to_specialist_mapping is compatibility-only.
 purpose: Describe the end-to-end outcome this team is responsible for producing.
 onboarding:
   # Declarative metadata for future orchestrator/team-state context assembly.
@@ -50,7 +52,10 @@ state_machine:
   states:
     planning:
       type: specialist
-      target: planner
+      target:
+        kind: specialist
+        canonical_id: planner
+        current_runtime_id: planner
       transitions:
         - on: success
           to: implementation
@@ -62,7 +67,10 @@ state_machine:
           to: failed
     implementation:
       type: specialist
-      target: builder
+      target:
+        kind: specialist
+        canonical_id: builder
+        current_runtime_id: builder
       transitions:
         - on: success
           to: review
@@ -76,7 +84,10 @@ state_machine:
           to: failed
     review:
       type: specialist
-      target: reviewer
+      target:
+        kind: specialist
+        canonical_id: reviewer
+        current_runtime_id: reviewer
       transitions:
         - on: success
           to: done
@@ -90,12 +101,17 @@ state_machine:
           to: failed
     done:
       type: terminal
-      target: orchestrator
+      target:
+        kind: orchestrator
+        canonical_id: orchestrator
       transitions: []
     failed:
       type: terminal
-      target: orchestrator
+      target:
+        kind: orchestrator
+        canonical_id: orchestrator
       transitions: []
+# Compatibility view only. These entries must match state_machine.states.*.target.
 state_to_specialist_mapping:
   planning: planner
   implementation: builder

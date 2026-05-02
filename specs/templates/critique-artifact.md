@@ -1,7 +1,20 @@
+---
+schema_version: "v2.1"
+artifact_kind: output_template
+template_id: critique-artifact
+artifact_type: critique
+required_fields:
+  - assessment
+  - issues
+  - recommendation
+optional_fields:
+  - reuseCandidates
+---
+
 # Critique Artifact Template
 
 **Template id:** `critique-artifact`
-**Schema version:** `v2`
+**Schema version:** `v2.1`
 **Artifact kind:** `output_template`
 **Artifact type:** `critique`
 

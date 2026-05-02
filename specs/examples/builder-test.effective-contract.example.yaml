@@ -1,9 +1,9 @@
 # EXAMPLE ONLY: assembled effective contract artifact.
 # Generated effective contracts must not be committed by default.
-schema_version: "v2"
+schema_version: "v2.1"
 artifact_kind: effective_contract_example
 example: true
-generated: true
+example_of: effective_contract
 target:
   specialist_id: builder-test
   current_runtime_id: tester
@@ -18,16 +18,21 @@ presentation_order:
   - task_specific_context
   - upstream_artifacts_and_evidence
   - output_template
-authority_order:
-  - orchestrator_task_packet
-  - invocation_addendum
-  - repository_rules
-  - universal_contract
-  - team_node_contract
-  - variant_contract
-  - base_class_contract
-  - output_template
-  - upstream_artifacts_and_evidence
+authority_model:
+  non_overridable_layers:
+    - repository_contract
+    - universal_contract
+    - safety_policy
+    - branch_guard
+  narrowing_layers:
+    - invocation_addendum
+    - orchestrator_task_packet
+    - team_node_contract
+    - variant_contract
+    - base_class_contract
+    - output_template
+    - upstream_artifacts_and_evidence
+  rule: narrowing_layers_may_narrow_but_not_broaden_non_overridable_layers
 resolved_layers:
   - layer: universal_contract
     source: specs/contracts/universal.md
@@ -67,9 +72,10 @@ effective_contract:
       - artifactId
       - teamSessionId
       - taskPacketId
-  conflict_resolution: Authority order overrides presentation order; explicit task packet constraints win over source contracts.
+  conflict_resolution: Repository and universal constraints are non-overridable; task packet and invocation constraints may narrow but not broaden them.
   output_template_ref: test-artifact
 validation_expectations:
   - This file is committed only as an example.
+  - This file is not an actual generated artifact.
   - A generated per-task effective contract should be delivered via packet context or ignored cache, not committed.
   - Every resolved layer should retain provenance when an assembler is implemented.

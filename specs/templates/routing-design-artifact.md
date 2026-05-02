@@ -1,7 +1,21 @@
+---
+schema_version: "v2.1"
+artifact_kind: output_template
+template_id: routing-design-artifact
+artifact_type: routing_design
+required_fields:
+  - states
+  - transitions
+  - loopLimits
+  - escalationPaths
+optional_fields:
+  - parallelizationNotes
+---
+
 # Routing Design Artifact Template
 
 **Template id:** `routing-design-artifact`
-**Schema version:** `v2`
+**Schema version:** `v2.1`
 **Artifact kind:** `output_template`
 **Artifact type:** `routing_design`
 

@@ -86,17 +86,18 @@ For handoff routing, start with `docs/handoff/_HANDOFF_INDEX.md`. For validation
 | T-13 | deferred | Token logging and observability (5a.3e) | `docs/IMPLEMENTATION_PLAN.md` (5a.3e) | Revisit after T-10 so surfaced token data matches the observed live validation flow |
 | T-14 | deferred | Dashboard real-time monitoring (5a.4) | `docs/IMPLEMENTATION_PLAN.md` (5a.4) | Revisit after T-10 so `/dashboard` work is informed by live validation findings |
 
-## Phase: Specialist Taxonomy Migration (DOC-ONLY DECISIONS LANDED)
+## Phase: Specialist Taxonomy Migration (STAGE 4 READY)
 
-The specialist taxonomy decision log and migration plan have been
-updated to record settled canonical decisions for D-O2, D-O3, D-O4,
-D-O5, D-O6, D-O7, D-A1, D-A2, D-D1, and D-D3, plus a clearer
-deferred status with activation conditions for D-D2. No runtime
-code, TypeScript, router files, package files, or tests were
-changed in this pass. Future agents should execute the remaining
-migration stages in the order recorded in
-`agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` and must not silently
-re-decide entries marked `Open`, `Proposed`, or `Deferred` in
+Stage 3.5 completed the YAML schema/template checkpoint, but the
+later schema-hardening review in
+`docs/design/SCHEMA_HARDENING_AMENDMENT_PLAN.md` found ambiguity that
+must be resolved before runtime metadata mirrors the schema. Stage 3.6
+has therefore been inserted between T-29 and T-30. Treat the amendment
+plan as authoritative for T-29b/T-29c/T-29d ordering. Runtime/type
+metadata migration had been blocked until the Stage 3.6 prerequisites
+were complete; T-30 is now active because T-29d completed those
+prerequisites. Do not silently re-decide entries marked `Open`,
+`Proposed`, or `Deferred` in
 `agents/SPECIALIST_TAXONOMY_DECISION_LOG.md`.
 
 | ID | Status | Task | Specs to Read | Acceptance Criteria |
@@ -104,9 +105,12 @@ re-decide entries marked `Open`, `Proposed`, or `Deferred` in
 | T-27 | done | Stage 2 — Specialist spec migration (taxonomy) | `agents/SPECIALIST_TAXONOMY_AND_CONTEXT_MODEL.md`, `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` (Stage 2), `agents/SPECIALIST_TAXONOMY_DECISION_LOG.md` (D-D1, D-D3, D-O7) | Each specialist spec carries explicit base-class/variant annotations, migration notes, and presentation/authority order notes; `tester.md` points at `builder-test`; `doc-formatter.md` reflects D-D3 (not promoted); no file renames; no runtime/test/extension changes |
 | T-28 | done | Stage 3 — Team documentation migration (taxonomy) | `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` (Stage 3), Decisions D-O5, D-O6, D-T8, D-T9 | Team docs reflect default everyday team, conditional design-to-build team, linear flows as shorthand, and state-machine direction; no runtime team definitions changed |
 | T-29 | done | Stage 3.5 — YAML schema and template design (taxonomy checkpoint) | `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` (Stage 3.5), Decisions D-A1, D-O2, D-O7 | Specialist/team/context-bundle/contract-layer/invocation-addendum/output-template/effective-contract templates, examples, glossary, and validation expectations exist; generated effective contracts are not committed; runtime metadata still untouched |
-| T-30 | done | Stage 4 — Runtime/type metadata migration (taxonomy) | `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` (Stage 4), Decisions D-O3, D-O4, D-O5, D-D1 | Grouped `taxonomy` runtime field; `builder` retained; `builder-test` resolves canonically while `tester` remains a deprecated compatibility alias; runtime mirrors YAML metadata without loading YAML. Do not activate proposed Scribe/Reviewer aliases in this task. |
-| T-31 | done | Stage 5 — Router and team definition migration (taxonomy) | `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` (Stage 5), Decision D-O6 | Default and conditional teams expressed as state-machine target model; bounded retries; explicit completion/escalation states; `build-team` uses canonical `builder-test` while `tester` compatibility still resolves. |
-| T-32 | active | Stage 6 — Layered taxonomy validation | `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` (Stage 6), Decisions D-A2, D-D1, D-O3, D-O6, D-O7 | Specialist taxonomy, alias lifecycle, team state-machine, context/contract layer, and runtime/docs-alignment validation in place with staged enforcement. |
+| T-29b | done | Stage 3.6 — Schema Hardening Plan Assimilation | `docs/design/SCHEMA_HARDENING_AMENDMENT_PLAN.md` | Stage 3.6 is assimilated into durable campaign docs; T-29c/T-29d are inserted before T-30; D-H1 through D-H15 are recorded; no runtime/code/spec implementation changes made |
+| T-29c | done | Stage 3.6 — Schema/Template Hardening Implementation | `docs/design/SCHEMA_HARDENING_AMENDMENT_PLAN.md`, `agents/SPECIALIST_TAXONOMY_DECISION_LOG.md` (D-H1..D-H15) | Hardened schema/spec/template files to v2.1; clarified presentation vs authority, identifier surfaces, taxonomy projection, split migration status, alias advancement metadata, target objects, output-template metadata, effective-contract example labeling, and Pi projection; no runtime TypeScript changes |
+| T-29d | done | Stage 3.6 — Concrete Specialist YAML Readiness | `docs/design/SCHEMA_HARDENING_AMENDMENT_PLAN.md` (T-29d), hardened v2.1 schema from T-29c | Concrete YAML exists for specialists directly needed by T-30, including `builder-test` as canonical and `tester` only as transitional/deprecated compatibility. |
+| T-30 | active | Stage 4 — Runtime/type metadata migration (taxonomy) | `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` (Stage 4 and Stage 3.6), Decisions D-O3, D-O4, D-O5, D-D1, D-H1..D-H15 | Grouped `taxonomy` runtime field mirrors hardened v2.1 YAML projection; `builder` retained; `builder-test` resolves canonically while `tester` remains a deprecated compatibility alias. Do not activate proposed Scribe/Reviewer aliases in this task. |
+| T-31 | blocked | Stage 5 — Router and team definition migration (taxonomy) | `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` (Stage 5), Decision D-O6 | Default and conditional teams expressed as state-machine target model; bounded retries; explicit completion/escalation states; `build-team` uses canonical `builder-test` while `tester` compatibility still resolves. Blocked on T-30. |
+| T-32 | blocked | Stage 6 — Layered taxonomy validation | `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` (Stage 6), Decisions D-A2, D-D1, D-O3, D-O6, D-O7, D-H15 | Specialist taxonomy, alias lifecycle, team state-machine, context/contract layer, and runtime/docs-alignment validation in place with staged enforcement. Blocked on T-30/T-31. |
 | T-33 | blocked | Stage 7 — Cleanup preparation, alias lifecycle advancement, and deprecation | `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` (Stage 7), Decisions D-D1, D-O1, D-O4 | Deprecated aliases are advanced as far as is safe before merge, preferably to `removal-candidate`; D-O1 file rename strategy is resolved; transitional notes are reduced; do not fully remove compatibility aliases in this task unless the project explicitly re-decides that removal is safe before merge. Blocked on T-32. |
 | T-34 | blocked | Merge taxonomy migration branch back to main | `docs/handoff/CURRENT_STATUS.md`, `docs/handoff/TASK_QUEUE.md`, `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` | T-27..T-33 are done; required checks pass; `taxonomy-migration` is reviewed; branch is merged into `main`; main handoff docs are updated after merge. Blocked on T-33. |
 
@@ -142,5 +146,7 @@ Aliases are migration scaffolding, not a permanent compatibility surface. Becaus
 - T-27 is complete (Specialist Taxonomy Migration, Stage 2): specialist specs now carry explicit base-class/variant annotations, migration notes, D-D1 lifecycle statuses where aliases are deprecated, and D-O7 context-order notes.
 - T-28 is complete (Specialist Taxonomy Migration, Stage 3): team docs now document the default everyday team, conditional design-to-build team, state-machine direction for linear flow shorthand, and planned member reclassification without runtime identifier changes.
 - T-29 is complete (Specialist Taxonomy Migration, Stage 3.5): V2 YAML schema/template checkpoint artifacts now exist under `specs/`, including context bundles, contract layers, output templates, examples, and state-machine-ready team YAML.
-- T-30 is complete (Specialist Taxonomy Migration, Stage 4): runtime specialist prompt configs now carry grouped taxonomy metadata, `builder-test` is canonical and runtime-resolvable, and `tester` remains a deprecated compatibility alias.
-- T-31 is complete (Specialist Taxonomy Migration, Stage 5): runtime teams now include `default-everyday-team`, `design-to-build-team`, and canonical `build-team` test-authoring via `specialist_builder-test`; full and short legacy `tester` references still resolve through the deprecated alias path. T-32 is now `active`; T-33..T-34 remain blocked behind validation and cleanup. T-35 is the planned post-merge no-alias cleanup branch.
+- T-29b is complete (Specialist Taxonomy Migration, Stage 3.6 plan assimilation): the schema-hardening amendment has been inserted into durable handoff and campaign docs, and D-H1 through D-H15 are recorded. No runtime code, TypeScript, tests, or `specs/` implementation files were changed.
+- T-29c is complete (Specialist Taxonomy Migration, Stage 3.6 schema/template hardening): schema/spec/template files now use the hardened v2.1 model for authority, identifiers, taxonomy projection, split migration status, alias advancement metadata, team target objects, parseable output-template metadata, effective-contract examples, and Pi projection.
+- T-29d is complete (Specialist Taxonomy Migration, Stage 3.6 concrete specialist YAML readiness): concrete v2.1 specialist YAML now exists for planner, builder, builder-test, reviewer, and scribe-spec. `builder-test` is canonical; `tester` appears only as deprecated compatibility metadata.
+- T-30 is now `active`: runtime/type metadata migration may mirror the hardened v2.1 YAML projection. Earlier handoff text that treated T-30/T-31 as complete and T-32 as active remains stale for this campaign ordering.

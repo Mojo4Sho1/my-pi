@@ -1,20 +1,29 @@
 # EXAMPLE ONLY: V2 specialist definition artifact.
 # This file illustrates the schema checkpoint and is not runtime-loaded.
-schema_version: "v2"
+schema_version: "v2.1"
 artifact_kind: specialist_definition
 example: true
-specialist_id: tester
-canonical_name: builder-test
-current_runtime_id: tester
+identifiers:
+  canonical_id: builder-test
+  taxonomy_variant: builder-test
+  current_runtime_id: tester
+  runtime_config_id: specialist_tester
+  extension_directory: extensions/specialists/tester
+  delegate_tool_names:
+    - delegate-to-tester
+  legacy_aliases:
+    - tester
+    - specialist_tester
 display_name: Builder Test
 role: test-artifact-builder
-base_class: Builder
-variant: builder-test
-artifact_responsibility:
-  primary:
+taxonomy:
+  base_class: Builder
+  variant: builder-test
+  artifact_responsibility:
     - test artifacts
     - test fixtures
     - validation commands when explicitly assigned
+artifact_boundaries:
   excluded:
     - broad product validation ownership
     - final acceptance review
@@ -25,9 +34,14 @@ aliases:
     reason: Current runtime id remains tester until alias-first migration lands.
     lifecycle_state: deprecated
     cleanup_condition: Advance after T-30 adds builder-test canonical runtime metadata and tests prove compatibility alias resolution.
-migration_status: transitional
+    next_lifecycle_state: blocked-for-new-use
+    next_advancement_condition: Validation can fail new tester references while preserving legacy resolution.
+definition_status: active
+taxonomy_status: transitional
+runtime_migration_status: not_started
 migration_notes:
   - Mirrors D-O4 and D-D1 as an example; not a generated runtime artifact.
+  - Runtime projection maps taxonomy.base_class, taxonomy.variant, and taxonomy.artifact_responsibility into TypeScript taxonomy metadata.
 purpose: Create or revise executable test artifacts for bounded behavior.
 when_to_use:
   activation_conditions:
@@ -162,9 +176,11 @@ validation_requirements:
   adequacy_checks:
     - Authored tests must trace to acceptance criteria or implementation behavior.
   taxonomy_rules:
-    - base_class must be Builder and variant must be builder-test.
+    - taxonomy.base_class must be Builder and taxonomy.variant must be builder-test.
+    - identifiers.canonical_id must be builder-test.
   alias_lifecycle_rules:
     - tester remains deprecated until T-30 compatibility handling lands.
+    - Deprecated aliases must include cleanup and next-advancement metadata.
 variant_contract:
   inherits:
     - universal-specialist-contract

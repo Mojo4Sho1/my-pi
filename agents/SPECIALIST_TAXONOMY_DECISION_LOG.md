@@ -671,6 +671,156 @@ implementation patches.
 
 ---
 
+## Schema Hardening Decisions
+
+These decisions come from
+`docs/design/SCHEMA_HARDENING_AMENDMENT_PLAN.md` and define the inserted
+Stage 3.6 hardening work between completed Stage 3.5 and Stage 4 runtime
+metadata migration.
+
+### D-H1: Stage 3.6 is a hardening amendment
+- Status: `Canonical`
+- Decision: Stage 3.6 is inserted after completed Stage 3.5 and before
+  Stage 4 runtime migration as a schema-hardening amendment.
+- Policy: Stage 3.6 does not redesign the specialist taxonomy. It
+  hardens the schema/template surface so runtime metadata does not
+  mirror known ambiguity.
+- Reference: `docs/design/SCHEMA_HARDENING_AMENDMENT_PLAN.md`.
+
+### D-H2: Schema artifacts remain under `specs/`
+- Status: `Canonical`
+- Decision: Schema, template, contract, context, specialist, team, and
+  example artifacts remain under `specs/`.
+- Policy: Do not create parallel schema/template/contract/example
+  directories under `agents/`. Use `specs/schemas/`,
+  `specs/specialists/`, `specs/teams/`, `specs/context/`,
+  `specs/contracts/`, `specs/templates/`, and `specs/examples/`.
+- Reference: D-A3 and the Stage 3.6 amendment plan.
+
+### D-H3: Presentation order and authority model are distinct
+- Status: `Canonical`
+- Decision: Context `presentation_order` describes how context is shown
+  to a specialist; the authority model describes which rules constrain
+  or supersede other rules.
+- Policy: Do not encode authority semantics as though they were the same
+  list as presentation order. Schema hardening must separate these
+  concepts.
+
+### D-H4: Repository/universal constraints are non-overridable
+- Status: `Canonical`
+- Decision: Repository-level and universal constraints cannot be
+  broadened or overridden by lower layers.
+- Policy: Invocation addenda, orchestrator task packets, team-node
+  contracts, variant contracts, output templates, and upstream evidence
+  may narrow scope or add constraints, but must not override universal
+  or repository constraints.
+
+### D-H5: Specialist identity requires an explicit identifier-surface model
+- Status: `Canonical`
+- Decision: Specialist schema must distinguish canonical taxonomy ids
+  from runtime/config/tool/filepath identifiers.
+- Policy: Add an `identifiers` block with fields such as
+  `canonical_id`, `taxonomy_variant`, `current_runtime_id`,
+  `runtime_config_id`, `extension_directory`, `delegate_tool_names`, and
+  `legacy_aliases`. `current_runtime_id` may remain temporarily as a
+  compatibility shortcut, but the structured block is preferred.
+
+### D-H6: Add first-class YAML taxonomy block and runtime projection
+- Status: `Canonical`
+- Decision: Specialist YAML needs a first-class `taxonomy` block with
+  `base_class`, `variant`, and `artifact_responsibility`.
+- Policy: Artifact boundary exclusions live outside the runtime
+  projection. Runtime projection maps YAML fields to TypeScript as:
+  `taxonomy.baseClass = yaml.taxonomy.base_class`,
+  `taxonomy.variant = yaml.taxonomy.variant`, and
+  `taxonomy.artifactResponsibility =
+  yaml.taxonomy.artifact_responsibility`.
+
+### D-H7: Split `migration_status`
+- Status: `Canonical`
+- Decision: Do not use one `migration_status` field for definition
+  status, taxonomy status, runtime migration state, and alias state.
+- Policy: Use separate fields:
+  `definition_status: active | proposed | deprecated | removed`,
+  `taxonomy_status: canonical | transitional | out_of_taxonomy`, and
+  `runtime_migration_status: not_started | mirrored | runtime_active |
+  yaml_loaded | cleanup_pending`. Alias state remains separate in alias
+  lifecycle entries.
+
+### D-H8: Alias entries require advancement metadata
+- Status: `Canonical`
+- Decision: Alias entries must include both cleanup metadata and the next
+  lifecycle advancement condition.
+- Policy: Alias records include `name`, `canonical_target`, `reason`,
+  `lifecycle_state`, `cleanup_condition`, `next_lifecycle_state`, and
+  `next_advancement_condition`. `cleanup_condition` and
+  `next_advancement_condition` are distinct.
+
+### D-H9: Team state targets should be objects, not only scalar strings
+- Status: `Canonical`
+- Decision: Team state targets should use object-shaped targets rather
+  than only scalar specialist strings.
+- Rationale: Object targets leave room for nested teams, runtime id
+  compatibility, parallel states, and non-specialist terminal states.
+- Policy: Prefer `target.kind` plus canonical/runtime identifier fields
+  for specialist or team targets. Do not implement future fan-out
+  behavior in Stage 3.6; only avoid blocking it.
+
+### D-H10: `state_to_specialist_mapping` is compatibility-only
+- Status: `Canonical`
+- Decision: `state_machine.states.*.target` is authoritative.
+- Policy: `state_to_specialist_mapping` is a compatibility view only and
+  must match authoritative state targets if present. New specs may omit
+  it after runtime migration supports state target objects.
+
+### D-H11: Output templates remain Markdown but need parseable metadata
+- Status: `Canonical`
+- Decision: Project output templates remain human-readable Markdown, but
+  need parseable metadata.
+- Policy: Add YAML front matter to output templates or document an
+  explicit transition plan. Metadata should include schema version,
+  artifact kind, template id, artifact type, required fields, and
+  optional fields.
+
+### D-H12: Effective-contract examples are examples, not generated artifacts
+- Status: `Canonical`
+- Decision: Committed effective-contract examples must not claim to be
+  actual generated artifacts.
+- Policy: Mark examples with metadata such as
+  `artifact_kind: effective_contract_example`, `example: true`, and
+  `example_of: effective_contract`. Avoid ambiguous committed-example
+  fields such as `generated: true`.
+
+### D-H13: Concrete specialist YAML must be distinguished from examples
+- Status: `Canonical`
+- Decision: The v2.1 schema/template checkpoint may be complete before
+  every concrete specialist YAML file exists, but runtime migration must
+  not claim to mirror concrete YAML unless the relevant concrete files
+  exist.
+- Policy: Docs distinguish "schema/template checkpoint complete",
+  "concrete per-specialist YAML migration partially complete or
+  complete", and "runtime YAML loading not yet implemented".
+
+### D-H14: Pi platform projection must be explicit
+- Status: `Canonical`
+- Decision: `specs/` artifacts are project-native metadata, not directly
+  Pi-loaded prompt templates, skills, extensions, or themes.
+- Policy: Runtime consumption of `specs/` metadata must happen through
+  `my-pi` extension/orchestrator code. `specs/templates/*.md` are output
+  artifact templates, not Pi slash-command prompt templates.
+
+### D-H15: Validation expectations are documented now; enforcement remains later
+- Status: `Canonical direction; implementation deferred`
+- Decision: Stage 3.6 documents validation expectations but does not
+  implement broad validation enforcement.
+- Policy: Layered validation remains a later stage. Expected validation
+  categories include specialist taxonomy, identifier surfaces, alias
+  lifecycle, team state machines, context bundle authority, output
+  template metadata, effective-contract examples, runtime/docs
+  alignment, and Pi platform projection.
+
+---
+
 ## Proposed Decisions
 
 ### D-P1: scribe-spec replaces spec-writer

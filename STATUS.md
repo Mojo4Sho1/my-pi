@@ -1,10 +1,10 @@
 # STATUS.md
 
-Last updated: 2026-05-02 (Specialist Taxonomy Migration phase active; T-32 is the current target; T-10 parked)
+Last updated: 2026-05-02 (Specialist Taxonomy Migration Stage 4 ready; T-30 is the current target; T-10 parked)
 
-Current focus: T-32 — Specialist Taxonomy Migration, Stage 6 (Layered taxonomy validation). T-31 router/team definition migration is complete. See `docs/handoff/NEXT_TASK.md` for the cold-start orientation and concrete edit list.
+Current focus: T-30 — Specialist Taxonomy Migration, Stage 4 (Runtime/type metadata migration). T-29b plan assimilation, T-29c schema/template hardening, and T-29d concrete specialist YAML readiness are complete. See `docs/handoff/NEXT_TASK.md` for the cold-start orientation and concrete edit list.
 
-Recent completion: 2026-05-02 T-31 router/team definition migration — runtime teams now include `default-everyday-team`, `design-to-build-team`, and canonical `build-team` test-authoring via `specialist_builder-test`; full and short legacy `tester` references still resolve through the deprecated alias path. T-30 runtime/type metadata migration, T-29 YAML schema/template checkpoint, T-28 team documentation migration, and T-27 specialist spec migration are complete. T-22–T-26 remain complete; T-10 is parked behind the active taxonomy migration phase.
+Recent completion: 2026-05-02 T-29d Stage 3.6 concrete specialist YAML readiness — concrete v2.1 specialist YAML now exists for planner, builder, builder-test, reviewer, and scribe-spec. `builder-test` is canonical; `tester` appears only as deprecated compatibility metadata for the current runtime id/config/tool surface. `scribe-spec` is included because active team specs directly target it; unrelated Scribe aliases remain inactive. No runtime code, TypeScript, tests, or extension files were changed for T-29d. T-29c schema/template hardening, T-29 YAML schema/template checkpoint, T-28 team documentation migration, and T-27 specialist spec migration remain complete. T-22–T-26 remain complete; T-10 is parked behind the active taxonomy migration phase.
 
 ## Progress Checklist
 
@@ -125,7 +125,7 @@ All 3d tests are **integration tests with mocked subprocesses** (not live sub-ag
 - [x] Critic receives relevant upstream context per review (e.g., plan summary when reviewing a spec) via input contract (Decision #22) — `buildContextFromContract()` in contracts.ts
 - [x] Teams are **opaque to orchestrator**: orchestrator sends team-level TaskPacket, receives team-level ResultPacket
 - [x] Intra-team context passing governed by I/O contracts (not raw result forwarding)
-- [x] Initial `build-team` exemplar landed in `extensions/teams/definitions.ts`; Stage 5a.7 reconciled it to a test-authoring expansion, and T-31 migrated the runtime test-authoring node to canonical `builder-test` while preserving `tester` compatibility.
+- [x] Initial `build-team` exemplar landed in `extensions/teams/definitions.ts`; Stage 5a.7 reconciled it to a test-authoring expansion, and the taxonomy migration now tracks the planned runtime/team migration through T-30/T-31 while preserving `tester` compatibility.
 - [x] Orchestrator can delegate to a named team — `teamHint` parameter on `orchestrate` tool
 - [x] `tests/team-router.test.ts` — 10 tests (happy path, loops, exhaustion, escalation, errors)
 - [x] `tests/orchestrator-team-e2e.test.ts` — 5 tests (team delegation through orchestrate tool)
@@ -364,7 +364,7 @@ Command surface emerges from real usage. `/dashboard` (5a.4) is the only committ
 
 - **`/seed` skill — new-project content:** Scaffold is in place (`skills/seed/`). Needs real instructions and templates for `new-project` seed. See `skills/seed/seeds/new-project/SEED.md`.
 - **`/seed` skill — interactive seeds (future):** Seeds are currently non-interactive. Future enhancement for seeds that ask questions before scaffolding.
-- **Specialist taxonomy migration:** Documentation-only assimilation, specialist spec migration, and team documentation migration are complete (Stages 1-3). Stage 3.5 YAML schema/template design is active. Runtime, router, type, and test migration are tracked in `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md` and remain unstarted. Open and deferred decisions are tracked in `agents/SPECIALIST_TAXONOMY_DECISION_LOG.md`.
+- **Specialist taxonomy migration:** Specialist spec migration, team documentation migration, schema/template hardening, and concrete specialist YAML readiness are complete through T-29d. T-30 runtime/type metadata migration is active. Router, team, validation, cleanup, and merge stages remain queued behind the dependency chain in `agents/SPECIALIST_TAXONOMY_MIGRATION_PLAN.md`. Open and deferred decisions are tracked in `agents/SPECIALIST_TAXONOMY_DECISION_LOG.md`.
 
 ## Future Evolution
 
@@ -372,8 +372,8 @@ See `docs/FUTURE_WORK.md` for deferred design ideas (team critic, campaign super
 
 ## Blockers
 
-- No hard blocker for the active target (T-29, taxonomy Stage 3.5 — YAML schema and template design).
-- T-10 (live build-team validation) is parked behind the active taxonomy migration phase, not blocked. The two tracks are orthogonal; T-10 will resume after T-27..T-29 land.
+- No hard blocker for the active target (T-30, taxonomy Stage 4 runtime/type metadata migration).
+- T-10 (live build-team validation) is parked behind the active taxonomy migration phase, not blocked. The two tracks are orthogonal; T-10 will resume after T-27..T-34 land.
 - T-11 through T-14 remain follow-on work behind T-10. Do not pull them forward.
 - D-O1 (specialist filename rename strategy) is the only `Open` taxonomy decision; it is intentionally deferred until Stage 7 cleanup (T-33).
 

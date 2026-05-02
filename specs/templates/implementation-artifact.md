@@ -1,7 +1,20 @@
+---
+schema_version: "v2.1"
+artifact_kind: output_template
+template_id: implementation-artifact
+artifact_type: implementation
+required_fields:
+  - modifiedFiles
+  - changeDescription
+optional_fields:
+  - validationCommands
+  - knownGaps
+---
+
 # Implementation Artifact Template
 
 **Template id:** `implementation-artifact`
-**Schema version:** `v2`
+**Schema version:** `v2.1`
 **Artifact kind:** `output_template`
 **Artifact type:** `implementation`
 

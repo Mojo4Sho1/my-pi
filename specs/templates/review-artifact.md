@@ -1,7 +1,20 @@
+---
+schema_version: "v2.1"
+artifact_kind: output_template
+template_id: review-artifact
+artifact_type: review
+required_fields:
+  - verdict
+  - findings
+  - summary
+optional_fields:
+  - residualRisk
+---
+
 # Review Artifact Template
 
 **Template id:** `review-artifact`
-**Schema version:** `v2`
+**Schema version:** `v2.1`
 **Artifact kind:** `output_template`
 **Artifact type:** `review`
 

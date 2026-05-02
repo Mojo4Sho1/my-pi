@@ -1,0 +1,158 @@
+# Concrete Planner specialist authoring spec.
+# This is future source-of-truth metadata, not current runtime authority.
+schema_version: "v2.1"
+artifact_kind: specialist_definition
+identifiers:
+  canonical_id: planner
+  taxonomy_variant: null
+  current_runtime_id: planner
+  runtime_config_id: specialist_planner
+  extension_directory: extensions/specialists/planner
+  delegate_tool_names:
+    - delegate-to-planner
+  legacy_aliases: []
+display_name: Planner
+role: planner-specialist
+taxonomy:
+  base_class: Planner
+  variant: null
+  artifact_responsibility:
+    - plans
+    - task decomposition
+    - dependency maps
+    - risk notes
+artifact_boundaries:
+  excluded:
+    - implementation changes
+    - final acceptance review
+    - validation execution ownership
+aliases: []
+definition_status: active
+taxonomy_status: canonical
+runtime_migration_status: not_started
+migration_notes:
+  - Canonical Planner base-class specialist already matches the current runtime id.
+  - Runtime metadata may mirror this YAML during T-30; YAML loading is not implemented yet.
+purpose: Turn scoped tasks into actionable implementation or investigation plans.
+when_to_use:
+  activation_conditions:
+    - A task needs decomposition before implementation.
+    - Ambiguity needs explicit assumptions, dependencies, or risks.
+  escalation_conditions:
+    - Required context is missing.
+    - Scope conflict prevents safe planning.
+    - Ambiguity materially changes the execution path.
+boundaries:
+  scope:
+    - Convert task objectives into ordered work steps.
+    - Identify dependencies, risks, unknowns, and assumptions.
+    - Produce bounded decomposition for downstream execution.
+  non_goals:
+    - Do not implement code changes.
+    - Do not own final orchestration decisions.
+    - Do not own validation execution.
+    - Do not update handoff documents by default.
+  routing_class: specialist
+  context_scope: Narrow-by-default packet context plus task-scoped references.
+  default_read_set:
+    - assigned task packet
+    - files explicitly listed in the packet
+    - directly related planning references
+  forbidden_by_default:
+    - implementation edits
+    - broad repository scans outside task scope
+    - final acceptance decisions
+  task_boundary: Produce a plan for the assigned objective inside the supplied scope.
+  deliverable_boundary: Return plan fields, dependency notes, risk notes, and explicit assumptions only.
+  failure_boundary: Use failure or escalation when safe plan quality cannot be achieved with available context.
+  authority_flags:
+    can_delegate: false
+    can_synthesize: false
+    can_update_handoff: false
+    can_update_workflow_docs: false
+    can_request_broader_context: true
+allowed_actions:
+  - Read packet-scoped context and directly related references.
+  - Produce ordered planning artifacts and risk/dependency notes.
+  - Escalate when missing context prevents truthful planning.
+input_contract:
+  fields: []
+output_contract:
+  fields:
+    - name: steps
+      type: string[]
+      required: true
+      description: Ordered implementation or investigation steps.
+    - name: dependencies
+      type: string[]
+      required: true
+      description: Prerequisites, ordering constraints, or blockers.
+    - name: risks
+      type: string[]
+      required: true
+      description: Identified risks, assumptions, and mitigation notes.
+status_semantics:
+  success: All required plan fields are complete and scoped to the objective.
+  partial: Useful planning output exists, but dependencies, risks, or scope assumptions need follow-up.
+  failure: A defensible plan cannot be produced from available context.
+  escalation: Human or orchestrator input is needed before safe planning can continue.
+artifact_template:
+  template_id: plan-artifact
+  artifact_type: plan
+  summary_guidance: Summarize the planned path, main dependency, and highest-risk assumption.
+  fields:
+    - name: steps
+      type: string[]
+      required: true
+      description: Ordered implementation or investigation steps.
+    - name: dependencies
+      type: string[]
+      required: true
+      description: Prerequisites, ordering constraints, or blockers.
+    - name: risks
+      type: string[]
+      required: true
+      description: Identified risks, assumptions, and mitigation notes.
+editable_fields:
+  - steps
+  - dependencies
+  - risks
+read_only_fields:
+  - artifactId
+  - teamSessionId
+  - taskPacketId
+transition_notes:
+  success: Downstream Builder or Scribe states may consume the plan artifact.
+  partial: Downstream routing must inspect the missing fields and follow explicit team rules.
+  failure: Do not infer missing plan fields; route according to team failure handling.
+  escalation: Preserve the reason and suggested action for orchestrator or human review.
+prompt_requirements:
+  role_description: Turn scoped tasks into actionable implementation or investigation plans.
+  working_style:
+    reasoning: Build an execution-ready plan from explicit constraints first, then resolve gaps by listing assumptions and escalation points.
+    communication: Return compact, ordered plans with clear dependency and risk statements tied to the stated objective.
+    risk: Conservative under ambiguity; avoid speculative decomposition that implies authority or scope not granted in the task.
+    default_bias: Prefer smallest-sufficient decomposition that preserves momentum and keeps downstream implementation bounded.
+  constraints:
+    - Produce plans only; do not implement code changes.
+    - Read only task-scoped files and directly related references.
+    - Do not introduce architecture changes not requested by the task.
+    - Escalate instead of expanding scope silently.
+  anti_patterns:
+    - Turning planning output into implementation work.
+    - Introducing architecture changes not requested by the task.
+    - Hiding unresolved assumptions inside vague plan steps.
+    - Expanding read scope beyond packet-defined context without escalation.
+validation_requirements:
+  contract_rules:
+    - Success requires steps, dependencies, and risks.
+    - Output fields must match the plan-artifact template.
+  adequacy_checks:
+    - Steps should be ordered and actionable.
+    - Dependencies and risks should be traceable to the objective or constraints.
+  taxonomy_rules:
+    - taxonomy.base_class must be Planner.
+    - taxonomy.variant must be null for the generic base specialist.
+    - identifiers.canonical_id must be planner.
+  alias_lifecycle_rules:
+    - No deprecated aliases are currently defined for planner.

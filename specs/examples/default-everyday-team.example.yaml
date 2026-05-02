@@ -1,13 +1,14 @@
 # EXAMPLE ONLY: V2 state-machine-ready team definition artifact.
 # This file illustrates planner -> builder -> reviewer as the default everyday team.
-schema_version: "v2"
+schema_version: "v2.1"
 artifact_kind: team_definition
 example: true
 team_id: default-everyday-team
 canonical_name: default-everyday-team
 current_runtime_id: default-everyday-team
 display_name: Default Everyday Team
-migration_status: active
+definition_status: active
+runtime_migration_status: not_started
 migration_notes:
   - Illustrates the D-T8 default everyday team as state-machine-ready YAML.
 purpose: Plan, implement, and review a bounded everyday coding task.
@@ -34,7 +35,10 @@ state_machine:
   states:
     planning:
       type: specialist
-      target: planner
+      target:
+        kind: specialist
+        canonical_id: planner
+        current_runtime_id: planner
       transitions:
         - on: success
           to: building
@@ -46,7 +50,10 @@ state_machine:
           to: failed
     building:
       type: specialist
-      target: builder
+      target:
+        kind: specialist
+        canonical_id: builder
+        current_runtime_id: builder
       transitions:
         - on: success
           to: review
@@ -60,7 +67,10 @@ state_machine:
           to: failed
     review:
       type: specialist
-      target: reviewer
+      target:
+        kind: specialist
+        canonical_id: reviewer
+        current_runtime_id: reviewer
       transitions:
         - on: success
           to: done
@@ -74,12 +84,17 @@ state_machine:
           to: failed
     done:
       type: terminal
-      target: orchestrator
+      target:
+        kind: orchestrator
+        canonical_id: orchestrator
       transitions: []
     failed:
       type: terminal
-      target: orchestrator
+      target:
+        kind: orchestrator
+        canonical_id: orchestrator
       transitions: []
+# Compatibility view only. These entries must match state_machine.states.*.target.
 state_to_specialist_mapping:
   planning: planner
   building: builder

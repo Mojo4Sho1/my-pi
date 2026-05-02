@@ -1,6 +1,6 @@
 # Reusable context bundle template.
 # This is a future per-task assembly input, distinct from static onboarding manifests.
-schema_version: "v2"
+schema_version: "v2.1"
 artifact_kind: context_bundle
 context_bundle_id: example-context-bundle
 description: Example context package for a bounded specialist invocation.
@@ -17,16 +17,21 @@ presentation_order:
   - task_specific_context
   - upstream_artifacts_and_evidence
   - output_template
-authority_order:
-  - orchestrator_task_packet
-  - invocation_addendum
-  - repository_rules
-  - universal_contract
-  - team_node_contract
-  - variant_context
-  - base_specialist_context
-  - output_template
-  - upstream_artifacts_and_evidence
+authority_model:
+  non_overridable_layers:
+    - repository_contract
+    - universal_contract
+    - safety_policy
+    - branch_guard
+  narrowing_layers:
+    - invocation_addendum
+    - orchestrator_task_packet
+    - team_node_contract
+    - variant_contract
+    - base_class_contract
+    - output_template
+    - upstream_artifacts_and_evidence
+  rule: narrowing_layers_may_narrow_but_not_broaden_non_overridable_layers
 sections:
   base_specialist_context:
     source: agents/SPECIALIST_TAXONOMY_AND_CONTEXT_MODEL.md
@@ -83,6 +88,8 @@ contract_layers:
     source: specs/templates/test-artifact.md
     required: true
 validation_requirements:
-  - presentation_order and authority_order must reference declared sections.
+  - presentation_order must reference declared sections.
+  - authority_model must reference declared contract layers or named non-overridable authority categories.
   - required sections must resolve before delegation.
-  - authority_order wins when two sections conflict.
+  - repository and universal constraints are non-overridable.
+  - narrowing layers may narrow scope but must not broaden non-overridable layers.
